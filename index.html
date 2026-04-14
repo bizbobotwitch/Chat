@@ -6,7 +6,6 @@
   <title>Chatty</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     body { font-family: system-ui, sans-serif; }
@@ -24,9 +23,18 @@
 
   <!-- Sidebar -->
   <div id="sidebar" class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col h-full fixed md:static inset-y-0 left-0 transform -translate-x-full md:translate-x-0 sidebar-transition z-40 overflow-y-auto">
+    
     <div class="p-5 border-b border-zinc-800 flex items-center gap-3">
       <div class="w-9 h-9 bg-sky-600 rounded-2xl flex items-center justify-center font-bold text-lg">C</div>
       <h1 class="text-2xl font-semibold">Chatty</h1>
+    </div>
+
+    <!-- Username Setup -->
+    <div class="p-5 border-b border-zinc-800">
+      <input id="usernameInput" type="text" placeholder="Your username" 
+             class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
+      <button onclick="setUsername()" 
+              class="mt-3 w-full bg-sky-600 hover:bg-sky-500 py-3 rounded-2xl text-sm font-medium">Set Username & Continue</button>
     </div>
 
     <!-- Global Chat -->
@@ -35,19 +43,6 @@
       <div>
         <div class="font-semibold">Global Chat</div>
         <div class="text-xs text-emerald-400">Public</div>
-      </div>
-    </div>
-
-    <!-- Auth -->
-    <div id="authSection" class="p-5 border-b border-zinc-800 transition-all duration-300">
-      <div class="space-y-3">
-        <input id="usernameInput" type="text" placeholder="Choose username" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
-        <input id="email" type="email" placeholder="Email" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
-        <input id="password" type="password" placeholder="Password" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
-        <div class="flex gap-2">
-          <button onclick="register()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-3 rounded-2xl text-sm font-medium">Register</button>
-          <button onclick="login()" class="flex-1 bg-sky-600 hover:bg-sky-500 py-3 rounded-2xl text-sm font-medium">Login</button>
-        </div>
       </div>
     </div>
 
@@ -73,7 +68,6 @@
     <div class="mt-auto p-5 border-t border-zinc-800">
       <button onclick="showAdminPanel()" 
               class="w-full py-3 bg-red-600/10 hover:bg-red-600/20 text-red-400 rounded-2xl text-sm font-medium">🔧 Admin Tools</button>
-      <button onclick="logout()" id="logoutBtn" class="hidden w-full mt-3 text-red-400 text-sm py-2">Logout</button>
     </div>
   </div>
 
@@ -144,14 +138,12 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
 const db = firebase.database();
 
-let currentUser = null;
-let currentDisplayName = "";
+let currentUser = null;           // just the username now
 let currentRoom = "global";
 let isAdmin = false;
-const ADMIN_PASSWORD = "112111";
+const ADMIN_PASSWORD = "112111";   // ← Changed as requested
 
 const bannedUsers = new Set();
 const timeouts = new Map();
@@ -168,79 +160,28 @@ function closeSidebarOnMobile() {
   if (window.innerWidth < 768) toggleSidebar();
 }
 
-// ================== AUTH ==================
-function register() {
+// ================== SIMPLE USERNAME SETUP ==================
+function setUsername() {
   const username = document.getElementById("usernameInput").value.trim();
-  const email = document.getElementById("email").value.trim();
-  const pass = document.getElementById("password").value.trim();
-  if (!username || !email || !pass) return alert("Please fill all fields");
-  if (username.length < 3) return alert("Username must be at least 3 characters");
-
-  auth.createUserWithEmailAndPassword(email, pass)
-    .then(cred => {
-      currentUser = cred.user;
-      db.ref("users/" + currentUser.uid).set({
-        email: email,
-        displayName: username,
-        lastSeen: Date.now()
-      }).then(() => {
-        currentDisplayName = username;
-        updateUIAfterLogin();
-      });
-    })
-    .catch(err => alert(err.message));
-}
-
-function login() {
-  const email = document.getElementById("email").value.trim();
-  const pass = document.getElementById("password").value.trim();
-  if (!email || !pass) return alert("Enter email and password");
-
-  auth.signInWithEmailAndPassword(email, pass)
-    .then(cred => {
-      currentUser = cred.user;
-      db.ref("users/" + currentUser.uid).once("value", snap => {
-        const data = snap.val() || {};
-        currentDisplayName = data.displayName || "User";
-        updateUIAfterLogin();
-      });
-    })
-    .catch(err => alert(err.message));
-}
-
-function logout() {
-  auth.signOut().then(() => {
-    currentUser = null;
-    currentDisplayName = "";
-    document.getElementById("authSection").classList.remove("hidden");
-    document.getElementById("logoutBtn").classList.add("hidden");
-    document.getElementById("currentUserDisplay").textContent = "";
-    switchRoom("global");
-  });
-}
-
-function updateUIAfterLogin() {
-  const authSec = document.getElementById("authSection");
-  authSec.style.opacity = "0";
-  setTimeout(() => { authSec.classList.add("hidden"); authSec.style.opacity = "1"; }, 300);
-
-  document.getElementById("logoutBtn").classList.remove("hidden");
-  document.getElementById("currentUserDisplay").textContent = "Logged in as " + currentDisplayName;
-
+  if (!username || username.length < 3) {
+    return alert("Username must be at least 3 characters");
+  }
+  currentUser = username;
+  document.getElementById("currentUserDisplay").textContent = "Logged in as " + currentUser;
   loadServers();
-  loadUsersForAdmin();
+  alert("✅ Welcome, " + username + "!");
 }
 
 // ================== SERVERS & INVITE ==================
 function createServer() {
-  if (!currentUser) return alert("Please log in first");
+  if (!currentUser) return alert("Please set your username first");
   const name = prompt("New server name?");
   if (!name) return;
   const serverId = "server_" + Date.now();
   db.ref("servers/" + serverId).set({
     name: name,
-    owner: currentUser.uid,
-    members: { [currentUser.uid]: true },
+    owner: currentUser,
+    members: { [currentUser]: true },
     createdAt: Date.now()
   }).then(() => {
     switchRoom(serverId);
@@ -255,7 +196,7 @@ function loadServers() {
     snap.forEach(child => {
       const server = child.val();
       const serverId = child.key;
-      const isMember = isAdmin || (currentUser && server.members && server.members[currentUser.uid]);
+      const isMember = isAdmin || (currentUser && server.members && server.members[currentUser]);
       if (isMember) {
         const div = document.createElement("div");
         div.className = "px-5 py-3 hover:bg-zinc-800 rounded-2xl cursor-pointer flex items-center gap-3";
@@ -272,19 +213,9 @@ function inviteToServer() {
   const usernameToInvite = prompt("Enter exact username to invite:");
   if (!usernameToInvite) return;
 
-  db.ref("users").once("value", snap => {
-    let targetUid = null;
-    snap.forEach(child => {
-      if ((child.val().displayName || "").toLowerCase() === usernameToInvite.toLowerCase()) {
-        targetUid = child.key;
-      }
-    });
-    if (!targetUid) return alert("User not found. Make sure the username is exact.");
-
-    db.ref(`servers/${currentRoom}/members/${targetUid}`).set(true)
-      .then(() => alert(`✅ ${usernameToInvite} added to this server!`))
-      .catch(() => alert("Failed to invite user."));
-  });
+  db.ref(`servers/${currentRoom}/members/${usernameToInvite}`).set(true)
+    .then(() => alert(`✅ ${usernameToInvite} added to this server!`))
+    .catch(() => alert("Failed to invite user."));
 }
 
 // ================== CHAT ==================
@@ -302,29 +233,28 @@ function switchRoom(roomId) {
     const server = snap.val();
     if (!server) return alert("Server not found");
 
-    const hasAccess = isAdmin || (currentUser && server.members && server.members[currentUser.uid]);
+    const hasAccess = isAdmin || (currentUser && server.members && server.members[currentUser]);
 
     if (hasAccess) {
       currentRoom = roomId;
       document.getElementById("roomTitle").textContent = server.name;
-      document.getElementById("inviteBtn").classList.toggle("hidden", !(isAdmin || currentUser?.uid === server.owner));
+      document.getElementById("inviteBtn").classList.toggle("hidden", !(isAdmin || currentUser === server.owner));
       document.getElementById("messages").innerHTML = "";
       loadMessages();
     } else {
-      alert("Access denied to this private server.");
+      alert("Access denied.");
       switchRoom("global");
     }
   });
 }
 
 function sendMessage() {
-  if (!currentUser) return alert("Please log in");
+  if (!currentUser) return alert("Please set your username first");
   const text = document.getElementById("messageInput").value.trim();
   if (!text) return;
 
   db.ref("chats/" + currentRoom).push({
-    userId: currentUser.uid,
-    displayName: currentDisplayName,
+    user: currentUser,
     text: text,
     timestamp: Date.now()
   });
@@ -342,14 +272,13 @@ function loadMessages() {
     if (!msg) return;
 
     const time = new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    const isOwn = msg.userId === (currentUser ? currentUser.uid : '');
 
     const div = document.createElement("div");
-    div.className = `flex ${isOwn ? 'justify-end' : 'justify-start'} group`;
+    div.className = `flex ${msg.user === currentUser ? 'justify-end' : 'justify-start'} group`;
 
     div.innerHTML = `
-      <div class="${isOwn ? 'bg-sky-600 text-white' : 'bg-zinc-800'} max-w-[70%] rounded-3xl px-6 py-3.5">
-        <div class="text-xs opacity-75 mb-1">${msg.displayName} • ${time}</div>
+      <div class="${msg.user === currentUser ? 'bg-sky-600 text-white' : 'bg-zinc-800'} max-w-[70%] rounded-3xl px-6 py-3.5">
+        <div class="text-xs opacity-75 mb-1">${msg.user} • ${time}</div>
         <div>${msg.text}</div>
       </div>
     `;
@@ -359,9 +288,7 @@ function loadMessages() {
       delBtn.className = "ml-3 mt-2 text-red-400 text-xl opacity-0 group-hover:opacity-100 transition";
       delBtn.textContent = "🗑";
       delBtn.onclick = () => {
-        if (confirm("Delete this message?")) {
-          db.ref(`chats/${currentRoom}/${snapshot.key}`).remove();
-        }
+        if (confirm("Delete this message?")) db.ref(`chats/${currentRoom}/${snapshot.key}`).remove();
       };
       div.appendChild(delBtn);
     }
@@ -371,9 +298,8 @@ function loadMessages() {
   });
 }
 
-// ================== ADMIN PANEL (fixed) ==================
+// ================== ADMIN ==================
 function showAdminPanel() {
-  if (!currentUser) return alert("Please log in first");
   document.getElementById("overlay").classList.remove("hidden");
   document.getElementById("adminModal").classList.remove("hidden");
   document.getElementById("adminContent").classList.add("hidden");
@@ -385,10 +311,10 @@ function verifyAdmin() {
     isAdmin = true;
     document.getElementById("adminContent").classList.remove("hidden");
     loadUsersForAdmin();
-    loadServers(); // refresh so admin sees all servers
+    loadServers(); // admin sees all servers
     alert("✅ Admin mode activated");
   } else {
-    alert("❌ Wrong admin password");
+    alert("❌ Wrong password");
   }
 }
 
@@ -400,43 +326,39 @@ function hideAdminPanel() {
 function loadUsersForAdmin() {
   const dropdown = document.getElementById("userDropdown");
   dropdown.innerHTML = "<option value=''>Select a user...</option>";
-  db.ref("users").once("value", snap => {
+  // For simplicity we show users from recent messages (you can expand this later)
+  db.ref("chats/global").limitToLast(50).once("value", snap => {
+    const users = new Set();
     snap.forEach(child => {
-      const u = child.val();
+      const u = child.val().user;
+      if (u) users.add(u);
+    });
+    users.forEach(u => {
       const opt = document.createElement("option");
-      opt.value = child.key;
-      opt.textContent = u.displayName || u.email || child.key;
+      opt.value = u;
+      opt.textContent = u;
       dropdown.appendChild(opt);
     });
   });
 }
 
-function adminBan() {
-  const uid = document.getElementById("userDropdown").value;
-  if (uid) { bannedUsers.add(uid); alert("User banned (session)"); }
+function adminBan() { 
+  const user = document.getElementById("userDropdown").value; 
+  if (user) { bannedUsers.add(user); alert(user + " banned"); } 
 }
-
-function adminTimeout() {
-  const uid = document.getElementById("userDropdown").value;
-  if (uid) { timeouts.set(uid, Date.now() + 300000); alert("User timed out for 5 minutes"); }
+function adminTimeout() { 
+  const user = document.getElementById("userDropdown").value; 
+  if (user) { timeouts.set(user, Date.now() + 300000); alert(user + " timed out"); } 
 }
-
-function adminKick() {
-  alert("User kicked (demo)");
-}
-
+function adminKick() { alert("Kicked (demo)"); }
 function adminClearUserMessages() {
-  const uid = document.getElementById("userDropdown").value;
-  if (!uid) return alert("Select a user");
-  if (!confirm("Delete ALL messages from this user in the current room?")) return;
-
+  const user = document.getElementById("userDropdown").value;
+  if (!user) return;
+  if (!confirm("Delete ALL messages from " + user + "?")) return;
   db.ref("chats/" + currentRoom).once("value", snap => {
     snap.forEach(child => {
-      if (child.val().userId === uid) {
-        child.ref.remove();
-      }
+      if (child.val().user === user) child.ref.remove();
     });
-    alert("All messages from the user have been deleted.");
   });
 }
 
@@ -468,17 +390,6 @@ window.onload = () => {
   renderFriends();
   loadServers();
   switchRoom("global");
-
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      db.ref("users/" + user.uid).once("value", snap => {
-        const data = snap.val() || {};
-        currentDisplayName = data.displayName || "User";
-        updateUIAfterLogin();
-      });
-    }
-  });
 };
 </script>
 </body>
