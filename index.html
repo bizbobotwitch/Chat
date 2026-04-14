@@ -34,8 +34,10 @@
     </div>
 
     <!-- Auth Section -->
-    <div id="authSection" class="p-5 border-b border-zinc-800 transition-all">
+    <div id="authSection" class="p-5 border-b border-zinc-800 transition-all duration-300">
       <div class="space-y-3">
+        <input id="usernameInput" type="text" placeholder="Choose username" 
+               class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
         <input id="email" type="email" placeholder="Email" 
                class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
         <input id="password" type="password" placeholder="Password" 
@@ -74,12 +76,12 @@
     </div>
   </div>
 
-  <!-- Overlay for mobile -->
+  <!-- Mobile Overlay -->
   <div id="sidebarOverlay" onclick="toggleSidebar()" 
        class="hidden md:hidden fixed inset-0 bg-black/60 z-30"></div>
 
-  <!-- Main Chat Area -->
-  <div class="flex-1 flex flex-col md:ml-0" style="margin-left: 0;">
+  <!-- Main Chat -->
+  <div class="flex-1 flex flex-col">
     <div class="h-16 bg-zinc-900 border-b border-zinc-800 flex items-center px-6 md:px-8 justify-between">
       <div id="roomTitle" class="font-semibold text-xl">Global Chat</div>
       <div id="currentUserDisplay" class="text-sm text-zinc-400"></div>
@@ -98,7 +100,7 @@
   </div>
 </div>
 
-<!-- Admin Modal (unchanged from previous) -->
+<!-- Admin Modal -->
 <div id="overlay" class="hidden fixed inset-0 bg-black/70 z-50"></div>
 <div id="adminModal" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-lg p-8 z-50">
   <h2 class="text-2xl font-semibold mb-6">Admin Panel</h2>
@@ -113,8 +115,7 @@
 
   <div id="adminContent" class="hidden">
     <label class="block text-sm text-zinc-400 mb-2">Select User</label>
-    <select id="userDropdown" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 text-sm focus:outline-none">
-    </select>
+    <select id="userDropdown" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 text-sm focus:outline-none"></select>
 
     <div class="mt-6 grid grid-cols-2 gap-3">
       <button onclick="adminBan()" class="py-3 bg-red-600 hover:bg-red-700 rounded-2xl text-sm">Ban</button>
@@ -144,6 +145,7 @@ const auth = firebase.auth();
 const db = firebase.database();
 
 let currentUser = null;
+let currentDisplayName = "";
 let currentRoom = "global";
 let isAdmin = false;
 const ADMIN_PASSWORD = "3717";
@@ -151,37 +153,38 @@ const ADMIN_PASSWORD = "3717";
 const bannedUsers = new Set();
 const timeouts = new Map();
 
-// Mobile sidebar functions
+// Mobile sidebar
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
   const overlay = document.getElementById("sidebarOverlay");
-  if (sidebar.classList.contains("-translate-x-full")) {
-    sidebar.classList.remove("-translate-x-full");
-    overlay.classList.remove("hidden");
-  } else {
-    sidebar.classList.add("-translate-x-full");
-    overlay.classList.add("hidden");
-  }
+  sidebar.classList.toggle("-translate-x-full");
+  overlay.classList.toggle("hidden");
 }
 
-// Close sidebar when clicking a server/friend on mobile
 function closeSidebarOnMobile() {
-  if (window.innerWidth < 768) {
-    toggleSidebar();
-  }
+  if (window.innerWidth < 768) toggleSidebar();
 }
 
 // ================== AUTH ==================
 function register() {
+  const username = document.getElementById("usernameInput").value.trim();
   const email = document.getElementById("email").value.trim();
   const pass = document.getElementById("password").value.trim();
-  if (!email || !pass) return alert("Enter email and password");
+
+  if (!username || !email || !pass) return alert("Please fill all fields");
+  if (username.length < 3) return alert("Username must be at least 3 characters");
 
   auth.createUserWithEmailAndPassword(email, pass)
     .then(cred => {
       currentUser = cred.user;
-      saveUserProfile();
-      updateUIAfterLogin();
+      db.ref("users/" + currentUser.uid).set({
+        email: email,
+        displayName: username,
+        lastSeen: Date.now()
+      }).then(() => {
+        currentDisplayName = username;
+        updateUIAfterLogin();
+      });
     })
     .catch(err => alert(err.message));
 }
@@ -194,7 +197,11 @@ function login() {
   auth.signInWithEmailAndPassword(email, pass)
     .then(cred => {
       currentUser = cred.user;
-      updateUIAfterLogin();
+      db.ref("users/" + currentUser.uid).once("value", snap => {
+        const data = snap.val() || {};
+        currentDisplayName = data.displayName || "User";
+        updateUIAfterLogin();
+      });
     })
     .catch(err => alert(err.message));
 }
@@ -202,6 +209,7 @@ function login() {
 function logout() {
   auth.signOut().then(() => {
     currentUser = null;
+    currentDisplayName = "";
     document.getElementById("authSection").classList.remove("hidden");
     document.getElementById("logoutBtn").classList.add("hidden");
     document.getElementById("currentUserDisplay").textContent = "";
@@ -209,44 +217,26 @@ function logout() {
   });
 }
 
-function saveUserProfile() {
-  if (!currentUser) return;
-  db.ref("users/" + currentUser.uid).set({
-    email: currentUser.email,
-    displayName: currentUser.email ? currentUser.email.split("@")[0] : "User",
-    lastSeen: Date.now()
-  });
-}
-
 function updateUIAfterLogin() {
-  // Smooth hide auth section
   const authSec = document.getElementById("authSection");
   authSec.style.opacity = "0";
-  setTimeout(() => {
-    authSec.classList.add("hidden");
-    authSec.style.opacity = "1";
-  }, 300);
+  setTimeout(() => { authSec.classList.add("hidden"); authSec.style.opacity = "1"; }, 300);
 
   document.getElementById("logoutBtn").classList.remove("hidden");
-  document.getElementById("currentUserDisplay").textContent = "Logged in as " + (currentUser.email || "User");
+  document.getElementById("currentUserDisplay").textContent = "Logged in as " + currentDisplayName;
+
   loadServers();
   loadUsersForAdmin();
 }
 
-// ================== SERVERS, CHAT, ADMIN (same as before) ==================
+// ================== SERVERS & CHAT (with fixed delete) ==================
 function createServer() {
   if (!currentUser) return alert("Please log in first");
   const name = prompt("New server name?");
   if (!name) return;
   const serverId = "server_" + Date.now();
-  db.ref("servers/" + serverId).set({
-    name: name,
-    owner: currentUser.uid,
-    createdAt: Date.now()
-  }).then(() => {
-    switchRoom(serverId);
-    closeSidebarOnMobile();
-  });
+  db.ref("servers/" + serverId).set({ name: name, owner: currentUser.uid, createdAt: Date.now() })
+    .then(() => { switchRoom(serverId); closeSidebarOnMobile(); });
 }
 
 function loadServers() {
@@ -275,12 +265,14 @@ function sendMessage() {
   if (!currentUser) return alert("Please log in");
   const text = document.getElementById("messageInput").value.trim();
   if (!text) return;
+
   db.ref("chats/" + currentRoom).push({
     userId: currentUser.uid,
-    displayName: currentUser.email ? currentUser.email.split("@")[0] : "User",
+    displayName: currentDisplayName,
     text: text,
     timestamp: Date.now()
   });
+
   document.getElementById("messageInput").value = "";
 }
 
@@ -288,23 +280,42 @@ function loadMessages() {
   const container = document.getElementById("messages");
   const ref = db.ref("chats/" + currentRoom);
   ref.off();
-  ref.on("child_added", snap => {
-    const msg = snap.val();
+
+  ref.on("child_added", (snapshot) => {
+    const msg = snapshot.val();
+    if (!msg) return;
+
     const time = new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    const div = document.createElement("div");
-    div.className = `flex ${msg.userId === (currentUser ? currentUser.uid : '') ? 'justify-end' : 'justify-start'}`;
-    div.innerHTML = `
-      <div class="${msg.userId === (currentUser ? currentUser.uid : '') ? 'bg-sky-600 text-white' : 'bg-zinc-800'} max-w-[70%] rounded-3xl px-6 py-3.5">
+
+    const messageDiv = document.createElement("div");
+    messageDiv.className = `flex ${msg.userId === (currentUser ? currentUser.uid : '') ? 'justify-end' : 'justify-start'} group`;
+
+    messageDiv.innerHTML = `
+      <div class="${msg.userId === (currentUser ? currentUser.uid : '') ? 'bg-sky-600 text-white' : 'bg-zinc-800'} max-w-[70%] rounded-3xl px-6 py-3.5 relative">
         <div class="text-xs opacity-75 mb-1">${msg.displayName} • ${time}</div>
         <div>${msg.text}</div>
       </div>
     `;
-    container.appendChild(div);
-    div.scrollIntoView({behavior: "smooth"});
+
+    // Admin delete button (fixed)
+    if (isAdmin) {
+      const delBtn = document.createElement("button");
+      delBtn.className = "ml-3 mt-2 text-red-400 text-xl opacity-0 group-hover:opacity-100 transition";
+      delBtn.textContent = "🗑";
+      delBtn.onclick = () => {
+        if (confirm("Delete this message?")) {
+          db.ref("chats/" + currentRoom + "/" + snapshot.key).remove();
+        }
+      };
+      messageDiv.appendChild(delBtn);
+    }
+
+    container.appendChild(messageDiv);
+    messageDiv.scrollIntoView({ behavior: "smooth" });
   });
 }
 
-// Admin functions (same as previous version)
+// ================== ADMIN ==================
 function showAdminPanel() {
   if (!currentUser) return alert("Login first");
   document.getElementById("overlay").classList.remove("hidden");
@@ -378,15 +389,11 @@ window.onload = () => {
   auth.onAuthStateChanged(user => {
     if (user) {
       currentUser = user;
-      updateUIAfterLogin();
-    }
-  });
-
-  // Close mobile sidebar when resizing to desktop
-  window.addEventListener('resize', () => {
-    if (window.innerWidth >= 768) {
-      document.getElementById("sidebar").classList.remove("-translate-x-full");
-      document.getElementById("sidebarOverlay").classList.add("hidden");
+      db.ref("users/" + user.uid).once("value", snap => {
+        const data = snap.val() || {};
+        currentDisplayName = data.displayName || "User";
+        updateUIAfterLogin();
+      });
     }
   });
 };
