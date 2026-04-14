@@ -12,20 +12,29 @@
     body { font-family: system-ui, sans-serif; }
     .messages::-webkit-scrollbar { width: 6px; }
     .messages::-webkit-scrollbar-thumb { background: #52525b; border-radius: 20px; }
+    .sidebar-transition { transition: all 0.3s ease-in-out; }
   </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100">
 
-<div class="flex h-screen overflow-hidden">
+<div class="flex h-screen overflow-hidden relative">
+
+  <!-- Mobile Hamburger -->
+  <button id="mobileMenuBtn" onclick="toggleSidebar()" 
+          class="md:hidden fixed top-4 left-4 z-50 bg-zinc-900 p-3 rounded-2xl border border-zinc-700">
+    ☰
+  </button>
+
   <!-- Sidebar -->
-  <div class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col">
+  <div id="sidebar" class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col h-full fixed md:static inset-y-0 left-0 transform -translate-x-full md:translate-x-0 sidebar-transition z-40 overflow-y-auto">
+    
     <div class="p-5 border-b border-zinc-800 flex items-center gap-3">
       <div class="w-9 h-9 bg-sky-600 rounded-2xl flex items-center justify-center font-bold text-lg">C</div>
       <h1 class="text-2xl font-semibold">Chatty</h1>
     </div>
 
     <!-- Auth Section -->
-    <div id="authSection" class="p-5 border-b border-zinc-800">
+    <div id="authSection" class="p-5 border-b border-zinc-800 transition-all">
       <div class="space-y-3">
         <input id="email" type="email" placeholder="Email" 
                class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
@@ -35,7 +44,6 @@
           <button onclick="register()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-3 rounded-2xl text-sm font-medium">Register</button>
           <button onclick="login()" class="flex-1 bg-sky-600 hover:bg-sky-500 py-3 rounded-2xl text-sm font-medium">Login</button>
         </div>
-        <button onclick="logout()" id="logoutBtn" class="hidden w-full text-red-400 text-sm py-2">Logout</button>
       </div>
     </div>
 
@@ -62,30 +70,35 @@
     <div class="mt-auto p-5 border-t border-zinc-800">
       <button onclick="showAdminPanel()" 
               class="w-full py-3 bg-red-600/10 hover:bg-red-600/20 text-red-400 rounded-2xl text-sm font-medium">Admin Tools</button>
+      <button onclick="logout()" id="logoutBtn" class="hidden w-full mt-3 text-red-400 text-sm py-2">Logout</button>
     </div>
   </div>
 
-  <!-- Chat Area -->
-  <div class="flex-1 flex flex-col">
-    <div class="h-16 bg-zinc-900 border-b border-zinc-800 flex items-center px-8 justify-between">
+  <!-- Overlay for mobile -->
+  <div id="sidebarOverlay" onclick="toggleSidebar()" 
+       class="hidden md:hidden fixed inset-0 bg-black/60 z-30"></div>
+
+  <!-- Main Chat Area -->
+  <div class="flex-1 flex flex-col md:ml-0" style="margin-left: 0;">
+    <div class="h-16 bg-zinc-900 border-b border-zinc-800 flex items-center px-6 md:px-8 justify-between">
       <div id="roomTitle" class="font-semibold text-xl">Global Chat</div>
       <div id="currentUserDisplay" class="text-sm text-zinc-400"></div>
     </div>
 
-    <div id="messages" class="flex-1 overflow-y-auto p-8 space-y-6 messages bg-zinc-950"></div>
+    <div id="messages" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 messages bg-zinc-950"></div>
 
     <div class="p-6 bg-zinc-900 border-t border-zinc-800">
       <div class="flex gap-3">
         <input id="messageInput" type="text" placeholder="Type a message..." 
                class="flex-1 bg-zinc-800 border border-zinc-700 rounded-3xl px-6 py-4 focus:outline-none focus:border-sky-500"
                onkeypress="if(event.key==='Enter') sendMessage()">
-        <button onclick="sendMessage()" class="bg-sky-600 hover:bg-sky-500 px-10 rounded-3xl font-medium">Send</button>
+        <button onclick="sendMessage()" class="bg-sky-600 hover:bg-sky-500 px-8 md:px-10 rounded-3xl font-medium">Send</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Admin Modal -->
+<!-- Admin Modal (unchanged from previous) -->
 <div id="overlay" class="hidden fixed inset-0 bg-black/70 z-50"></div>
 <div id="adminModal" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-lg p-8 z-50">
   <h2 class="text-2xl font-semibold mb-6">Admin Panel</h2>
@@ -101,14 +114,13 @@
   <div id="adminContent" class="hidden">
     <label class="block text-sm text-zinc-400 mb-2">Select User</label>
     <select id="userDropdown" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 text-sm focus:outline-none">
-      <!-- populated dynamically -->
     </select>
 
     <div class="mt-6 grid grid-cols-2 gap-3">
-      <button onclick="adminBan()" class="py-3 bg-red-600 hover:bg-red-700 rounded-2xl text-sm">Ban User</button>
+      <button onclick="adminBan()" class="py-3 bg-red-600 hover:bg-red-700 rounded-2xl text-sm">Ban</button>
       <button onclick="adminTimeout()" class="py-3 bg-amber-600 hover:bg-amber-700 rounded-2xl text-sm">Timeout 5min</button>
       <button onclick="adminKick()" class="py-3 bg-zinc-700 hover:bg-zinc-600 rounded-2xl text-sm">Kick</button>
-      <button onclick="adminClearUserMessages()" class="py-3 bg-zinc-700 hover:bg-zinc-600 rounded-2xl text-sm">Clear Messages</button>
+      <button onclick="adminClearUserMessages()" class="py-3 bg-zinc-700 hover:bg-zinc-600 rounded-2xl text-sm">Clear Msgs</button>
     </div>
   </div>
 
@@ -139,18 +151,37 @@ const ADMIN_PASSWORD = "3717";
 const bannedUsers = new Set();
 const timeouts = new Map();
 
-// ================== AUTH FUNCTIONS ==================
+// Mobile sidebar functions
+function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  if (sidebar.classList.contains("-translate-x-full")) {
+    sidebar.classList.remove("-translate-x-full");
+    overlay.classList.remove("hidden");
+  } else {
+    sidebar.classList.add("-translate-x-full");
+    overlay.classList.add("hidden");
+  }
+}
+
+// Close sidebar when clicking a server/friend on mobile
+function closeSidebarOnMobile() {
+  if (window.innerWidth < 768) {
+    toggleSidebar();
+  }
+}
+
+// ================== AUTH ==================
 function register() {
   const email = document.getElementById("email").value.trim();
   const pass = document.getElementById("password").value.trim();
   if (!email || !pass) return alert("Enter email and password");
 
   auth.createUserWithEmailAndPassword(email, pass)
-    .then(userCred => {
-      currentUser = userCred.user;
+    .then(cred => {
+      currentUser = cred.user;
       saveUserProfile();
       updateUIAfterLogin();
-      alert("Account created successfully!");
     })
     .catch(err => alert(err.message));
 }
@@ -161,8 +192,8 @@ function login() {
   if (!email || !pass) return alert("Enter email and password");
 
   auth.signInWithEmailAndPassword(email, pass)
-    .then(userCred => {
-      currentUser = userCred.user;
+    .then(cred => {
+      currentUser = cred.user;
       updateUIAfterLogin();
     })
     .catch(err => alert(err.message));
@@ -182,25 +213,31 @@ function saveUserProfile() {
   if (!currentUser) return;
   db.ref("users/" + currentUser.uid).set({
     email: currentUser.email,
-    displayName: currentUser.email.split("@")[0],
+    displayName: currentUser.email ? currentUser.email.split("@")[0] : "User",
     lastSeen: Date.now()
   });
 }
 
 function updateUIAfterLogin() {
-  document.getElementById("authSection").classList.add("hidden");
+  // Smooth hide auth section
+  const authSec = document.getElementById("authSection");
+  authSec.style.opacity = "0";
+  setTimeout(() => {
+    authSec.classList.add("hidden");
+    authSec.style.opacity = "1";
+  }, 300);
+
   document.getElementById("logoutBtn").classList.remove("hidden");
-  document.getElementById("currentUserDisplay").textContent = "Logged in as " + (currentUser.email || currentUser.uid);
+  document.getElementById("currentUserDisplay").textContent = "Logged in as " + (currentUser.email || "User");
   loadServers();
   loadUsersForAdmin();
 }
 
-// ================== SERVERS ==================
+// ================== SERVERS, CHAT, ADMIN (same as before) ==================
 function createServer() {
   if (!currentUser) return alert("Please log in first");
-  const name = prompt("Server name?");
+  const name = prompt("New server name?");
   if (!name) return;
-
   const serverId = "server_" + Date.now();
   db.ref("servers/" + serverId).set({
     name: name,
@@ -208,7 +245,7 @@ function createServer() {
     createdAt: Date.now()
   }).then(() => {
     switchRoom(serverId);
-    alert("Server created: " + name);
+    closeSidebarOnMobile();
   });
 }
 
@@ -221,13 +258,12 @@ function loadServers() {
       const div = document.createElement("div");
       div.className = "px-5 py-3 hover:bg-zinc-800 rounded-2xl cursor-pointer flex items-center gap-3";
       div.innerHTML = `<span class="text-xl">📡</span><span>${s.name}</span>`;
-      div.onclick = () => switchRoom(child.key);
+      div.onclick = () => { switchRoom(child.key); closeSidebarOnMobile(); };
       list.appendChild(div);
     });
   });
 }
 
-// ================== CHAT FUNCTIONS ==================
 function switchRoom(roomId) {
   currentRoom = roomId;
   document.getElementById("roomTitle").textContent = roomId === "global" ? "Global Chat" : "Server Chat";
@@ -236,34 +272,29 @@ function switchRoom(roomId) {
 }
 
 function sendMessage() {
-  if (!currentUser) return alert("Please log in to chat");
-  const input = document.getElementById("messageInput");
-  const text = input.value.trim();
+  if (!currentUser) return alert("Please log in");
+  const text = document.getElementById("messageInput").value.trim();
   if (!text) return;
-
   db.ref("chats/" + currentRoom).push({
     userId: currentUser.uid,
     displayName: currentUser.email ? currentUser.email.split("@")[0] : "User",
     text: text,
     timestamp: Date.now()
   });
-
-  input.value = "";
+  document.getElementById("messageInput").value = "";
 }
 
 function loadMessages() {
   const container = document.getElementById("messages");
   const ref = db.ref("chats/" + currentRoom);
-  ref.off(); // prevent duplicates
-
+  ref.off();
   ref.on("child_added", snap => {
     const msg = snap.val();
     const time = new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-
     const div = document.createElement("div");
     div.className = `flex ${msg.userId === (currentUser ? currentUser.uid : '') ? 'justify-end' : 'justify-start'}`;
     div.innerHTML = `
-      <div class="${msg.userId === (currentUser ? currentUser.uid : '') ? 'bg-sky-600' : 'bg-zinc-800'} max-w-[70%] rounded-3xl px-6 py-3.5">
+      <div class="${msg.userId === (currentUser ? currentUser.uid : '') ? 'bg-sky-600 text-white' : 'bg-zinc-800'} max-w-[70%] rounded-3xl px-6 py-3.5">
         <div class="text-xs opacity-75 mb-1">${msg.displayName} • ${time}</div>
         <div>${msg.text}</div>
       </div>
@@ -273,7 +304,7 @@ function loadMessages() {
   });
 }
 
-// ================== ADMIN ==================
+// Admin functions (same as previous version)
 function showAdminPanel() {
   if (!currentUser) return alert("Login first");
   document.getElementById("overlay").classList.remove("hidden");
@@ -299,7 +330,6 @@ function hideAdminPanel() {
 function loadUsersForAdmin() {
   const dropdown = document.getElementById("userDropdown");
   dropdown.innerHTML = "<option value=''>Select a user...</option>";
-  
   db.ref("users").once("value", snap => {
     snap.forEach(child => {
       const u = child.val();
@@ -311,29 +341,12 @@ function loadUsersForAdmin() {
   });
 }
 
-function adminBan() {
-  const uid = document.getElementById("userDropdown").value;
-  if (!uid) return;
-  bannedUsers.add(uid);
-  alert("User banned (in-memory for this session)");
-}
+function adminBan() { const uid = document.getElementById("userDropdown").value; if (uid) { bannedUsers.add(uid); alert("User banned"); } }
+function adminTimeout() { const uid = document.getElementById("userDropdown").value; if (uid) { timeouts.set(uid, Date.now() + 300000); alert("Timed out"); } }
+function adminKick() { alert("Kicked (demo)"); }
+function adminClearUserMessages() { alert("Messages cleared (demo)"); }
 
-function adminTimeout() {
-  const uid = document.getElementById("userDropdown").value;
-  if (!uid) return;
-  timeouts.set(uid, Date.now() + 5*60*1000);
-  alert("User timed out for 5 minutes");
-}
-
-function adminKick() {
-  alert("User kicked from current room (demo)");
-}
-
-function adminClearUserMessages() {
-  alert("User messages cleared (demo - not fully implemented in this version)");
-}
-
-// Friends (simple local)
+// Friends
 function addFriend() {
   const name = document.getElementById("addFriend").value.trim();
   if (!name) return;
@@ -351,7 +364,7 @@ function renderFriends() {
     const div = document.createElement("div");
     div.className = "px-5 py-3 hover:bg-zinc-800 rounded-2xl cursor-pointer";
     div.textContent = f;
-    div.onclick = () => switchRoom("private_" + f); // simple private room
+    div.onclick = () => { switchRoom("private_" + f); closeSidebarOnMobile(); };
     list.appendChild(div);
   });
 }
@@ -362,11 +375,18 @@ window.onload = () => {
   loadServers();
   switchRoom("global");
 
-  // Listen for auth state
   auth.onAuthStateChanged(user => {
     if (user) {
       currentUser = user;
       updateUIAfterLogin();
+    }
+  });
+
+  // Close mobile sidebar when resizing to desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768) {
+      document.getElementById("sidebar").classList.remove("-translate-x-full");
+      document.getElementById("sidebarOverlay").classList.add("hidden");
     }
   });
 };
