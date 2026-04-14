@@ -20,7 +20,7 @@
 <div class="flex h-screen overflow-hidden relative">
 
   <!-- Mobile Hamburger -->
-  <button id="mobileMenuBtn" onclick="toggleSidebar()" 
+  <button onclick="toggleSidebar()" 
           class="md:hidden fixed top-4 left-4 z-50 bg-zinc-900 p-3 rounded-2xl border border-zinc-700">
     ☰
   </button>
@@ -33,7 +33,7 @@
       <h1 class="text-2xl font-semibold">Chatty</h1>
     </div>
 
-    <!-- Auth Section -->
+    <!-- Auth -->
     <div id="authSection" class="p-5 border-b border-zinc-800 transition-all duration-300">
       <div class="space-y-3">
         <input id="usernameInput" type="text" placeholder="Choose username" 
@@ -170,7 +170,6 @@ function register() {
   const username = document.getElementById("usernameInput").value.trim();
   const email = document.getElementById("email").value.trim();
   const pass = document.getElementById("password").value.trim();
-
   if (!username || !email || !pass) return alert("Please fill all fields");
   if (username.length < 3) return alert("Username must be at least 3 characters");
 
@@ -229,7 +228,7 @@ function updateUIAfterLogin() {
   loadUsersForAdmin();
 }
 
-// ================== SERVERS & CHAT (with fixed delete) ==================
+// ================== SERVERS ==================
 function createServer() {
   if (!currentUser) return alert("Please log in first");
   const name = prompt("New server name?");
@@ -254,6 +253,7 @@ function loadServers() {
   });
 }
 
+// ================== CHAT WITH INDIVIDUAL DELETE ==================
 function switchRoom(roomId) {
   currentRoom = roomId;
   document.getElementById("roomTitle").textContent = roomId === "global" ? "Global Chat" : "Server Chat";
@@ -288,23 +288,27 @@ function loadMessages() {
     const time = new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
     const messageDiv = document.createElement("div");
-    messageDiv.className = `flex ${msg.userId === (currentUser ? currentUser.uid : '') ? 'justify-end' : 'justify-start'} group`;
+    messageDiv.className = `flex ${msg.userId === (currentUser?.uid || '') ? 'justify-end' : 'justify-start'} group`;
 
     messageDiv.innerHTML = `
-      <div class="${msg.userId === (currentUser ? currentUser.uid : '') ? 'bg-sky-600 text-white' : 'bg-zinc-800'} max-w-[70%] rounded-3xl px-6 py-3.5 relative">
+      <div class="${msg.userId === (currentUser?.uid || '') ? 'bg-sky-600 text-white' : 'bg-zinc-800'} 
+                  max-w-[70%] rounded-3xl px-6 py-3.5 relative">
         <div class="text-xs opacity-75 mb-1">${msg.displayName} • ${time}</div>
-        <div>${msg.text}</div>
+        <div class="text-[15px]">${msg.text}</div>
       </div>
     `;
 
-    // Admin delete button (fixed)
+    // Individual delete button - only for admin
     if (isAdmin) {
       const delBtn = document.createElement("button");
-      delBtn.className = "ml-3 mt-2 text-red-400 text-xl opacity-0 group-hover:opacity-100 transition";
+      delBtn.className = "ml-3 mt-1 text-red-400 text-xl opacity-0 group-hover:opacity-100 transition hover:scale-110";
       delBtn.textContent = "🗑";
-      delBtn.onclick = () => {
-        if (confirm("Delete this message?")) {
-          db.ref("chats/" + currentRoom + "/" + snapshot.key).remove();
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm("Delete this message permanently?")) {
+          db.ref(`chats/${currentRoom}/${snapshot.key}`).remove()
+            .then(() => console.log("Message deleted"))
+            .catch(err => console.error("Delete failed:", err));
         }
       };
       messageDiv.appendChild(delBtn);
@@ -328,6 +332,7 @@ function verifyAdmin() {
     isAdmin = true;
     document.getElementById("adminContent").classList.remove("hidden");
     loadUsersForAdmin();
+    alert("Admin mode activated - hover over messages to see delete buttons");
   } else {
     alert("Wrong password");
   }
