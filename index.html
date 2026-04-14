@@ -13,28 +13,45 @@
     .messages::-webkit-scrollbar { width: 6px; }
     .messages::-webkit-scrollbar-thumb { background: #52525b; border-radius: 20px; }
     .sidebar-transition { transition: all 0.3s ease-in-out; }
-    .reply { border-left: 3px solid #64748b; padding-left: 12px; }
   </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100">
 
 <div class="flex h-screen overflow-hidden relative">
+
   <!-- Mobile Hamburger -->
-  <button onclick="toggleSidebar()" class="md:hidden fixed top-4 left-4 z-50 bg-zinc-900 p-3 rounded-2xl border border-zinc-700">☰</button>
+  <button onclick="toggleSidebar()" 
+          class="md:hidden fixed top-4 left-4 z-50 bg-zinc-900 p-3 rounded-2xl border border-zinc-700">
+    ☰
+  </button>
 
   <!-- Sidebar -->
   <div id="sidebar" class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col h-full fixed md:static inset-y-0 left-0 transform -translate-x-full md:translate-x-0 sidebar-transition z-40 overflow-y-auto">
+    
     <div class="p-5 border-b border-zinc-800 flex items-center gap-3">
       <div class="w-9 h-9 bg-sky-600 rounded-2xl flex items-center justify-center font-bold text-lg">C</div>
       <h1 class="text-2xl font-semibold">Chatty</h1>
     </div>
 
+    <!-- Global Chat (always visible) -->
+    <div onclick="switchRoom('global')" 
+         class="mx-5 mt-4 px-5 py-4 hover:bg-zinc-800 rounded-2xl cursor-pointer flex items-center gap-4 bg-emerald-950">
+      <span class="text-3xl">🌐</span>
+      <div>
+        <div class="font-semibold">Global Chat</div>
+        <div class="text-xs text-emerald-400">Public • Everyone</div>
+      </div>
+    </div>
+
     <!-- Auth -->
     <div id="authSection" class="p-5 border-b border-zinc-800 transition-all duration-300">
       <div class="space-y-3">
-        <input id="usernameInput" type="text" placeholder="Choose username" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
-        <input id="email" type="email" placeholder="Email" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
-        <input id="password" type="password" placeholder="Password" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
+        <input id="usernameInput" type="text" placeholder="Choose username" 
+               class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
+        <input id="email" type="email" placeholder="Email" 
+               class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
+        <input id="password" type="password" placeholder="Password" 
+               class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500">
         <div class="flex gap-2">
           <button onclick="register()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-3 rounded-2xl text-sm font-medium">Register</button>
           <button onclick="login()" class="flex-1 bg-sky-600 hover:bg-sky-500 py-3 rounded-2xl text-sm font-medium">Login</button>
@@ -45,7 +62,7 @@
     <!-- Servers -->
     <div class="p-5">
       <div class="flex justify-between items-center mb-3">
-        <span class="text-xs uppercase tracking-widest text-zinc-500">Servers</span>
+        <span class="text-xs uppercase tracking-widest text-zinc-500">Your Servers</span>
         <button onclick="createServer()" class="text-sky-400 text-xl leading-none">+</button>
       </div>
       <div id="serversList" class="space-y-1"></div>
@@ -55,19 +72,23 @@
     <div class="px-5 mt-4">
       <div class="text-xs uppercase tracking-widest text-zinc-500 mb-3">Friends</div>
       <div class="flex gap-2">
-        <input id="addFriend" placeholder="Add friend" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm">
+        <input id="addFriend" placeholder="Add friend" 
+               class="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm">
         <button onclick="addFriend()" class="bg-zinc-700 hover:bg-zinc-600 px-5 rounded-2xl">Add</button>
       </div>
       <div id="friendsList" class="mt-4 space-y-1"></div>
     </div>
 
     <div class="mt-auto p-5 border-t border-zinc-800">
-      <button onclick="showAdminPanel()" class="w-full py-3 bg-red-600/10 hover:bg-red-600/20 text-red-400 rounded-2xl text-sm font-medium">Admin Tools</button>
+      <button onclick="showAdminPanel()" 
+              class="w-full py-3 bg-red-600/10 hover:bg-red-600/20 text-red-400 rounded-2xl text-sm font-medium">Admin Tools</button>
       <button onclick="logout()" id="logoutBtn" class="hidden w-full mt-3 text-red-400 text-sm py-2">Logout</button>
     </div>
   </div>
 
-  <div id="sidebarOverlay" onclick="toggleSidebar()" class="hidden md:hidden fixed inset-0 bg-black/60 z-30"></div>
+  <!-- Mobile Overlay -->
+  <div id="sidebarOverlay" onclick="toggleSidebar()" 
+       class="hidden md:hidden fixed inset-0 bg-black/60 z-30"></div>
 
   <!-- Main Chat -->
   <div class="flex-1 flex flex-col">
@@ -76,7 +97,7 @@
       <div id="currentUserDisplay" class="text-sm text-zinc-400"></div>
     </div>
 
-    <div id="messages" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 messages bg-zinc-950"></div>
+    <div id="messages" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 messages bg-zinc-950"></div>
 
     <div class="p-6 bg-zinc-900 border-t border-zinc-800">
       <div class="flex gap-3">
@@ -96,7 +117,8 @@
   
   <div class="mb-6">
     <p class="text-sm text-zinc-400 mb-2">Admin Password</p>
-    <input id="adminPass" type="password" placeholder="••••••••" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none focus:border-red-500">
+    <input id="adminPass" type="password" placeholder="••••••••" 
+           class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none focus:border-red-500">
   </div>
 
   <button onclick="verifyAdmin()" class="w-full py-4 bg-red-600 hover:bg-red-500 rounded-2xl font-semibold mb-8">Unlock Admin</button>
@@ -216,51 +238,103 @@ function updateUIAfterLogin() {
   loadUsersForAdmin();
 }
 
-// ================== SERVERS ==================
+// ================== SERVERS (now private) ==================
 function createServer() {
   if (!currentUser) return alert("Please log in first");
   const name = prompt("New server name?");
   if (!name) return;
+
   const serverId = "server_" + Date.now();
-  db.ref("servers/" + serverId).set({ name: name, owner: currentUser.uid, createdAt: Date.now() })
-    .then(() => { switchRoom(serverId); closeSidebarOnMobile(); });
+  db.ref("servers/" + serverId).set({
+    name: name,
+    owner: currentUser.uid,
+    members: { [currentUser.uid]: true },   // only creator + invited people
+    createdAt: Date.now()
+  }).then(() => {
+    switchRoom(serverId);
+    closeSidebarOnMobile();
+  });
 }
 
 function loadServers() {
   const list = document.getElementById("serversList");
   list.innerHTML = "";
+
   db.ref("servers").once("value", snap => {
     snap.forEach(child => {
-      const s = child.val();
-      const div = document.createElement("div");
-      div.className = "px-5 py-3 hover:bg-zinc-800 rounded-2xl cursor-pointer flex items-center gap-3";
-      div.innerHTML = `<span class="text-xl">📡</span><span>${s.name}</span>`;
-      div.onclick = () => { switchRoom(child.key); closeSidebarOnMobile(); };
-      list.appendChild(div);
+      const server = child.val();
+      const serverId = child.key;
+      const isMember = isAdmin || (currentUser && server.members && server.members[currentUser.uid]);
+
+      if (isMember) {
+        const div = document.createElement("div");
+        div.className = "px-5 py-3 hover:bg-zinc-800 rounded-2xl cursor-pointer flex items-center gap-3";
+        div.innerHTML = `<span class="text-xl">🔒</span><span>${server.name}</span>`;
+        div.onclick = () => { switchRoom(serverId); closeSidebarOnMobile(); };
+        list.appendChild(div);
+      }
     });
   });
 }
 
-// ================== CHAT WITH REACTIONS + REPLIES + INDIVIDUAL DELETE ==================
-function switchRoom(roomId) {
-  currentRoom = roomId;
-  document.getElementById("roomTitle").textContent = roomId === "global" ? "Global Chat" : "Server Chat";
-  document.getElementById("messages").innerHTML = "";
-  loadMessages();
+// Add member to current server (only owner or admin)
+function addMemberToCurrentServer() {
+  if (!currentRoom.startsWith("server_")) return alert("You must be inside a server");
+  const usernameToAdd = prompt("Enter username to invite to this server:");
+  if (!usernameToAdd) return;
+
+  db.ref("users").once("value", snap => {
+    let targetUid = null;
+    snap.forEach(child => {
+      if (child.val().displayName === usernameToAdd) targetUid = child.key;
+    });
+
+    if (!targetUid) return alert("User not found. They must register first.");
+
+    db.ref("servers/" + currentRoom + "/members/" + targetUid).set(true)
+      .then(() => alert(usernameToAdd + " has been added to this server."));
+  });
 }
 
-function sendMessage(replyTo = null) {
+// ================== CHAT & ROOM SWITCHING (with access control) ==================
+function switchRoom(roomId) {
+  if (roomId === "global") {
+    currentRoom = "global";
+    document.getElementById("roomTitle").textContent = "Global Chat";
+    document.getElementById("messages").innerHTML = "";
+    loadMessages();
+    return;
+  }
+
+  // Check access for private servers
+  db.ref("servers/" + roomId).once("value", snap => {
+    const server = snap.val();
+    if (!server) return alert("Server not found");
+
+    const hasAccess = isAdmin || (currentUser && server.members && server.members[currentUser.uid]);
+
+    if (hasAccess) {
+      currentRoom = roomId;
+      document.getElementById("roomTitle").textContent = server.name;
+      document.getElementById("messages").innerHTML = "";
+      loadMessages();
+    } else {
+      alert("You do not have access to this private server.");
+      switchRoom("global");   // go back to global automatically
+    }
+  });
+}
+
+function sendMessage() {
   if (!currentUser) return alert("Please log in");
   const text = document.getElementById("messageInput").value.trim();
   if (!text) return;
 
-  const msgRef = db.ref("chats/" + currentRoom).push();
-  msgRef.set({
+  db.ref("chats/" + currentRoom).push({
     userId: currentUser.uid,
     displayName: currentDisplayName,
     text: text,
-    timestamp: Date.now(),
-    replyTo: replyTo || null
+    timestamp: Date.now()
   });
 
   document.getElementById("messageInput").value = "";
@@ -280,33 +354,14 @@ function loadMessages() {
 
     const messageDiv = document.createElement("div");
     messageDiv.className = `flex ${isOwn ? 'justify-end' : 'justify-start'} group`;
-    messageDiv.dataset.messageKey = snapshot.key;
-
-    let replyHtml = '';
-    if (msg.replyTo) {
-      replyHtml = `<div class="reply text-xs text-zinc-400 mb-1">↩ Replying to a message</div>`;
-    }
-
-    let reactionsHtml = '';
-    if (msg.reactions) {
-      reactionsHtml = Object.entries(msg.reactions).map(([emoji, count]) => 
-        `<span onclick="addReaction('${snapshot.key}', '${emoji}')" class="cursor-pointer hover:scale-125 transition text-lg">${emoji} ${count}</span>`
-      ).join(' ');
-    }
 
     messageDiv.innerHTML = `
       <div class="${isOwn ? 'bg-sky-600 text-white' : 'bg-zinc-800'} max-w-[70%] rounded-3xl px-6 py-3.5 relative">
-        ${replyHtml}
         <div class="text-xs opacity-75 mb-1">${msg.displayName} • ${time}</div>
-        <div class="text-[15px]">${msg.text}</div>
-        <div class="flex gap-3 mt-2 text-lg">${reactionsHtml}</div>
-        <div class="flex gap-2 mt-2">
-          <button onclick="replyToMessage('${snapshot.key}', '${msg.displayName}')" class="text-xs text-sky-300 hover:text-sky-200">Reply</button>
-        </div>
+        <div>${msg.text}</div>
       </div>
     `;
 
-    // Individual delete for admin
     if (isAdmin) {
       const delBtn = document.createElement("button");
       delBtn.className = "ml-3 mt-2 text-red-400 text-xl opacity-0 group-hover:opacity-100 transition";
@@ -322,21 +377,7 @@ function loadMessages() {
   });
 }
 
-function addReaction(messageKey, emoji) {
-  if (!currentUser) return;
-  const reactionRef = db.ref(`chats/${currentRoom}/${messageKey}/reactions/${emoji}`);
-  reactionRef.transaction(current => (current || 0) + 1);
-}
-
-function replyToMessage(messageKey, displayName) {
-  const text = prompt(`Reply to ${displayName}:`);
-  if (text) {
-    sendMessage(messageKey);  // For simplicity, we reuse sendMessage with replyTo
-    // Note: In a full implementation, you'd set replyTo in the message data
-  }
-}
-
-// ================== ADMIN (with Clear All Messages from User) ==================
+// ================== ADMIN ==================
 function showAdminPanel() {
   if (!currentUser) return alert("Login first");
   document.getElementById("overlay").classList.remove("hidden");
@@ -349,7 +390,7 @@ function verifyAdmin() {
     isAdmin = true;
     document.getElementById("adminContent").classList.remove("hidden");
     loadUsersForAdmin();
-    alert("Admin mode active — use 🗑 on messages or Clear All Msgs from User");
+    loadServers(); // refresh server list so admin sees everything
   } else {
     alert("Wrong password");
   }
@@ -374,34 +415,21 @@ function loadUsersForAdmin() {
   });
 }
 
-function adminBan() { 
-  const uid = document.getElementById("userDropdown").value; 
-  if (uid) { bannedUsers.add(uid); alert("User banned"); } 
-}
-function adminTimeout() { 
-  const uid = document.getElementById("userDropdown").value; 
-  if (uid) { timeouts.set(uid, Date.now() + 300000); alert("Timed out"); } 
-}
+function adminBan() { const uid = document.getElementById("userDropdown").value; if (uid) { bannedUsers.add(uid); alert("User banned"); } }
+function adminTimeout() { const uid = document.getElementById("userDropdown").value; if (uid) { timeouts.set(uid, Date.now() + 300000); alert("Timed out"); } }
 function adminKick() { alert("Kicked (demo)"); }
-
 function adminClearUserMessages() {
   const uid = document.getElementById("userDropdown").value;
-  if (!uid) return alert("Select a user");
-  if (!confirm("Delete ALL messages from this user in the current room?")) return;
-
-  const ref = db.ref("chats/" + currentRoom);
-  ref.once("value", snap => {
+  if (!uid) return;
+  if (!confirm("Delete ALL messages from this user in current room?")) return;
+  db.ref("chats/" + currentRoom).once("value", snap => {
     snap.forEach(child => {
-      const msg = child.val();
-      if (msg.userId === uid) {
-        child.ref.remove();
-      }
+      if (child.val().userId === uid) child.ref.remove();
     });
-    alert("All messages from the user have been removed.");
   });
 }
 
-// Friends (simple)
+// Friends
 function addFriend() {
   const name = document.getElementById("addFriend").value.trim();
   if (!name) return;
