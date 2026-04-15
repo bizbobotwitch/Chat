@@ -115,9 +115,7 @@
     <select id="userDropdown" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 text-sm focus:outline-none"></select>
 
     <div class="mt-6 grid grid-cols-2 gap-3">
-      <button onclick="adminBan()" class="py-3 bg-red-600 hover:bg-red-700 rounded-2xl text-sm">Ban User</button>
       <button onclick="adminTimeout()" class="py-3 bg-amber-600 hover:bg-amber-700 rounded-2xl text-sm">Timeout 5min</button>
-      <button onclick="adminKick()" class="py-3 bg-zinc-700 hover:bg-zinc-600 rounded-2xl text-sm">Kick</button>
       <button onclick="adminClearUserMessages()" class="py-3 bg-red-500 hover:bg-red-600 rounded-2xl text-sm">Clear All Msgs</button>
     </div>
   </div>
@@ -140,13 +138,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let currentUser = null;           // just the username now
+let currentUser = null;
 let currentRoom = "global";
 let isAdmin = false;
-const ADMIN_PASSWORD = "112111";   // ← Changed as requested
+const ADMIN_PASSWORD = "112111";
 
-const bannedUsers = new Set();
-const timeouts = new Map();
+const timeouts = new Map();   // username -> expiration timestamp
 
 // Mobile sidebar
 function toggleSidebar() {
@@ -160,12 +157,11 @@ function closeSidebarOnMobile() {
   if (window.innerWidth < 768) toggleSidebar();
 }
 
-// ================== SIMPLE USERNAME SETUP ==================
+// ================== USERNAME SETUP ==================
 function setUsername() {
   const username = document.getElementById("usernameInput").value.trim();
-  if (!username || username.length < 3) {
-    return alert("Username must be at least 3 characters");
-  }
+  if (!username || username.length < 3) return alert("Username must be at least 3 characters");
+  
   currentUser = username;
   document.getElementById("currentUserDisplay").textContent = "Logged in as " + currentUser;
   loadServers();
@@ -298,7 +294,7 @@ function loadMessages() {
   });
 }
 
-// ================== ADMIN ==================
+// ================== ADMIN (fixed timeout + clear) ==================
 function showAdminPanel() {
   document.getElementById("overlay").classList.remove("hidden");
   document.getElementById("adminModal").classList.remove("hidden");
@@ -311,7 +307,7 @@ function verifyAdmin() {
     isAdmin = true;
     document.getElementById("adminContent").classList.remove("hidden");
     loadUsersForAdmin();
-    loadServers(); // admin sees all servers
+    loadServers();
     alert("✅ Admin mode activated");
   } else {
     alert("❌ Wrong password");
@@ -326,7 +322,6 @@ function hideAdminPanel() {
 function loadUsersForAdmin() {
   const dropdown = document.getElementById("userDropdown");
   dropdown.innerHTML = "<option value=''>Select a user...</option>";
-  // For simplicity we show users from recent messages (you can expand this later)
   db.ref("chats/global").limitToLast(50).once("value", snap => {
     const users = new Set();
     snap.forEach(child => {
@@ -342,23 +337,25 @@ function loadUsersForAdmin() {
   });
 }
 
-function adminBan() { 
-  const user = document.getElementById("userDropdown").value; 
-  if (user) { bannedUsers.add(user); alert(user + " banned"); } 
+function adminTimeout() {
+  const user = document.getElementById("userDropdown").value;
+  if (!user) return alert("Select a user");
+  timeouts.set(user, Date.now() + 5 * 60 * 1000); // 5 minutes
+  alert(user + " has been timed out for 5 minutes.");
 }
-function adminTimeout() { 
-  const user = document.getElementById("userDropdown").value; 
-  if (user) { timeouts.set(user, Date.now() + 300000); alert(user + " timed out"); } 
-}
-function adminKick() { alert("Kicked (demo)"); }
+
 function adminClearUserMessages() {
   const user = document.getElementById("userDropdown").value;
-  if (!user) return;
-  if (!confirm("Delete ALL messages from " + user + "?")) return;
+  if (!user) return alert("Select a user");
+  if (!confirm("Delete ALL messages from " + user + " in the current room?")) return;
+
   db.ref("chats/" + currentRoom).once("value", snap => {
     snap.forEach(child => {
-      if (child.val().user === user) child.ref.remove();
+      if (child.val().user === user) {
+        child.ref.remove();
+      }
     });
+    alert("All messages from " + user + " have been deleted.");
   });
 }
 
