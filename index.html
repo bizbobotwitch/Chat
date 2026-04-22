@@ -114,9 +114,13 @@
     <label class="block text-sm text-zinc-400 mb-2">Select User</label>
     <select id="userDropdown" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 text-sm focus:outline-none"></select>
 
-    <div class="mt-6 grid grid-cols-2 gap-3">
-      <button onclick="adminTimeout()" class="py-3 bg-amber-600 hover:bg-amber-700 rounded-2xl text-sm">Timeout 5min</button>
-      <button onclick="adminClearUserMessages()" class="py-3 bg-red-500 hover:bg-red-600 rounded-2xl text-sm">Clear All Msgs</button>
+    <div class="mt-8 space-y-3">
+      <button onclick="adminTimeout()" 
+              class="w-full py-4 bg-amber-600 hover:bg-amber-700 rounded-2xl text-sm font-medium">Timeout User (5 minutes)</button>
+      <button onclick="adminClearUserMessages()" 
+              class="w-full py-4 bg-red-500 hover:bg-red-600 rounded-2xl text-sm font-medium">Clear All Messages from User</button>
+      <button onclick="adminDeleteAllChats()" 
+              class="w-full py-4 bg-red-700 hover:bg-red-800 rounded-2xl text-sm font-medium">🗑️ DELETE ALL CHATS IN THIS ROOM</button>
     </div>
   </div>
 
@@ -143,7 +147,7 @@ let currentRoom = "global";
 let isAdmin = false;
 const ADMIN_PASSWORD = "112111";
 
-const timeouts = new Map();   // username -> expiration timestamp
+const timeouts = new Map();   // username → expiration timestamp
 
 // Mobile sidebar
 function toggleSidebar() {
@@ -208,9 +212,8 @@ function inviteToServer() {
   if (!currentRoom.startsWith("server_")) return alert("You must be inside a server");
   const usernameToInvite = prompt("Enter exact username to invite:");
   if (!usernameToInvite) return;
-
   db.ref(`servers/${currentRoom}/members/${usernameToInvite}`).set(true)
-    .then(() => alert(`✅ ${usernameToInvite} added to this server!`))
+    .then(() => alert(`✅ ${usernameToInvite} added!`))
     .catch(() => alert("Failed to invite user."));
 }
 
@@ -246,6 +249,12 @@ function switchRoom(roomId) {
 
 function sendMessage() {
   if (!currentUser) return alert("Please set your username first");
+
+  // Check timeout
+  if (timeouts.has(currentUser) && Date.now() < timeouts.get(currentUser)) {
+    return alert("You are currently timed out and cannot send messages.");
+  }
+
   const text = document.getElementById("messageInput").value.trim();
   if (!text) return;
 
@@ -294,7 +303,7 @@ function loadMessages() {
   });
 }
 
-// ================== ADMIN (fixed timeout + clear) ==================
+// ================== ADMIN PANEL (fully fixed) ==================
 function showAdminPanel() {
   document.getElementById("overlay").classList.remove("hidden");
   document.getElementById("adminModal").classList.remove("hidden");
@@ -308,7 +317,7 @@ function verifyAdmin() {
     document.getElementById("adminContent").classList.remove("hidden");
     loadUsersForAdmin();
     loadServers();
-    alert("✅ Admin mode activated");
+    alert("✅ Admin mode activated – you can now moderate");
   } else {
     alert("❌ Wrong password");
   }
@@ -322,7 +331,7 @@ function hideAdminPanel() {
 function loadUsersForAdmin() {
   const dropdown = document.getElementById("userDropdown");
   dropdown.innerHTML = "<option value=''>Select a user...</option>";
-  db.ref("chats/global").limitToLast(50).once("value", snap => {
+  db.ref("chats/" + currentRoom).limitToLast(100).once("value", snap => {
     const users = new Set();
     snap.forEach(child => {
       const u = child.val().user;
@@ -340,23 +349,34 @@ function loadUsersForAdmin() {
 function adminTimeout() {
   const user = document.getElementById("userDropdown").value;
   if (!user) return alert("Select a user");
-  timeouts.set(user, Date.now() + 5 * 60 * 1000); // 5 minutes
+  timeouts.set(user, Date.now() + 5 * 60 * 1000);
   alert(user + " has been timed out for 5 minutes.");
 }
 
 function adminClearUserMessages() {
   const user = document.getElementById("userDropdown").value;
   if (!user) return alert("Select a user");
-  if (!confirm("Delete ALL messages from " + user + " in the current room?")) return;
+  if (!confirm("Delete ALL messages from " + user + "?")) return;
 
   db.ref("chats/" + currentRoom).once("value", snap => {
     snap.forEach(child => {
-      if (child.val().user === user) {
-        child.ref.remove();
-      }
+      if (child.val().user === user) child.ref.remove();
     });
-    alert("All messages from " + user + " have been deleted.");
   });
+  alert("All messages from " + user + " have been deleted.");
+}
+
+// NEW: Remove ALL chats in the current room
+function adminDeleteAllChats() {
+  if (!confirm("⚠️ This will permanently delete EVERY message in this room. Are you sure?")) return;
+  if (!confirm("FINAL WARNING – This cannot be undone. Delete all messages?")) return;
+
+  db.ref("chats/" + currentRoom).remove()
+    .then(() => {
+      document.getElementById("messages").innerHTML = "";
+      alert("✅ All messages in this room have been deleted.");
+    })
+    .catch(err => alert("Error: " + err.message));
 }
 
 // Friends
