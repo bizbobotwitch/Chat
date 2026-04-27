@@ -224,6 +224,18 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
   </div>
 </div>
 
+<div class="ov" id="profileOv">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div class="m-title">👤 Edit Profile</div>
+      <button class="ic-btn" onclick="hideProfile()" style="font-size:16px">✕</button>
+    </div>
+    <label class="fl">Display Name</label>
+    <input class="fi" id="ep-d" type="text" placeholder="Your display name" onkeypress="if(event.key==='Enter')saveProfile()">
+    <button class="mbtn mb-p" onclick="saveProfile()">Save Changes</button>
+  </div>
+</div>
+
 <div class="ov" id="adminOv">
   <div class="modal wide">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
@@ -305,6 +317,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
           <div class="me-name" id="meName">—</div>
           <div class="me-status">● Online</div>
         </div>
+        <button class="ic-btn" title="Edit Profile" onclick="showProfile()">✏️</button>
         <button class="ic-btn" title="Sign out" onclick="signOut()">⎋</button>
       </div>
       <button class="admin-sb" onclick="showAdmin()">🔧 Admin Tools</button>
@@ -517,6 +530,34 @@ function signOut(){
   document.getElementById('mainApp').style.display='none';
   document.getElementById('authOv').classList.add('open');
   showLogin();
+}
+
+// ── PROFILE UPDATE ────────────────────────────
+function showProfile(){
+  document.getElementById('profileOv').classList.add('open');
+  document.getElementById('ep-d').value = myDisplayName;
+}
+function hideProfile(){
+  document.getElementById('profileOv').classList.remove('open');
+}
+async function saveProfile(){
+  const newName = document.getElementById('ep-d').value.trim();
+  if(!newName){toast('Display name cannot be empty','warn');return;}
+  if(newName === myDisplayName){hideProfile();return;}
+  
+  // Update in database
+  await db.ref('users/'+me).update({displayName: newName});
+  
+  // Update local memory
+  myDisplayName = newName;
+  
+  // Update UI immediately (PFP letter & name)
+  const av = document.getElementById('meAv');
+  av.textContent = myDisplayName[0].toUpperCase();
+  document.getElementById('meName').textContent = myDisplayName;
+  
+  toast('Profile updated successfully!','ok');
+  hideProfile();
 }
 
 // ── MOBILE ────────────────────────────────────
