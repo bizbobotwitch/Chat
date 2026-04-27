@@ -210,6 +210,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <div class="logo">C</div>
       <div><div class="m-title" style="margin-bottom:0">Join Chatty</div><div style="font-size:12px;color:var(--t2)">Create your account</div></div>
     </div>
+    <label class="fl">Display Name</label>
+    <input class="fi" id="ri-d" type="text" placeholder="How you appear to others" autocomplete="nickname">
     <label class="fl">School Email</label>
     <input class="fi" id="ri-u" type="email" placeholder="you@hatboro-horsham.org" autocomplete="email">
     <label class="fl">Password</label>
@@ -362,7 +364,7 @@ firebase.initializeApp(FC);
 const db=firebase.database();
 
 // ── STATE ─────────────────────────────────────
-let me=null,room='global',isAdmin=false,msgRef=null,replyTo=null,editKey=null;
+let me=null, myDisplayName=null, room='global', isAdmin=false, msgRef=null, replyTo=null, editKey=null;
 const ADMIN_PW='112111';
 const COLORS=['#6c63ff','#2ecc8a','#f5a623','#ff5f5f','#4fa3ff','#d06ef7','#6ef7c2'];
 
@@ -389,6 +391,25 @@ function toast(msg,type='info'){
   document.getElementById('toasts').appendChild(el);
   setTimeout(()=>{el.style.transition='opacity .3s,transform .3s';el.style.opacity=0;el.style.transform='translateX(12px)';setTimeout(()=>el.remove(),320);},3000);
 }
+
+// ── AUTO LOGIN ────────────────────────────────
+window.onload = async () => {
+  const savedUser = localStorage.getItem('chatty_user');
+  if (savedUser) {
+    const snap = await db.ref('users/' + savedUser).once('value');
+    if (snap.exists()) {
+      const d = snap.val();
+      if (!d.banned && !(await isHWBanned())) {
+        me = savedUser;
+        myDisplayName = d.displayName || savedUser; // Fallback to username if no display name
+        onLoggedIn();
+        return;
+      }
+    }
+    // If banned or deleted, clear the local storage
+    localStorage.removeItem('chatty_user');
+  }
+};
 
 // ── AUTH VIEWS ────────────────────────────────
 function showReg(){document.getElementById('loginBox').style.display='none';document.getElementById('regBox').style.display='';}
@@ -421,18 +442,22 @@ async function doLogin(){
   if(d.banned){fe(e,'🚫 This account has been banned');return;}
   
   await db.ref('users/'+u+'/hwid').set(HWID);
+  
   me=u;
+  myDisplayName = d.displayName || u;
+  localStorage.setItem('chatty_user', u); // Save login session
   onLoggedIn();
 }
 
 async function doRegister(){
+  const dName = document.getElementById('ri-d').value.trim();
   const email = document.getElementById('ri-u').value.trim().toLowerCase();
   const p = document.getElementById('ri-p').value;
   const p2 = document.getElementById('ri-p2').value;
   const e = document.getElementById('ri-err');
   e.style.display = 'none';
 
-  if(!email || !p){fe(e,'Please fill in all fields');return;}
+  if(!email || !p || !dName){fe(e,'Please fill in all fields');return;}
   
   // Enforce the school domain
   if(!email.endsWith('@hatboro-horsham.org')){
@@ -450,10 +475,11 @@ async function doRegister(){
   const snap=await db.ref('users/'+u).once('value');
   if(snap.exists()){fe(e,'An account with this email already exists');return;}
   
-  // Save the user, including their full email for admin records
+  // Save the user, including display name and their full email for admin records
   await db.ref('users/'+u).set({
     username: u, 
-    fullEmail: email, // Saved so you can see who it is!
+    displayName: dName,
+    fullEmail: email, 
     password: simpleHash(p),
     createdAt: Date.now(),
     banned: false,
@@ -462,6 +488,8 @@ async function doRegister(){
   });
   
   me=u;
+  myDisplayName = dName;
+  localStorage.setItem('chatty_user', u); // Save login session
   onLoggedIn();
 }
 
@@ -470,15 +498,22 @@ function fe(el,msg){el.textContent=msg;el.style.display='block';}
 function onLoggedIn(){
   document.getElementById('authOv').classList.remove('open');
   document.getElementById('mainApp').style.display='flex';
-  const av=document.getElementById('meAv');av.textContent=me[0].toUpperCase();av.style.background=uCol(me);
-  document.getElementById('meName').textContent=me;
+  
+  // Display the user's Display Name in the sidebar
+  const av=document.getElementById('meAv');
+  av.textContent = myDisplayName[0].toUpperCase();
+  av.style.background = uCol(me); // Colors still based on internal ID to remain consistent
+  document.getElementById('meName').textContent = myDisplayName;
+  
   loadServers();renderFriends();switchRoom('global');
-  toast('Welcome, '+me+'!','ok');
+  toast('Welcome, '+myDisplayName+'!','ok');
 }
+
 function signOut(){
   if(!confirm('Sign out?'))return;
+  localStorage.removeItem('chatty_user'); // Clear saved session
   if(msgRef){db.ref('chats/'+room).off();msgRef=null;}
-  me=null;isAdmin=false;room='global';replyTo=null;editKey=null;
+  me=null; myDisplayName=null; isAdmin=false; room='global'; replyTo=null; editKey=null;
   document.getElementById('mainApp').style.display='none';
   document.getElementById('authOv').classList.add('open');
   showLogin();
@@ -563,8 +598,10 @@ function addMsg(key,msg,box){
   if(document.getElementById('msg-'+key))return;
   const em=document.getElementById('emptyEl');if(em)em.remove();
   if(!msg||!msg.user)return;
-  const col=uCol(msg.user);
-  const init=msg.user[0].toUpperCase();
+  
+  const dName = msg.displayName || msg.user; // Fallback to username for old messages
+  const col = uCol(msg.user);
+  const init = dName[0].toUpperCase();
 
   // content
   let content='';
@@ -579,13 +616,14 @@ function addMsg(key,msg,box){
   // reply preview
   let rpHTML='';
   if(msg.replyTo){
-    rpHTML=`<div class="rp-block" onclick="scrollTo('${esc(msg.replyTo.key)}')"><div style="flex:1;min-width:0"><div class="rp-who">${esc(msg.replyTo.user)}</div><div class="rp-txt">${esc(msg.replyTo.text)}</div></div></div>`;
+    const rpName = msg.replyTo.displayName || msg.replyTo.user;
+    rpHTML=`<div class="rp-block" onclick="scrollTo('${esc(msg.replyTo.key)}')"><div style="flex:1;min-width:0"><div class="rp-who">${esc(rpName)}</div><div class="rp-txt">${esc(msg.replyTo.text)}</div></div></div>`;
   }
 
   // actions
   let acts='';
   if(!msg.deleted){
-    acts+=`<button class="ma" title="Reply" onclick="startReply('${key}','${esc(msg.user)}',${JSON.stringify(msg.text)})">↩</button>`;
+    acts+=`<button class="ma" title="Reply" onclick="startReply('${key}','${esc(msg.user)}','${esc(dName)}',${JSON.stringify(msg.text)})">↩</button>`;
     if(msg.user===me)acts+=`<button class="ma" title="Edit" onclick="startEdit('${key}',${JSON.stringify(msg.text)})">✏️</button>`;
     if(msg.user===me||isAdmin)acts+=`<button class="ma rd" title="Delete" onclick="delMsg('${key}')">🗑</button>`;
   }
@@ -597,7 +635,7 @@ function addMsg(key,msg,box){
     <div class="msg-av" style="background:${col}">${init}</div>
     <div class="msg-body">
       <div class="msg-meta">
-        <span class="msg-name" style="color:${col}">${esc(msg.user)}</span>
+        <span class="msg-name" style="color:${col}">${esc(dName)}</span>
         <span class="msg-time">${fmt(msg.timestamp)}</span>
       </div>
       ${rpHTML}${content}
@@ -617,11 +655,11 @@ function scrollTo(key){
 }
 
 // ── REPLY / EDIT ─────────────────────────────
-function startReply(key,user,text){
-  replyTo={key,user,text};editKey=null;
+function startReply(key, user, dName, text){
+  replyTo={key, user, displayName: dName, text};editKey=null;
   document.getElementById('editBar').style.display='none';
   document.getElementById('replyBar').style.display='flex';
-  document.getElementById('rbWho').textContent='Replying to '+user;
+  document.getElementById('rbWho').textContent='Replying to '+dName;
   document.getElementById('rbPrev').textContent=text.slice(0,80);
   document.getElementById('msgInp').focus();
 }
@@ -663,8 +701,12 @@ async function doSend(){
     toast('⏱ Timed out — '+m+' min remaining','warn');showTout(d.timeoutUntil);return;
   }
   const{text:ct,censored:wc}=censor(txt);
-  const obj={user:me,text:ct,censored:wc,timestamp:Date.now(),deleted:false,edited:false};
-  if(replyTo)obj.replyTo={key:replyTo.key,user:replyTo.user,text:replyTo.text.slice(0,80)};
+  
+  // Attach both their hidden ID and their visible Display Name to the message
+  const obj={user:me, displayName: myDisplayName, text:ct, censored:wc, timestamp:Date.now(), deleted:false, edited:false};
+  
+  if(replyTo)obj.replyTo={key:replyTo.key, user:replyTo.user, displayName:replyTo.displayName, text:replyTo.text.slice(0,80)};
+  
   await db.ref('chats/'+room).push(obj);
   if(wc)toast('Inappropriate language was filtered','warn');
   document.getElementById('msgInp').value='';
@@ -726,7 +768,8 @@ async function loadAdminUsers(){
   const snap=await db.ref('users').once('value');
   snap.forEach(c=>{
     const u=c.val();const opt=document.createElement('option');opt.value=c.key;
-    opt.textContent=c.key+(u.banned?' 🚫':u.timeoutUntil>Date.now()?' ⏱':'');
+    const dName = u.displayName || c.key;
+    opt.textContent= dName + ' (@' + c.key + ')' + (u.banned?' 🚫':u.timeoutUntil>Date.now()?' ⏱':'');
     sel.appendChild(opt);
   });
 }
@@ -741,14 +784,14 @@ async function loadAUser(){
   const dc=banned?'sd-ban':timed?'sd-to':'sd-ok';
   const st=banned?'Banned':timed?'Timed out ('+Math.ceil((u.timeoutUntil-now)/60000)+'m)':'Active';
   
-  // Show full email so admin can identify the person!
   const displayEmail = u.fullEmail || 'Unknown Email';
+  const dName = u.displayName || uname;
 
   card.style.display='';acts.style.display='';
   card.innerHTML=`<div class="a-ucard">
-    <div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${uname[0].toUpperCase()}</div>
+    <div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${dName[0].toUpperCase()}</div>
     <div style="flex:1;min-width:0">
-      <div style="font-size:13px;font-weight:600">${esc(uname)}</div>
+      <div style="font-size:13px;font-weight:600">${esc(dName)} <span style="font-size:10px;color:var(--t2)">(@${esc(uname)})</span></div>
       <div style="font-size:11px;color:var(--ac);margin-top:1px">${esc(displayEmail)}</div>
       <div style="font-size:10px;color:var(--t2);margin-top:2px">Joined ${new Date(u.createdAt||0).toLocaleDateString()}</div>
     </div>
