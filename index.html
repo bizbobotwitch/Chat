@@ -191,30 +191,27 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 <button class="ham" id="ham" onclick="mobToggle()">☰</button>
 <div class="mob-ov" id="mobOv" onclick="mobToggle()"></div>
 
-<!-- ══ AUTH ══ -->
 <div class="ov open" id="authOv">
-  <!-- Login -->
   <div class="modal" id="loginBox">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
       <div class="logo">C</div>
       <div><div class="m-title" style="margin-bottom:0">Welcome back</div><div style="font-size:12px;color:var(--t2)">Sign in to Chatty</div></div>
     </div>
-    <label class="fl">Username</label>
-    <input class="fi" id="li-u" placeholder="your_username" autocomplete="username">
+    <label class="fl">School Email</label>
+    <input class="fi" id="li-u" type="email" placeholder="you@hatboro-horsham.org" autocomplete="email">
     <label class="fl">Password</label>
     <input class="fi" id="li-p" type="password" placeholder="••••••••" autocomplete="current-password" onkeypress="if(event.key==='Enter')doLogin()">
     <div class="ferr" id="li-err"></div>
     <button class="mbtn mb-p" onclick="doLogin()">Sign In →</button>
     <div class="mlink">No account? <a onclick="showReg()">Create one</a></div>
   </div>
-  <!-- Register -->
   <div class="modal" id="regBox" style="display:none">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
       <div class="logo">C</div>
       <div><div class="m-title" style="margin-bottom:0">Join Chatty</div><div style="font-size:12px;color:var(--t2)">Create your account</div></div>
     </div>
-    <label class="fl">Username</label>
-    <input class="fi" id="ri-u" placeholder="choose_username" autocomplete="username">
+    <label class="fl">School Email</label>
+    <input class="fi" id="ri-u" type="email" placeholder="you@hatboro-horsham.org" autocomplete="email">
     <label class="fl">Password</label>
     <input class="fi" id="ri-p" type="password" placeholder="At least 6 characters" autocomplete="new-password">
     <label class="fl">Confirm Password</label>
@@ -225,7 +222,6 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
   </div>
 </div>
 
-<!-- ══ ADMIN MODAL ══ -->
 <div class="ov" id="adminOv">
   <div class="modal wide">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
@@ -243,7 +239,6 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     </div>
 
     <div id="aCont" style="display:none">
-      <!-- Global -->
       <div class="a-sec">
         <span class="a-lbl">Global Actions</span>
         <div class="a-grid">
@@ -252,7 +247,6 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         </div>
       </div>
       <hr class="divider">
-      <!-- User -->
       <div class="a-sec">
         <span class="a-lbl">User Actions</span>
         <select class="a-sel" id="a-sel" onchange="loadAUser()">
@@ -272,7 +266,6 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
   </div>
 </div>
 
-<!-- ══ MAIN APP ══ -->
 <div class="app" id="mainApp" style="display:none">
 
   <div class="sidebar" id="sidebar">
@@ -402,35 +395,76 @@ function showReg(){document.getElementById('loginBox').style.display='none';docu
 function showLogin(){document.getElementById('regBox').style.display='none';document.getElementById('loginBox').style.display='';}
 
 async function doLogin(){
-  const u=document.getElementById('li-u').value.trim().toLowerCase();
-  const p=document.getElementById('li-p').value;
-  const e=document.getElementById('li-err');e.style.display='none';
-  if(!u||!p){fe(e,'Please fill in all fields');return;}
+  const email = document.getElementById('li-u').value.trim().toLowerCase();
+  const p = document.getElementById('li-p').value;
+  const e = document.getElementById('li-err');
+  e.style.display = 'none';
+
+  if(!email || !p){fe(e,'Please fill in all fields');return;}
+
+  // Enforce the school domain for login
+  let u = email;
+  if(email.endsWith('@hatboro-horsham.org')) {
+      u = email.replace('@hatboro-horsham.org', '').replace(/\./g, '_');
+  } else {
+      fe(e,'Please use your @hatboro-horsham.org email');
+      return;
+  }
+
   if(await isHWBanned()){fe(e,'🚫 This device is banned');return;}
+  
   const snap=await db.ref('users/'+u).once('value');
   if(!snap.exists()){fe(e,'Account not found');return;}
+  
   const d=snap.val();
   if(d.password!==simpleHash(p)){fe(e,'Incorrect password');return;}
   if(d.banned){fe(e,'🚫 This account has been banned');return;}
+  
   await db.ref('users/'+u+'/hwid').set(HWID);
-  me=u;onLoggedIn();
+  me=u;
+  onLoggedIn();
 }
 
 async function doRegister(){
-  const u=document.getElementById('ri-u').value.trim().toLowerCase();
-  const p=document.getElementById('ri-p').value;
-  const p2=document.getElementById('ri-p2').value;
-  const e=document.getElementById('ri-err');e.style.display='none';
-  if(!u||!p){fe(e,'Please fill in all fields');return;}
-  if(!/^[a-z0-9_]{3,20}$/.test(u)){fe(e,'3–20 chars: letters, numbers, underscore only');return;}
+  const email = document.getElementById('ri-u').value.trim().toLowerCase();
+  const p = document.getElementById('ri-p').value;
+  const p2 = document.getElementById('ri-p2').value;
+  const e = document.getElementById('ri-err');
+  e.style.display = 'none';
+
+  if(!email || !p){fe(e,'Please fill in all fields');return;}
+  
+  // Enforce the school domain
+  if(!email.endsWith('@hatboro-horsham.org')){
+    fe(e,'You must use a valid @hatboro-horsham.org email address');
+    return;
+  }
+
   if(p.length<6){fe(e,'Password must be ≥ 6 characters');return;}
   if(p!==p2){fe(e,'Passwords do not match');return;}
   if(await isHWBanned()){fe(e,'🚫 This device is banned from creating accounts');return;}
+
+  // Extract username for Firebase (removes the domain and any periods)
+  const u = email.replace('@hatboro-horsham.org', '').replace(/\./g, '_');
+
   const snap=await db.ref('users/'+u).once('value');
-  if(snap.exists()){fe(e,'Username already taken');return;}
-  await db.ref('users/'+u).set({username:u,password:simpleHash(p),createdAt:Date.now(),banned:false,timeoutUntil:0,hwid:HWID});
-  me=u;onLoggedIn();
+  if(snap.exists()){fe(e,'An account with this email already exists');return;}
+  
+  // Save the user, including their full email for admin records
+  await db.ref('users/'+u).set({
+    username: u, 
+    fullEmail: email, // Saved so you can see who it is!
+    password: simpleHash(p),
+    createdAt: Date.now(),
+    banned: false,
+    timeoutUntil: 0,
+    hwid: HWID
+  });
+  
+  me=u;
+  onLoggedIn();
 }
+
 function fe(el,msg){el.textContent=msg;el.style.display='block';}
 
 function onLoggedIn(){
@@ -475,7 +509,7 @@ function loadServers(){
 }
 function inviteToServer(){
   if(!room.startsWith('srv_')){toast('Be inside a server first','warn');return;}
-  const n=prompt('Username to invite:');if(!n)return;
+  const n=prompt('Username to invite (e.g., zasingl61):');if(!n)return;
   const t=n.trim().toLowerCase();
   db.ref('users/'+t).once('value',snap=>{
     if(!snap.exists()){toast('User not found','err');return;}
@@ -706,10 +740,18 @@ async function loadAUser(){
   const banned=u.banned,timed=u.timeoutUntil&&u.timeoutUntil>now;
   const dc=banned?'sd-ban':timed?'sd-to':'sd-ok';
   const st=banned?'Banned':timed?'Timed out ('+Math.ceil((u.timeoutUntil-now)/60000)+'m)':'Active';
+  
+  // Show full email so admin can identify the person!
+  const displayEmail = u.fullEmail || 'Unknown Email';
+
   card.style.display='';acts.style.display='';
   card.innerHTML=`<div class="a-ucard">
     <div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${uname[0].toUpperCase()}</div>
-    <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(uname)}</div><div style="font-size:10.5px;color:var(--t2)">Joined ${new Date(u.createdAt||0).toLocaleDateString()}</div></div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:600">${esc(uname)}</div>
+      <div style="font-size:11px;color:var(--ac);margin-top:1px">${esc(displayEmail)}</div>
+      <div style="font-size:10px;color:var(--t2);margin-top:2px">Joined ${new Date(u.createdAt||0).toLocaleDateString()}</div>
+    </div>
     <div style="display:flex;align-items:center;gap:5px"><div class="sdot ${dc}"></div><span style="font-size:11px;color:var(--t2)">${st}</span></div>
   </div>`;
 }
