@@ -378,6 +378,7 @@ const db=firebase.database();
 
 // ── STATE ─────────────────────────────────────
 let me=null, myDisplayName=null, room='global', isAdmin=false, msgRef=null, replyTo=null, editKey=null;
+let roomJoinTime = 0; // Tracks when we joined so we don't notify for old messages
 const ADMIN_PW='112111';
 const COLORS=['#6c63ff','#2ecc8a','#f5a623','#ff5f5f','#4fa3ff','#d06ef7','#6ef7c2'];
 
@@ -512,6 +513,11 @@ function onLoggedIn(){
   document.getElementById('authOv').classList.remove('open');
   document.getElementById('mainApp').style.display='flex';
   
+  // Ask for notification permissions if we haven't already
+  if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+    Notification.requestPermission();
+  }
+
   // Display the user's Display Name in the sidebar
   const av=document.getElementById('meAv');
   av.textContent = myDisplayName[0].toUpperCase();
@@ -597,8 +603,11 @@ function inviteToServer(){
 function switchRoom(id){
   if(msgRef){db.ref('chats/'+room).off();msgRef=null;}
   cancelReply();cancelEdit();
+  roomJoinTime = Date.now(); // Reset the join time so we don't notify for past messages
+  
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   const nav=document.getElementById('nav-'+id);if(nav)nav.classList.add('active');
+  
   if(id==='global'){
     room='global';
     setHead('🌐','Global Chat','Public channel',false);
@@ -685,6 +694,25 @@ function addMsg(key,msg,box){
   `;
   box.appendChild(wrap);
   box.scrollTop=box.scrollHeight;
+
+  // Desktop Notification Logic
+  // Triggers ONLY if: not our own message, tab is hidden/minimized, and it's a new message (not loading history)
+  if (msg.user !== me && document.hidden && msg.timestamp > roomJoinTime) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      const chatTitle = room === 'global' ? 'Global Chat' : (room.startsWith('srv_') ? 'Server Message' : 'Direct Message');
+      const bodyTxt = msg.deleted ? 'A message was deleted' : (msg.censored ? '[Filtered]' : msg.text);
+      
+      const n = new Notification(chatTitle, {
+        body: `${dName}: ${bodyTxt}`
+      });
+      
+      // When they click the notification, focus the browser tab
+      n.onclick = () => { 
+        window.focus(); 
+        n.close(); 
+      };
+    }
+  }
 }
 
 function scrollTo(key){
