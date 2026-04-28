@@ -46,7 +46,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .ic-btn:hover{background:var(--s3);color:var(--t1)}
 .sb-foot{padding:11px 10px;border-top:1px solid var(--b1);flex-shrink:0}
 .me-bar{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;background:var(--s2);margin-bottom:8px}
-.me-av{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;box-shadow:0 0 10px rgba(108,99,255,.25)}
+.me-av{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;box-shadow:0 0 10px rgba(108,99,255,.25);overflow:hidden;object-fit:cover;}
 .me-name{font-size:12.5px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .me-status{font-size:10px;color:var(--gr)}
 .admin-sb{width:100%;padding:8px;border-radius:9px;background:rgba(255,79,79,.07);border:1px solid rgba(255,79,79,.17);color:var(--rd);font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .14s}
@@ -58,11 +58,11 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .si-btn:hover{color:var(--t1)}
 .fr-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;cursor:pointer;transition:all .14s;width:100%;border:none;background:none;font-family:'Sora',sans-serif;text-align:left}
 .fr-item:hover{background:var(--s2)}
-.fr-av{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.fr-av{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;}
 .fr-name{font-size:12.5px;font-weight:500;color:var(--t2)}
 
 /* CHAT */
-.chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0; position:relative;}
 .chat-head{height:54px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0}
 .ch-ic{font-size:17px}
 .ch-title{font-size:14.5px;font-weight:600;letter-spacing:-.2px}
@@ -78,7 +78,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .msg-wrap{display:flex;gap:9px;padding:5px 8px;border-radius:10px;transition:background .12s;position:relative;align-items:flex-start}
 .msg-wrap:hover{background:var(--s2)}
 .msg-wrap:hover .msg-acts{opacity:1;pointer-events:all}
-.msg-av{width:30px;height:30px;border-radius:9px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.msg-av{width:30px;height:30px;border-radius:9px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;object-fit:cover;overflow:hidden;}
 .msg-body{flex:1;min-width:0}
 .msg-meta{display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap}
 .msg-name{font-size:13px;font-weight:600}
@@ -89,6 +89,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .msg-text.deleted-txt{color:var(--t3);font-style:italic;font-size:12.5px}
 .msg-text.censored-txt{color:var(--am)}
 .edited-lbl{font-size:10px;color:var(--t3);margin-left:4px}
+.msg-gif{max-width:250px; border-radius:8px; margin-top:6px; display:block; border:1px solid var(--b2);}
 
 /* REPLY PREVIEW inside message */
 .rp-block{display:flex;align-items:flex-start;gap:8px;background:var(--s3);border-left:2px solid var(--ac);border-radius:0 7px 7px 0;padding:5px 10px;margin-bottom:5px;cursor:pointer;transition:background .12s;max-width:500px}
@@ -116,10 +117,19 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .eb-x{background:none;border:none;color:var(--t2);cursor:pointer;font-size:17px;transition:color .13s}
 .eb-x:hover{color:var(--t1)}
 
+/* GIF MENU */
+.gif-menu{position:absolute; bottom:80px; left:20px; right:20px; max-width:400px; background:var(--s1); border:1px solid var(--b2); border-radius:14px; padding:14px; box-shadow:0 10px 40px rgba(0,0,0,.5); display:none; flex-direction:column; gap:10px; z-index:20;}
+.gif-menu.open{display:flex; animation:mIn .2s cubic-bezier(.34,1.56,.64,1);}
+.gif-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; max-height:220px; overflow-y:auto; padding-right:4px;}
+.gif-item{width:100%; height:100px; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:border .14s;}
+.gif-item:hover{border-color:var(--ac);}
+
 /* INPUT */
 .input-zone{padding:13px 18px;background:var(--s1);border-top:1px solid var(--b1);flex-shrink:0}
 .tout-bar{background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:8px;padding:7px 13px;font-size:12px;color:var(--am);margin-bottom:9px;text-align:center}
 .inp-row{display:flex;gap:8px;align-items:center}
+.gif-btn{width:44px; height:44px; border-radius:12px; background:var(--s3); border:1px solid var(--b2); color:var(--t2); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px; font-weight:700; transition:all .14s}
+.gif-btn:hover{color:var(--t1); background:var(--b1);}
 .m-input{flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:12px;padding:11px 16px;font-size:13.5px;color:var(--t1);font-family:'Sora',sans-serif;outline:none;transition:border-color .14s;height:44px}
 .m-input:focus{border-color:var(--ac)}
 .m-input::placeholder{color:var(--t3)}
@@ -231,7 +241,9 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <button class="ic-btn" onclick="hideProfile()" style="font-size:16px">✕</button>
     </div>
     <label class="fl">Display Name</label>
-    <input class="fi" id="ep-d" type="text" placeholder="Your display name" onkeypress="if(event.key==='Enter')saveProfile()">
+    <input class="fi" id="ep-d" type="text" placeholder="Your display name">
+    <label class="fl">Profile Picture URL (Optional)</label>
+    <input class="fi" id="ep-pfp" type="url" placeholder="https://example.com/image.png" onkeypress="if(event.key==='Enter')saveProfile()">
     <button class="mbtn mb-p" onclick="saveProfile()">Save Changes</button>
   </div>
 </div>
@@ -344,6 +356,15 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       </div>
     </div>
 
+    <div class="gif-menu" id="gifMenu">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span style="font-size:12px; font-weight:600; color:var(--t2)">Search Giphy</span>
+        <button class="ic-btn" onclick="toggleGifMenu()" style="width:20px;height:20px;font-size:11px">✕</button>
+      </div>
+      <input class="fi" id="gifSearchInp" placeholder="Search for a GIF..." style="margin-bottom:0" onkeyup="if(event.key==='Enter')searchGifs()">
+      <div class="gif-grid" id="gifGrid"></div>
+    </div>
+
     <div class="reply-bar" id="replyBar" style="display:none">
       <span style="color:var(--ac);font-size:14px;flex-shrink:0">↩</span>
       <div class="rb-info">
@@ -361,6 +382,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     <div class="input-zone">
       <div class="tout-bar" id="toutBar" style="display:none"></div>
       <div class="inp-row">
+        <button class="gif-btn" title="Send a GIF" onclick="toggleGifMenu()">GIF</button>
         <input class="m-input" id="msgInp" placeholder="Message…" onkeydown="onKey(event)">
         <button class="send-btn" onclick="sendOrEdit()">
           <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -377,8 +399,8 @@ firebase.initializeApp(FC);
 const db=firebase.database();
 
 // ── STATE ─────────────────────────────────────
-let me=null, myDisplayName=null, room='global', isAdmin=false, msgRef=null, replyTo=null, editKey=null;
-let roomJoinTime = 0; // Tracks when we joined so we don't notify for old messages
+let me=null, myDisplayName=null, myPfp="", room='global', isAdmin=false, msgRef=null, replyTo=null, editKey=null;
+let roomJoinTime = 0; 
 const ADMIN_PW='112111';
 const COLORS=['#6c63ff','#2ecc8a','#f5a623','#ff5f5f','#4fa3ff','#d06ef7','#6ef7c2'];
 
@@ -387,9 +409,28 @@ function getHWID(){let id=localStorage.getItem('_chwid');if(!id){id='hw_'+Math.r
 const HWID=getHWID();
 async function isHWBanned(){try{const s=await db.ref('hwbans/'+btoa(HWID).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).once('value');return s.exists();}catch{return false;}}
 
-// ── CENSOR ────────────────────────────────────
-const BAD=['fuck','shit','bitch','cunt','dick','pussy','bastard','nigger','nigga','faggot','fag','retard','whore','slut','cock','asshole','motherfucker','kys','rape','rapist','pedophile','pedo','nazi'];
-function censor(t){let o=t,hit=false;BAD.forEach(w=>{const rx=new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');if(rx.test(o)){hit=true;o=o.replace(rx,m=>'█'.repeat(m.length));}});return{text:o,censored:hit};}
+// ── ADVANCED CENSOR ───────────────────────────
+// Base words. The regex engine will automatically catch common misspellings!
+const BAD=['fuck','shit','bitch','cunt','dick','pussy','bastard','nigger','nigga','faggot','fag','retard','whore','slut','cock','asshole','motherfucker','kys','rape','rapist','pedophile','pedo','nazi','prick','twat','bullshit','crap','damn'];
+
+function censor(t) {
+  let o = t, hit = false;
+  BAD.forEach(w => {
+    // This mapping catches leetspeak (e.g., '@' for 'a', '1' for 'i', '$' for 's') 
+    // and the \s\W_ allows it to catch spaced out letters (like b i t c h or f_u_c_k)
+    const charMap = {'a':'[a@4]','e':'[e3]','i':'[i1!l]','o':'[o0]','s':'[s$5]','t':'[t7+]','c':'[c\\(k]','u':'[uv]','l':'[l1I]'};
+    
+    // Build the dynamic regex for the word
+    let rxStr = w.split('').map(c => charMap[c] || c).join('[\\s\\W_]*');
+    const rx = new RegExp(rxStr, 'gi');
+    
+    if (rx.test(o)) {
+      hit = true;
+      o = o.replace(rx, m => '█'.repeat(m.length));
+    }
+  });
+  return {text: o, censored: hit};
+}
 
 // ── UTIL ──────────────────────────────────────
 const esc=s=>s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
@@ -415,12 +456,12 @@ window.onload = async () => {
       const d = snap.val();
       if (!d.banned && !(await isHWBanned())) {
         me = savedUser;
-        myDisplayName = d.displayName || savedUser; // Fallback to username if no display name
+        myDisplayName = d.displayName || savedUser;
+        myPfp = d.pfp || "";
         onLoggedIn();
         return;
       }
     }
-    // If banned or deleted, clear the local storage
     localStorage.removeItem('chatty_user');
   }
 };
@@ -437,7 +478,6 @@ async function doLogin(){
 
   if(!email || !p){fe(e,'Please fill in all fields');return;}
 
-  // Enforce the school domain for login
   let u = email;
   if(email.endsWith('@hatboro-horsham.org')) {
       u = email.replace('@hatboro-horsham.org', '').replace(/\./g, '_');
@@ -457,9 +497,10 @@ async function doLogin(){
   
   await db.ref('users/'+u+'/hwid').set(HWID);
   
-  me=u;
+  me = u;
   myDisplayName = d.displayName || u;
-  localStorage.setItem('chatty_user', u); // Save login session
+  myPfp = d.pfp || "";
+  localStorage.setItem('chatty_user', u);
   onLoggedIn();
 }
 
@@ -472,27 +513,20 @@ async function doRegister(){
   e.style.display = 'none';
 
   if(!email || !p || !dName){fe(e,'Please fill in all fields');return;}
-  
-  // Enforce the school domain
-  if(!email.endsWith('@hatboro-horsham.org')){
-    fe(e,'You must use a valid @hatboro-horsham.org email address');
-    return;
-  }
-
+  if(!email.endsWith('@hatboro-horsham.org')){fe(e,'You must use a valid @hatboro-horsham.org email address');return;}
   if(p.length<6){fe(e,'Password must be ≥ 6 characters');return;}
   if(p!==p2){fe(e,'Passwords do not match');return;}
   if(await isHWBanned()){fe(e,'🚫 This device is banned from creating accounts');return;}
 
-  // Extract username for Firebase (removes the domain and any periods)
   const u = email.replace('@hatboro-horsham.org', '').replace(/\./g, '_');
 
   const snap=await db.ref('users/'+u).once('value');
   if(snap.exists()){fe(e,'An account with this email already exists');return;}
   
-  // Save the user, including display name and their full email for admin records
   await db.ref('users/'+u).set({
     username: u, 
     displayName: dName,
+    pfp: "",
     fullEmail: email, 
     password: simpleHash(p),
     createdAt: Date.now(),
@@ -501,9 +535,10 @@ async function doRegister(){
     hwid: HWID
   });
   
-  me=u;
+  me = u;
   myDisplayName = dName;
-  localStorage.setItem('chatty_user', u); // Save login session
+  myPfp = "";
+  localStorage.setItem('chatty_user', u); 
   onLoggedIn();
 }
 
@@ -513,26 +548,33 @@ function onLoggedIn(){
   document.getElementById('authOv').classList.remove('open');
   document.getElementById('mainApp').style.display='flex';
   
-  // Ask for notification permissions if we haven't already
   if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
     Notification.requestPermission();
   }
 
-  // Display the user's Display Name in the sidebar
-  const av=document.getElementById('meAv');
-  av.textContent = myDisplayName[0].toUpperCase();
-  av.style.background = uCol(me); // Colors still based on internal ID to remain consistent
-  document.getElementById('meName').textContent = myDisplayName;
+  updateSidebarProfile();
   
   loadServers();renderFriends();switchRoom('global');
   toast('Welcome, '+myDisplayName+'!','ok');
 }
 
+function updateSidebarProfile() {
+  const av = document.getElementById('meAv');
+  if (myPfp) {
+    av.innerHTML = `<img src="${esc(myPfp)}" style="width:100%;height:100%;object-fit:cover;">`;
+    av.style.background = 'transparent';
+  } else {
+    av.textContent = myDisplayName[0].toUpperCase();
+    av.style.background = uCol(me);
+  }
+  document.getElementById('meName').textContent = myDisplayName;
+}
+
 function signOut(){
   if(!confirm('Sign out?'))return;
-  localStorage.removeItem('chatty_user'); // Clear saved session
+  localStorage.removeItem('chatty_user'); 
   if(msgRef){db.ref('chats/'+room).off();msgRef=null;}
-  me=null; myDisplayName=null; isAdmin=false; room='global'; replyTo=null; editKey=null;
+  me=null; myDisplayName=null; myPfp=""; isAdmin=false; room='global'; replyTo=null; editKey=null;
   document.getElementById('mainApp').style.display='none';
   document.getElementById('authOv').classList.add('open');
   showLogin();
@@ -542,28 +584,92 @@ function signOut(){
 function showProfile(){
   document.getElementById('profileOv').classList.add('open');
   document.getElementById('ep-d').value = myDisplayName;
+  document.getElementById('ep-pfp').value = myPfp;
 }
 function hideProfile(){
   document.getElementById('profileOv').classList.remove('open');
 }
 async function saveProfile(){
   const newName = document.getElementById('ep-d').value.trim();
+  const newPfp = document.getElementById('ep-pfp').value.trim();
+  
   if(!newName){toast('Display name cannot be empty','warn');return;}
-  if(newName === myDisplayName){hideProfile();return;}
   
-  // Update in database
-  await db.ref('users/'+me).update({displayName: newName});
+  if(newName === myDisplayName && newPfp === myPfp){hideProfile();return;}
   
-  // Update local memory
+  await db.ref('users/'+me).update({displayName: newName, pfp: newPfp});
+  
   myDisplayName = newName;
-  
-  // Update UI immediately (PFP letter & name)
-  const av = document.getElementById('meAv');
-  av.textContent = myDisplayName[0].toUpperCase();
-  document.getElementById('meName').textContent = myDisplayName;
+  myPfp = newPfp;
+  updateSidebarProfile();
   
   toast('Profile updated successfully!','ok');
   hideProfile();
+}
+
+// ── GIPHY INTEGRATION ─────────────────────────
+function toggleGifMenu() {
+  const menu = document.getElementById('gifMenu');
+  menu.classList.toggle('open');
+  if (menu.classList.contains('open')) {
+    document.getElementById('gifSearchInp').focus();
+    searchGifs(); // Load trending by default
+  }
+}
+
+async function searchGifs() {
+  const query = document.getElementById('gifSearchInp').value.trim();
+  const grid = document.getElementById('gifGrid');
+  grid.innerHTML = '<div style="color:var(--t2); font-size:12px; grid-column:1/-1; text-align:center">Loading...</div>';
+  
+  // Public beta API key. If this stops working, create a free one at developers.giphy.com
+  const apiKey = 'GlVGYHqc3SyCEGqmeYsScSECERyxgLUO'; 
+  const url = query 
+    ? `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(query)}&limit=8&rating=pg-13`
+    : `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=8&rating=pg-13`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    grid.innerHTML = '';
+    
+    if(data.data.length === 0) {
+      grid.innerHTML = '<div style="color:var(--t2); font-size:12px; grid-column:1/-1; text-align:center">No GIFs found.</div>';
+      return;
+    }
+
+    data.data.forEach(gif => {
+      const imgUrl = gif.images.fixed_height.url;
+      const img = document.createElement('img');
+      img.src = imgUrl;
+      img.className = 'gif-item';
+      img.onclick = () => { sendGif(imgUrl); toggleGifMenu(); };
+      grid.appendChild(img);
+    });
+  } catch (e) {
+    grid.innerHTML = '<div style="color:var(--rd); font-size:12px; grid-column:1/-1; text-align:center">Failed to load GIFs</div>';
+  }
+}
+
+async function sendGif(gifUrl) {
+  if(!me){toast('Sign in first','err');return;}
+  if(await isHWBanned()){toast('🚫 This device is banned','err');return;}
+  const snap=await db.ref('users/'+me).once('value');const d=snap.val()||{};
+  if(d.banned){toast('🚫 Your account is banned','err');return;}
+  
+  const obj={
+    user: me, 
+    displayName: myDisplayName, 
+    pfp: myPfp,
+    text: "", // No text, just GIF
+    gif: gifUrl, 
+    censored: false, 
+    timestamp: Date.now(), 
+    deleted: false, 
+    edited: false
+  };
+  
+  await db.ref('chats/'+room).push(obj);
 }
 
 // ── MOBILE ────────────────────────────────────
@@ -603,7 +709,8 @@ function inviteToServer(){
 function switchRoom(id){
   if(msgRef){db.ref('chats/'+room).off();msgRef=null;}
   cancelReply();cancelEdit();
-  roomJoinTime = Date.now(); // Reset the join time so we don't notify for past messages
+  document.getElementById('gifMenu').classList.remove('open'); // Close GIF menu on switch
+  roomJoinTime = Date.now(); 
   
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   const nav=document.getElementById('nav-'+id);if(nav)nav.classList.add('active');
@@ -649,18 +756,28 @@ function addMsg(key,msg,box){
   const em=document.getElementById('emptyEl');if(em)em.remove();
   if(!msg||!msg.user)return;
   
-  const dName = msg.displayName || msg.user; // Fallback to username for old messages
+  const dName = msg.displayName || msg.user; 
   const col = uCol(msg.user);
-  const init = dName[0].toUpperCase();
+  
+  // Custom Avatar rendering
+  let avHtml = `<div class="msg-av" style="background:${col}">${dName[0].toUpperCase()}</div>`;
+  if (msg.pfp) {
+    avHtml = `<img class="msg-av" src="${esc(msg.pfp)}" alt="${dName[0].toUpperCase()}">`;
+  }
 
-  // content
+  // Text / GIF content
   let content='';
   if(msg.deleted){
     content='<span class="msg-text deleted-txt">🗑 This message was deleted</span>';
   }else{
-    const cls=msg.censored?'msg-text censored-txt':'msg-text';
-    const ed=msg.edited?'<span class="edited-lbl">(edited)</span>':'';
-    content=`<span class="${cls}">${esc(msg.text)}${ed}</span>`;
+    if (msg.text) {
+      const cls=msg.censored?'msg-text censored-txt':'msg-text';
+      const ed=msg.edited?'<span class="edited-lbl">(edited)</span>':'';
+      content += `<span class="${cls}">${esc(msg.text)}${ed}</span>`;
+    }
+    if (msg.gif) {
+      content += `<img class="msg-gif" src="${esc(msg.gif)}" alt="GIF">`;
+    }
   }
 
   // reply preview
@@ -673,8 +790,9 @@ function addMsg(key,msg,box){
   // actions
   let acts='';
   if(!msg.deleted){
-    acts+=`<button class="ma" title="Reply" onclick="startReply('${key}','${esc(msg.user)}','${esc(dName)}',${JSON.stringify(msg.text)})">↩</button>`;
-    if(msg.user===me)acts+=`<button class="ma" title="Edit" onclick="startEdit('${key}',${JSON.stringify(msg.text)})">✏️</button>`;
+    // Can only reply to text right now to keep it clean
+    if (msg.text) acts+=`<button class="ma" title="Reply" onclick="startReply('${key}','${esc(msg.user)}','${esc(dName)}',${JSON.stringify(msg.text)})">↩</button>`;
+    if(msg.user===me && msg.text && !msg.gif) acts+=`<button class="ma" title="Edit" onclick="startEdit('${key}',${JSON.stringify(msg.text)})">✏️</button>`;
     if(msg.user===me||isAdmin)acts+=`<button class="ma rd" title="Delete" onclick="delMsg('${key}')">🗑</button>`;
   }
 
@@ -682,7 +800,7 @@ function addMsg(key,msg,box){
   wrap.id='msg-'+key;
   wrap.className='msg-wrap';
   wrap.innerHTML=`
-    <div class="msg-av" style="background:${col}">${init}</div>
+    ${avHtml}
     <div class="msg-body">
       <div class="msg-meta">
         <span class="msg-name" style="color:${col}">${esc(dName)}</span>
@@ -696,21 +814,19 @@ function addMsg(key,msg,box){
   box.scrollTop=box.scrollHeight;
 
   // Desktop Notification Logic
-  // Triggers ONLY if: not our own message, tab is hidden/minimized, and it's a new message (not loading history)
   if (msg.user !== me && document.hidden && msg.timestamp > roomJoinTime) {
     if ("Notification" in window && Notification.permission === "granted") {
       const chatTitle = room === 'global' ? 'Global Chat' : (room.startsWith('srv_') ? 'Server Message' : 'Direct Message');
-      const bodyTxt = msg.deleted ? 'A message was deleted' : (msg.censored ? '[Filtered]' : msg.text);
+      
+      let bodyTxt = msg.text;
+      if (msg.deleted) bodyTxt = 'A message was deleted';
+      else if (msg.censored) bodyTxt = '[Filtered]';
+      else if (msg.gif) bodyTxt = '[Sent a GIF]';
       
       const n = new Notification(chatTitle, {
         body: `${dName}: ${bodyTxt}`
       });
-      
-      // When they click the notification, focus the browser tab
-      n.onclick = () => { 
-        window.focus(); 
-        n.close(); 
-      };
+      n.onclick = () => { window.focus(); n.close(); };
     }
   }
 }
@@ -743,7 +859,7 @@ function startEdit(key,text){
 }
 function cancelEdit(){editKey=null;document.getElementById('editBar').style.display='none';document.getElementById('msgInp').value='';}
 
-function onKey(e){if(e.key==='Escape'){cancelReply();cancelEdit();}if(e.key==='Enter')sendOrEdit();}
+function onKey(e){if(e.key==='Escape'){cancelReply();cancelEdit();document.getElementById('gifMenu').classList.remove('open');}if(e.key==='Enter')sendOrEdit();}
 
 async function sendOrEdit(){if(editKey){await doEdit();}else{await doSend();}}
 
@@ -771,8 +887,7 @@ async function doSend(){
   }
   const{text:ct,censored:wc}=censor(txt);
   
-  // Attach both their hidden ID and their visible Display Name to the message
-  const obj={user:me, displayName: myDisplayName, text:ct, censored:wc, timestamp:Date.now(), deleted:false, edited:false};
+  const obj={user:me, displayName: myDisplayName, pfp: myPfp, text:ct, censored:wc, timestamp:Date.now(), deleted:false, edited:false};
   
   if(replyTo)obj.replyTo={key:replyTo.key, user:replyTo.user, displayName:replyTo.displayName, text:replyTo.text.slice(0,80)};
   
