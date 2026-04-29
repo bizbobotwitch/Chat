@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -151,7 +150,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <div class="logo">C</div>
       <div class="m-title">Welcome back</div>
     </div>
-    <input class="fi" id="li-u" type="email" placeholder="you@hatboro-horsham.org">
+    <input class="fi" id="li-u" type="email" placeholder="Email Address">
     <input class="fi" id="li-p" type="password" placeholder="••••••••" onkeypress="if(event.key==='Enter')doLogin()">
     <button class="mbtn mb-p" onclick="doLogin()">Sign In →</button>
     <div class="mlink" style="text-align:center; font-size:12px">No account? <a onclick="showReg()" style="color:var(--ac); cursor:pointer">Create one</a></div>
@@ -159,22 +158,13 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 
   <div class="modal" id="regBox" style="display:none">
     <div class="m-title">Join Chatty</div>
-    <p style="font-size: 11px; color: var(--t2); margin-bottom: 10px;">A verification code will be sent to your email to prove it exists.</p>
-    
-    <div id="regStep1">
-      <input class="fi" id="ri-d" type="text" placeholder="Display Name">
-      <input class="fi" id="ri-u" type="email" placeholder="you@hatboro-horsham.org">
-      <input class="fi" id="ri-p" type="password" placeholder="Password (Min 6 chars)">
-      <button class="mbtn mb-p" id="sendCodeBtn" onclick="sendVerificationCode()">Send Verification Code →</button>
-      <div class="mlink" style="text-align:center; font-size:12px; margin-top:10px">Have an account? <a onclick="showLogin()" style="color:var(--ac); cursor:pointer">Sign in</a></div>
-    </div>
-
-    <div id="regStep2" style="display:none">
-      <p style="font-size: 13px; color: var(--gr); margin-bottom: 15px;">Check your email! We sent a 6-digit code.</p>
-      <input class="fi" id="ri-code" type="text" placeholder="Enter 6-Digit Code" maxlength="6" onkeypress="if(event.key==='Enter')verifyAndCreate()">
-      <button class="mbtn mb-p" onclick="verifyAndCreate()">Create Account →</button>
-      <button class="mbtn mb-s" onclick="backToReg1()">Back</button>
-    </div>
+    <p style="font-size: 11px; color: var(--t2); margin-bottom: 10px;">Create a new account.</p>
+    <input class="fi" id="ri-d" type="text" placeholder="Display Name">
+    <input class="fi" id="ri-u" type="email" placeholder="Email Address">
+    <input class="fi" id="ri-p" type="password" placeholder="Password (Min 6 chars)">
+    <input class="fi" id="ri-p2" type="password" placeholder="Repeat password" onkeypress="if(event.key==='Enter')doRegister()">
+    <button class="mbtn mb-p" onclick="doRegister()">Create Account →</button>
+    <div class="mlink" style="text-align:center; font-size:12px; margin-top:10px">Have an account? <a onclick="showLogin()" style="color:var(--ac); cursor:pointer">Sign in</a></div>
   </div>
 </div>
 
@@ -202,7 +192,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       </div>
       <div class="sb-sec">
         <span class="sb-lbl">Direct Messages</span>
-        <div class="sb-row"><input class="si" id="dmInp" placeholder="Add by username…"><button class="si-btn" onclick="addFriend()">Add</button></div>
+        <div class="sb-row"><input class="si" id="dmInp" placeholder="Add by username..."><button class="si-btn" onclick="addFriend()">Add</button></div>
         <div id="friendsList"></div>
       </div>
     </div>
@@ -247,12 +237,6 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 </div>
 
 <script>
-// ── EMAILJS SETUP (REQUIRED) ──────────────────
-// Follow the instructions to get these 3 keys from emailjs.com
-emailjs.init("YOUR_PUBLIC_KEY"); 
-const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
-const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
-
 // ── FIREBASE ──────────────────────────────────
 const FC={apiKey:"AIzaSyB-dwq2yjLEUSNZ0UT5oq4-u_KXghysXfw",authDomain:"discord2-1ed09.firebaseapp.com",databaseURL:"https://discord2-1ed09-default-rtdb.firebaseio.com",projectId:"discord2-1ed09",storageBucket:"discord2-1ed09.firebasestorage.app",messagingSenderId:"856172729472",appId:"1:856172729472:web:fa00078f5968d3e30a0265"};
 firebase.initializeApp(FC);
@@ -260,8 +244,6 @@ const db=firebase.database();
 
 // ── STATE ─────────────────────────────────────
 let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=0, replyTo=null, currentGifTab='search';
-let pendingRegUser = null;
-let expectedCode = null;
 
 const COLORS=['#6c63ff','#2ecc8a','#f5a623','#ff5f5f','#4fa3ff','#d06ef7','#6ef7c2'];
 
@@ -298,82 +280,47 @@ window.onload = async () => {
 async function doLogin(){
   const email = document.getElementById('li-u').value.trim().toLowerCase();
   const p = document.getElementById('li-p').value;
-  if(!email.endsWith('@hatboro-horsham.org')){alert("Use your school email (@hatboro-horsham.org)"); return;}
-  const u = email.replace('@hatboro-horsham.org', '').replace(/\./g, '_');
+  if(!email || !p) { alert("Please enter email and password."); return; }
+  
+  const u = email.replace(/[\.\#\$\[\]]/g, '_');
+  
   const snap=await db.ref('users/'+u).once('value');
   if(!snap.exists() || snap.val().password !== simpleHash(p)){alert("Invalid Email or Password"); return;}
+  
   me=u; myDisplayName=snap.val().displayName; myPfp=snap.val().pfp;
   localStorage.setItem('chatty_user', u); onLoggedIn();
 }
 
-// STEP 1: Send the email
-async function sendVerificationCode(){
+async function doRegister(){
   const dName=document.getElementById('ri-d').value.trim();
   const email=document.getElementById('ri-u').value.trim().toLowerCase();
   const p=document.getElementById('ri-p').value;
+  const p2=document.getElementById('ri-p2').value;
 
-  if(!email.endsWith('@hatboro-horsham.org')){ alert("Fraud Alert: Only @hatboro-horsham.org emails allowed."); return; }
-  const emailPattern = /^[a-z]+[0-9]{2,4}@hatboro-horsham\.org$/;
-  if(!emailPattern.test(email)){ alert("Please enter a valid student email format."); return; }
+  if(!email || !dName || !p) { alert("Please fill out all fields."); return; }
+  
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if(!emailPattern.test(email)){ alert("Please enter a valid email address format."); return; }
+  
+  if(p !== p2){ alert("Passwords don't match."); return; }
   if(p.length < 6){ alert("Password must be at least 6 characters."); return; }
 
-  const u = email.replace('@hatboro-horsham.org','').replace(/\./g,'_');
+  const u = email.replace(/[\.\#\$\[\]]/g, '_');
   const check = await db.ref('users/'+u).once('value');
   if(check.exists()){ alert("This email is already registered."); return; }
 
-  // Generate 6 digit code
-  expectedCode = Math.floor(100000 + Math.random() * 900000).toString();
-  pendingRegUser = {u, dName, p};
-
-  const btn = document.getElementById('sendCodeBtn');
-  btn.textContent = "Sending...";
-  btn.disabled = true;
-
-  // Send Email
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-    to_email: email,
-    code: expectedCode
-  }).then(() => {
-    // Show step 2
-    document.getElementById('regStep1').style.display = 'none';
-    document.getElementById('regStep2').style.display = 'block';
-    btn.textContent = "Send Verification Code →";
-    btn.disabled = false;
-  }).catch((err) => {
-    alert("Error sending email. Check your EmailJS settings.");
-    console.error(err);
-    btn.textContent = "Send Verification Code →";
-    btn.disabled = false;
-  });
-}
-
-// STEP 2: Verify and save
-async function verifyAndCreate() {
-  const codeInp = document.getElementById('ri-code').value.trim();
-  if (codeInp !== expectedCode) {
-    alert("Incorrect code! Try again.");
-    return;
-  }
-
-  // Code matches! Save to database.
-  await db.ref('users/'+pendingRegUser.u).set({
-    username: pendingRegUser.u, 
-    displayName: pendingRegUser.dName, 
+  await db.ref('users/'+u).set({
+    username: u, 
+    displayName: dName, 
     pfp: "", 
-    password: simpleHash(pendingRegUser.p), 
+    password: simpleHash(p), 
     ts: Date.now()
   });
 
-  me = pendingRegUser.u; 
-  myDisplayName = pendingRegUser.dName; 
-  localStorage.setItem('chatty_user', me); 
+  me = u; 
+  myDisplayName = dName; 
+  localStorage.setItem('chatty_user', u); 
   onLoggedIn();
-}
-
-function backToReg1() {
-  document.getElementById('regStep2').style.display = 'none';
-  document.getElementById('regStep1').style.display = 'block';
-  document.getElementById('ri-code').value = '';
 }
 
 function onLoggedIn(){
