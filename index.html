@@ -47,7 +47,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .ic-btn:hover{background:var(--s3);color:var(--t1)}
 .sb-foot{padding:11px 10px;border-top:1px solid var(--b1);flex-shrink:0}
 .me-bar{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;background:var(--s2);margin-bottom:8px}
-.me-av{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;box-shadow:0 0 10px rgba(108,99,255,.25);overflow:hidden;object-fit:cover;}
+.me-av{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;box-shadow:0 0 10px rgba(108,99,255,.25);overflow:hidden;}
 .me-name{font-size:12.5px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .me-status{font-size:10px;color:var(--gr)}
 .admin-sb{width:100%;padding:8px;border-radius:9px;background:rgba(255,79,79,.07);border:1px solid rgba(255,79,79,.17);color:var(--rd);font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .14s}
@@ -76,11 +76,11 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .msgs{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:0}
 .sys{text-align:center;margin:10px 0}
 .sys span{background:var(--s1);border:1px solid var(--b1);padding:3px 12px;border-radius:99px;font-size:10.5px;color:var(--t3);display:inline-block}
-.msg-wrap{display:flex;gap:9px;padding:5px 8px;border-radius:10px;transition:background .12s;position:relative;align-items:flex-start}
+.msg-wrap{display:flex;gap:10px;padding:5px 8px;border-radius:10px;transition:background .12s;position:relative;align-items:flex-start}
 .msg-wrap:hover{background:var(--s2)}
 .msg-wrap:hover .msg-acts{opacity:1;pointer-events:all}
 .msg-wrap.mentioned{background:rgba(245, 166, 35, 0.15); border-left: 3px solid var(--am);}
-.msg-av{width:30px;height:30px;border-radius:9px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;object-fit:cover;overflow:hidden;}
+.msg-av{width:34px;height:34px;border-radius:9px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;overflow:hidden;}
 .msg-body{flex:1;min-width:0}
 .msg-meta{display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap}
 .msg-name{font-size:13px;font-weight:600}
@@ -384,7 +384,7 @@ function onLoggedIn(){
 
 function updateSidebarProfile() {
   const av=document.getElementById('meAv');
-  if(myPfp) av.innerHTML=`<img src="${esc(myPfp)}">`; 
+  if(myPfp) av.innerHTML=`<img src="${esc(myPfp)}" style="width:100%;height:100%;object-fit:contain;background:var(--s2);border-radius:9px;">`; 
   else { av.textContent=myDisplayName[0].toUpperCase(); av.style.background=uCol(me); }
   document.getElementById('meName').textContent=myDisplayName;
 }
@@ -503,7 +503,7 @@ function addMsg(key,msg){
   wrap.className='msg-wrap' + (isMention ? ' mentioned' : '');
   wrap.id = 'msg-' + key;
   wrap.innerHTML=`
-    <div class="msg-av" style="background:${uCol(msg.user)}">${msg.pfp?`<img src="${msg.pfp}">`:dName[0]}</div>
+    <div class="msg-av" style="background:${uCol(msg.user)}">${msg.pfp?`<img src="${esc(msg.pfp)}" style="width:100%;height:100%;object-fit:contain;background:var(--s2);">`:dName[0]}</div>
     <div class="msg-body">
       <div class="msg-meta">
         <span class="msg-name" style="color:${uCol(msg.user)}">${esc(dName)}</span> 
