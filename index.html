@@ -355,7 +355,6 @@ async function checkAutoReset() {
     console.log('2-Hour Auto-reset triggered.');
   }
 }
-// Run once on load, then every 60 seconds
 checkAutoReset();
 setInterval(checkAutoReset, 60000);
 
@@ -490,13 +489,11 @@ function setupAdminUI() {
   document.getElementById('aLock').style.display='none';
   document.getElementById('aCont').style.display='';
   
-  // Hide specific buttons if they are just a moderator
   if (adminRole === 'mod') {
     document.getElementById('btn-del-all').style.display = 'none';
     document.getElementById('btn-ban').style.display = 'none';
     document.getElementById('btn-hwban').style.display = 'none';
   } else {
-    // Show everything for admin
     document.getElementById('btn-del-all').style.display = '';
     document.getElementById('btn-ban').style.display = '';
     document.getElementById('btn-hwban').style.display = '';
@@ -596,7 +593,7 @@ async function adminClearAllChats(){
   toast('Chat room wiped', 'ok');
 }
 
-// ── GIPHY & FAVORITES ──
+// ── GIPHY LOGIC WITH BACKUP KEY ──
 function toggleGifMenu(){ 
   document.getElementById('gifMenu').classList.toggle('open'); 
   if(document.getElementById('gifMenu').classList.contains('open')) {
@@ -613,11 +610,29 @@ function setGifTab(tab) {
 }
 
 async function searchGifs() {
-  const q=document.getElementById('gifSearchInp').value;
-  const apiKey='P5hgFIPg3F1AIqXVdUTVIoq4p7A4DJFn';
-  const url=q?`https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${q}&limit=8&rating=pg-13`:`https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=8&rating=pg-13`;
-  const res=await fetch(url); const data=await res.json();
-  renderGifGrid(data.data);
+  const q = document.getElementById('gifSearchInp').value;
+  const primaryKey = 'P5hgFIPg3F1AIqXVdUTVIoq4p7A4DJFn';
+  const backupKey = 'n653pzwYMyd8Z1I71vUWO29y9WlnBhJy';
+  
+  const getUrl = (key) => q ? `https://api.giphy.com/v1/gifs/search?api_key=${key}&q=${q}&limit=8&rating=pg-13` : `https://api.giphy.com/v1/gifs/trending?api_key=${key}&limit=8&rating=pg-13`;
+  
+  try {
+    let res = await fetch(getUrl(primaryKey));
+    
+    // If rate limited or unathorized, try the backup key
+    if (res.status === 429 || !res.ok) {
+      console.log('Primary Giphy key rate limited. Trying backup key...');
+      res = await fetch(getUrl(backupKey));
+    }
+    
+    const data = await res.json();
+    if (data && data.data) {
+      renderGifGrid(data.data);
+    }
+  } catch (error) {
+    toast('Error loading GIFs', 'err');
+    console.error(error);
+  }
 }
 
 function renderGifGrid(gifs) {
@@ -661,7 +676,6 @@ function renderFavGifs() {
 }
 
 async function sendGif(url){ 
-  // Ban Check
   if(await isHWBanned()){toast('🚫 This device is banned', 'err');return;}
   const snap=await db.ref('users/'+me).once('value'); const d=snap.val()||{};
   if(d.banned){toast('🚫 Your account is banned', 'err');return;}
@@ -692,21 +706,14 @@ function switchRoom(id){
   document.getElementById('msgs').innerHTML='';
   msgRef=db.ref('chats/'+room).limitToLast(100);
   
-  // Triggers when a message is added
   msgRef.on('child_added',s=>addMsg(s.key,s.val()));
-  
-  // Triggers when a message is updated (like deleted individually)
   msgRef.on('child_changed',s=>{
     const old=document.getElementById('msg-'+s.key);
     if(old){const tmp=document.createElement('div');addMsg(s.key,s.val(),tmp);if(tmp.firstChild)old.replaceWith(tmp.firstChild);}
   });
-
-  // Triggers when messages are completely wiped from the database
   msgRef.on('child_removed', s => {
     const element = document.getElementById('msg-' + s.key);
-    if (element) {
-      element.remove();
-    }
+    if (element) { element.remove(); }
   });
 }
 
@@ -715,7 +722,6 @@ function addMsg(key,msg, containerOverride = null){
   const dName=msg.displayName||msg.user;
   const {text:ct, censored:wc} = censor(msg.text||"");
   
-  // MENTION DETECTION
   const isMention = ct.includes('@' + me) || ct.includes('@' + myDisplayName);
   
   let content = '';
@@ -767,7 +773,6 @@ function scrollToMsg(key) {
 async function doSend(){
   const inp=document.getElementById('msgInp'); const txt=inp.value.trim(); if(!txt)return;
 
-  // Ban/Timeout Check
   if(await isHWBanned()){toast('🚫 This device is banned', 'err');return;}
   const snap=await db.ref('users/'+me).once('value'); const d=snap.val()||{};
   if(d.banned){toast('🚫 Your account is banned', 'err');return;}
