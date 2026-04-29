@@ -39,7 +39,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;color:var(--t2);transition:all .14s;position:relative;user-select:none;width:100%;border:none;background:none;font-family:'Sora',sans-serif;text-align:left}
 .nav-item:hover{background:var(--s3);color:var(--t1)}
 .nav-item.active{background:var(--ac-dim);color:var(--ac)}
-.nav-item.active::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:3px;height:55%;background:var(--ac);border-radius:99px}
+.nav-item.active::before{content:'absolute';left:-10px;top:50%;transform:translateY(-50%);width:3px;height:55%;background:var(--ac);border-radius:99px}
 .nav-ic{font-size:15px;width:20px;text-align:center;flex-shrink:0}
 .nav-lbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ic-btn{width:25px;height:25px;border-radius:7px;border:1px solid var(--b2);background:transparent;color:var(--t2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .14s;flex-shrink:0}
@@ -48,7 +48,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .me-bar{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;background:var(--s2);margin-bottom:8px}
 .me-av{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;box-shadow:0 0 10px rgba(108,99,255,.25);overflow:hidden;}
 .me-name{font-size:12.5px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.me-status{font-size:10px;color:var(--gr)}
+.me-status{font-size:10px;color:var(--gr);transition:color .2s}
 .admin-sb{width:100%;padding:8px;border-radius:9px;background:rgba(255,79,79,.07);border:1px solid rgba(255,79,79,.17);color:var(--rd);font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .14s}
 .admin-sb:hover{background:rgba(255,79,79,.14)}
 .si{flex:1;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--t1);font-family:'Sora',sans-serif;outline:none;min-width:0;transition:border-color .14s}
@@ -61,15 +61,12 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .fr-av{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;background:var(--s3);}
 .fr-name{font-size:12.5px;font-weight:500;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-/* CHAT */
+/* CHAT & BANNER */
 .chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0; position:relative;}
 .chat-head{height:54px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0}
 .ch-ic{font-size:17px}
 .ch-title{font-size:14.5px;font-weight:600;letter-spacing:-.2px}
-.ch-sub{font-size:11px;color:var(--t2);margin-top:1px}
-.head-r{margin-left:auto;display:flex;gap:7px;align-items:center}
-.h-btn{padding:6px 12px;border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;border:1px solid var(--b2);background:var(--s2);color:var(--t2);transition:all .14s}
-.h-btn:hover{color:var(--t1)}
+.chat-banner{display:none; background:rgba(108,99,255,0.15); border-bottom:1px solid var(--ac-bdr); color:var(--ac); padding:10px 20px; font-size:12.5px; font-weight:600; text-align:center; box-shadow:0 4px 10px rgba(0,0,0,0.1); flex-shrink:0;}
 
 /* MESSAGES */
 .msgs{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:0}
@@ -144,7 +141,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .a-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .abtn{padding:9px 6px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;border:none;transition:opacity .14s}
 .abtn:hover{opacity:.78}
-.a-ucard{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:11px 13px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.a-ucard{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:11px 13px;margin-bottom:10px;display:flex;flex-direction:column; gap:4px;}
+.auc-top{display:flex;align-items:center;gap:10px;}
 .sdot{width:7px;height:7px;border-radius:99px;flex-shrink:0}
 .sd-ok{background:var(--gr)}.sd-ban{background:var(--rd)}.sd-to{background:var(--am)}
 
@@ -199,8 +197,18 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     </div>
     <p style="font-size:13px; color:var(--t2); margin-bottom:10px;">You have received an official warning from moderation:</p>
     <div id="warnReasonTxt" style="padding:14px; background:rgba(245, 166, 35, 0.1); border-radius:8px; border:1px solid rgba(245, 166, 35, 0.3); color:var(--am); font-size:14px; margin-bottom:18px; font-weight:600; text-align:center;"></div>
-    <p style="font-size:11px; color:var(--t3); margin-bottom:15px; text-align:center;">You must acknowledge this warning to continue using the chat. You will receive a 1-minute timeout upon agreement.</p>
+    <p id="warnPenaltyTxt" style="font-size:11px; color:var(--t3); margin-bottom:15px; text-align:center;">You must acknowledge this warning to continue using the chat.</p>
     <button class="mbtn mb-p" style="background:var(--am); color:#000;" onclick="acceptWarn()">I Understand (OK)</button>
+  </div>
+</div>
+
+<div class="ov" id="broadcastOv" style="z-index: 9998;">
+  <div class="modal">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;color:var(--ac)">
+      <div class="m-title">📢 Server Announcement</div>
+    </div>
+    <div id="broadcastTxt" style="padding:16px; background:var(--s2); border-radius:10px; border:1px solid var(--b2); color:var(--t1); font-size:14.5px; line-height:1.5; margin-bottom:20px; white-space:pre-wrap;"></div>
+    <button class="mbtn mb-s" onclick="document.getElementById('broadcastOv').classList.remove('open')">Dismiss</button>
   </div>
 </div>
 
@@ -219,31 +227,56 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <button class="mbtn mb-p" onclick="verifyAdmin()">Unlock</button>
     </div>
 
-    <div id="aCont" style="display:none">
-      <div class="a-sec">
-        <span class="a-lbl">Global Actions</span>
-        <div class="a-grid">
-          <button id="btn-lock-chat" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminToggleLock()">🛑 Shutdown Chat</button>
-          <button id="btn-del-all" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearAllChats()">🗑 Delete All Chats</button>
-          <button class="abtn" style="background:var(--s3);color:var(--t2);border:1px solid var(--b2)" onclick="loadAdminUsers()">🔄 Refresh Users</button>
+    <div id="aCont" style="display:none; max-height:65vh; overflow-y:auto; padding-right:5px;">
+      
+      <div id="admin-only-tools" style="display:none;">
+        <div class="a-sec">
+          <span class="a-lbl" style="color:var(--ac)">👑 Supreme Admin Tools</span>
+          <div class="a-grid" style="margin-bottom: 8px;">
+            <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminBroadcast()">📢 Global Announcement</button>
+            <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSetBanner()">📌 Set Sticky Banner</button>
+            <button id="btn-ghost-mode" class="abtn" style="background:var(--s3);color:var(--t2);border:1px solid var(--b2)" onclick="toggleGhostMode()">👻 Toggle Ghost Mode</button>
+            <button id="btn-lock-chat" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminToggleLock()">🛑 Shutdown Chat</button>
+          </div>
+          
+          <div style="display:flex; gap:6px; margin-bottom: 8px;">
+            <select id="purge-count" class="a-sel" style="margin:0; width:120px;">
+              <option value="10">Last 10 msgs</option>
+              <option value="50">Last 50 msgs</option>
+              <option value="100">Last 100 msgs</option>
+            </select>
+            <button class="abtn" style="flex:1; background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminPurge()">🗑 Purge Recent</button>
+          </div>
+          
+          <button id="btn-del-all" class="abtn" style="width:100%; background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearAllChats()">☢️ Nuke Entire Room (Delete All)</button>
         </div>
+        <hr style="border:none;border-top:1px solid var(--b1);margin:16px 0">
       </div>
-      <hr style="border:none;border-top:1px solid var(--b1);margin:16px 0">
+
       <div class="a-sec">
-        <span class="a-lbl">User Actions</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span class="a-lbl" style="margin:0;">User Actions</span>
+          <button class="abtn" style="background:var(--s3);color:var(--t2);border:1px solid var(--b2); padding:4px 8px; font-size:10px;" onclick="loadAdminUsers()">🔄 Refresh</button>
+        </div>
         <select class="a-sel" id="a-sel" onchange="loadAUser()">
           <option value="">— select user —</option>
         </select>
+        
         <div id="a-card" style="display:none"></div>
+        
         <div class="a-grid" id="a-actions" style="display:none">
-          <button class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn()">⚠️ Warn & 1m TO</button>
-          <button class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminTO(5)">⏱ Timeout 5m</button>
-          <button class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminTO(15)">⏱ Timeout 15m</button>
-          <button class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminTO(60)">⏱ Timeout 1h</button>
+          <button id="btn-warn-no" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(0)">⚠️ Warn (No Timeout)</button>
+          <button id="btn-warn-1m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(1)">⚠️ Warn + 1m TO</button>
+          <button id="btn-warn-24h" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(1440)">⚠️ Warn + 24h TO</button>
+          
+          <button id="btn-to-5m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminTO(5)">⏱ Timeout 5m</button>
+          <button id="btn-to-15m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminTO(15)">⏱ Timeout 15m</button>
+          <button id="btn-to-1h" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminTO(60)">⏱ Timeout 1h</button>
+          
           <button id="btn-ban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminBan()">🚫 Ban Account</button>
           <button id="btn-hwban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminHWBan()">🔨 HW-ID Ban</button>
-          <button class="abtn" style="background:rgba(46,204,138,.09);color:var(--gr);border:1px solid rgba(46,204,138,.2)" onclick="adminUnban()">✅ Unban / Untimeout</button>
-          <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearUser()">🗑 Clear Their Msgs</button>
+          <button id="btn-clear-msgs" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearUser()">🗑 Clear Their Msgs</button>
+          <button id="btn-unban" class="abtn" style="background:rgba(46,204,138,.09);color:var(--gr);border:1px solid rgba(46,204,138,.2)" onclick="adminUnban()">✅ Unban / Untimeout</button>
         </div>
       </div>
     </div>
@@ -291,6 +324,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     <div class="chat-head">
       <div class="ch-title" id="chTitle">Global Chat</div>
     </div>
+    <div class="chat-banner" id="chatBanner"></div>
     <div class="msgs" id="msgs"></div>
 
     <div class="gif-menu" id="gifMenu">
@@ -327,8 +361,10 @@ const db=firebase.database();
 let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=0, replyTo=null, currentGifTab='search';
 let adminRole = null; 
 let isChatLocked = false;
+let isGhostMode = false;
 const ADMIN_PW = '32ad';
 const MOD_PW = '31mod';
+const LITTLE_MOD_PW = '12tmod';
 
 // ── HARDWARE ID ───────────────────────────────
 function getHWID(){let id=localStorage.getItem('_chwid');if(!id){id='hw_'+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('_chwid',id);}return id;}
@@ -384,23 +420,32 @@ function reqNotif() {
   }
 }
 
-// ── 2 HOUR AUTO-RESET LOOP ────────────────────
+// ── 24 HOUR AUTO-RESET LOOP ────────────────────
 async function checkAutoReset() {
   const snap = await db.ref('server_meta/lastReset').once('value');
   const lastReset = snap.val() || 0;
   const now = Date.now();
-  const TWO_HOURS = 2 * 60 * 60 * 1000;
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
   
-  if (now - lastReset > TWO_HOURS) {
-    await db.ref('chats').remove(); 
+  if (now - lastReset > TWENTY_FOUR_HOURS) {
+    const chatsSnap = await db.ref('chats').once('value');
+    const updates = {};
+    chatsSnap.forEach(roomSnap => {
+      if(!roomSnap.key.startsWith('dm_')) {
+        updates[roomSnap.key] = null;
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      await db.ref('chats').update(updates);
+    }
     await db.ref('server_meta/lastReset').set(now);
-    console.log('2-Hour Auto-reset triggered.');
+    console.log('24-Hour Auto-reset triggered.');
   }
 }
 checkAutoReset();
 setInterval(checkAutoReset, 60000);
 
-// ── GLOBAL LOCKDOWN LISTENER ──────────────────
+// ── SERVER LISTENERS ──────────────────────────
 db.ref('server_meta/chatLocked').on('value', snap => {
   isChatLocked = snap.val() || false;
   const inp = document.getElementById('msgInp');
@@ -408,35 +453,42 @@ db.ref('server_meta/chatLocked').on('value', snap => {
   const gifBtn = document.querySelector('.gif-btn');
   
   if(isChatLocked) {
-    inp.disabled = true;
-    inp.placeholder = "🔒 Chat is currently shutdown.";
-    btn.style.opacity = '0.5';
-    btn.style.pointerEvents = 'none';
-    gifBtn.style.opacity = '0.5';
-    gifBtn.style.pointerEvents = 'none';
+    inp.disabled = true; inp.placeholder = "🔒 Chat is currently shutdown.";
+    btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none';
+    gifBtn.style.opacity = '0.5'; gifBtn.style.pointerEvents = 'none';
   } else {
-    inp.disabled = false;
-    inp.placeholder = "Message...";
-    btn.style.opacity = '1';
-    btn.style.pointerEvents = 'auto';
-    gifBtn.style.opacity = '1';
-    gifBtn.style.pointerEvents = 'auto';
+    inp.disabled = false; inp.placeholder = "Message...";
+    btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
+    gifBtn.style.opacity = '1'; gifBtn.style.pointerEvents = 'auto';
   }
   
-  // Update admin button UI if admin panel is open
   const lBtn = document.getElementById('btn-lock-chat');
   if(lBtn) {
     if(isChatLocked) {
       lBtn.innerHTML = '🔓 Unlock Chat';
-      lBtn.style.background = 'rgba(46,204,138,.09)';
-      lBtn.style.color = 'var(--gr)';
-      lBtn.style.borderColor = 'rgba(46,204,138,.2)';
+      lBtn.style.background = 'rgba(46,204,138,.09)'; lBtn.style.color = 'var(--gr)'; lBtn.style.borderColor = 'rgba(46,204,138,.2)';
     } else {
       lBtn.innerHTML = '🛑 Shutdown Chat';
-      lBtn.style.background = 'rgba(255,79,79,.1)';
-      lBtn.style.color = 'var(--rd)';
-      lBtn.style.borderColor = 'rgba(255,79,79,.22)';
+      lBtn.style.background = 'rgba(255,79,79,.1)'; lBtn.style.color = 'var(--rd)'; lBtn.style.borderColor = 'rgba(255,79,79,.22)';
     }
+  }
+});
+
+db.ref('server_meta/banner').on('value', snap => {
+  const msg = snap.val();
+  const b = document.getElementById('chatBanner');
+  if(msg) { b.textContent = msg; b.style.display = 'block'; }
+  else { b.style.display = 'none'; }
+});
+
+let lastBroadcastRead = localStorage.getItem('lastBroadcastRead') || 0;
+db.ref('server_meta/broadcast').on('value', snap => {
+  const data = snap.val();
+  if(data && data.ts > lastBroadcastRead && data.ts > roomJoinTime) {
+    document.getElementById('broadcastTxt').textContent = data.text;
+    document.getElementById('broadcastOv').classList.add('open');
+    localStorage.setItem('lastBroadcastRead', data.ts);
+    lastBroadcastRead = data.ts;
   }
 });
 
@@ -466,11 +518,9 @@ async function doLogin(){
   const email = document.getElementById('li-u').value.trim().toLowerCase();
   const p = document.getElementById('li-p').value;
   if(!email || !p) { alert("Please enter email and password."); return; }
-  
   if (await isHWBanned()) { alert("🚫 This device is banned."); return; }
 
   const u = email.replace(/[\.\#\$\[\]]/g, '_');
-  
   const snap=await db.ref('users/'+u).once('value');
   if(!snap.exists()) { alert("Account not found."); return; }
   
@@ -491,7 +541,6 @@ async function doRegister(){
   const p2=document.getElementById('ri-p2').value;
 
   if(!email || !dName || !p) { alert("Please fill out all fields."); return; }
-  
   if (await isHWBanned()) { alert("🚫 This device is banned from creating accounts."); return; }
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -505,18 +554,11 @@ async function doRegister(){
   if(check.exists()){ alert("This email is already registered."); return; }
 
   await db.ref('users/'+u).set({
-    username: u, 
-    displayName: dName, 
-    pfp: "", 
-    password: simpleHash(p), 
-    ts: Date.now(),
-    banned: false,
-    timeoutUntil: 0,
-    hwid: HWID
+    username: u, displayName: dName, pfp: "", password: simpleHash(p), 
+    ts: Date.now(), banned: false, timeoutUntil: 0, hwid: HWID, ghostMode: false
   });
 
-  me = u; 
-  myDisplayName = dName; 
+  me = u; myDisplayName = dName; 
   localStorage.setItem('chatty_user', u); 
   onLoggedIn();
 }
@@ -527,21 +569,33 @@ function onLoggedIn(){
   updateSidebarProfile(); switchRoom('global');
   toast('Welcome back, ' + myDisplayName + '!', 'ok');
 
-  // Real-time listener for current user (Detects warnings instantly)
   db.ref('users/' + me).on('value', snap => {
     const d = snap.val();
     if(!d) return;
-    if(d.banned) { 
-      alert("🚫 Your account has been permanently banned."); 
-      signOut(); 
-    }
-    if(d.pendingWarn) { 
-      document.getElementById('warnReasonTxt').textContent = d.pendingWarn;
+    if(d.banned) { alert("🚫 Your account has been permanently banned."); signOut(); }
+    
+    // Warning System Listener
+    if(d.pendingWarnReason) { 
+      document.getElementById('warnReasonTxt').textContent = d.pendingWarnReason;
+      const penalty = d.pendingWarnPenalty || 0;
+      let txt = "You must acknowledge this warning to continue using the chat.";
+      if(penalty > 0) txt += ` You will receive a ${penalty >= 1440 ? '24-hour' : penalty+'-minute'} timeout upon agreement.`;
+      document.getElementById('warnPenaltyTxt').textContent = txt;
       document.getElementById('warnOv').classList.add('open'); 
+    }
+
+    // Ghost Mode UI update
+    isGhostMode = d.ghostMode || false;
+    const statusEl = document.querySelector('.me-status');
+    if(isGhostMode) {
+      statusEl.innerHTML = '👻 Ghost Mode';
+      statusEl.style.color = 'var(--t2)';
+    } else {
+      statusEl.innerHTML = '● Online';
+      statusEl.style.color = 'var(--gr)';
     }
   });
 
-  // Load Friends List
   loadFriends();
 }
 
@@ -561,9 +615,7 @@ async function saveProfile(){
   myDisplayName=n; myPfp=p; updateSidebarProfile(); hideProfile(); toast('Profile saved', 'ok');
 }
 
-function createServer() {
-  toast("Server creation coming soon!", "info");
-}
+function createServer() { toast("Server creation coming soon!", "info"); }
 
 // ── FRIENDS & DIRECT MESSAGING ──
 async function addFriend() {
@@ -573,12 +625,9 @@ async function addFriend() {
 
   const snap = await db.ref('users').once('value');
   let foundUser = null;
-
   snap.forEach(child => {
     const u = child.val();
-    if (child.key === val || (u.username && u.username === val) || (u.displayName && u.displayName.toLowerCase() === val)) {
-      foundUser = child.key;
-    }
+    if (child.key === val || (u.username && u.username === val) || (u.displayName && u.displayName.toLowerCase() === val)) { foundUser = child.key; }
   });
 
   if(!foundUser) { toast('User not found!', 'err'); return; }
@@ -586,9 +635,7 @@ async function addFriend() {
 
   await db.ref(`users/${me}/friends/${foundUser}`).set({ ts: Date.now() });
   await db.ref(`users/${foundUser}/friends/${me}`).set({ ts: Date.now() });
-  
-  inp.value = '';
-  toast('Friend added successfully!', 'ok');
+  inp.value = ''; toast('Friend added successfully!', 'ok');
 }
 
 function loadFriends() {
@@ -612,11 +659,7 @@ function loadFriends() {
       btn.onclick = () => openDM(f, dName);
       
       const avContent = pfp ? `<img src="${esc(pfp)}" style="width:100%;height:100%;object-fit:cover;border-radius:7px;">` : esc(dName[0].toUpperCase());
-      
-      btn.innerHTML = `
-        <div class="fr-av" style="background:${uCol(f)}">${avContent}</div>
-        <div class="fr-name">${esc(dName)}</div>
-      `;
+      btn.innerHTML = `<div class="fr-av" style="background:${uCol(f)}">${avContent}</div><div class="fr-name">${esc(dName)}</div>`;
       flist.appendChild(btn);
     }
   });
@@ -624,11 +667,9 @@ function loadFriends() {
 
 function openDM(friendId, friendName) {
   const dmRoomId = [me, friendId].sort().join('_');
-  
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const myNav = document.getElementById('nav-dm-' + friendId);
   if(myNav) myNav.classList.add('active');
-
   document.getElementById('chTitle').textContent = '💬 ' + friendName;
   switchRoom('dm_' + dmRoomId);
 }
@@ -645,35 +686,45 @@ function hideAdmin(){document.getElementById('adminOv').classList.remove('open')
 
 function verifyAdmin(){
   const pw = document.getElementById('a-pw').value;
-  if(pw === ADMIN_PW){
-    adminRole = 'admin';
-    setupAdminUI();
-  } else if (pw === MOD_PW) {
-    adminRole = 'mod';
-    setupAdminUI();
-  } else {
-    const e=document.getElementById('a-err');e.textContent='Incorrect password';e.style.display='block';
-  }
+  if (pw === ADMIN_PW){ adminRole = 'admin'; setupAdminUI(); } 
+  else if (pw === MOD_PW) { adminRole = 'mod'; setupAdminUI(); } 
+  else if (pw === LITTLE_MOD_PW) { adminRole = 'little_mod'; setupAdminUI(); }
+  else { const e=document.getElementById('a-err');e.textContent='Incorrect password';e.style.display='block'; }
 }
 
 function setupAdminUI() {
   document.getElementById('aLock').style.display='none';
   document.getElementById('aCont').style.display='';
   
-  if (adminRole === 'mod') {
-    document.getElementById('btn-del-all').style.display = 'none';
-    document.getElementById('btn-ban').style.display = 'none';
-    document.getElementById('btn-hwban').style.display = 'none';
-    document.getElementById('btn-lock-chat').style.display = 'none'; 
-  } else {
-    document.getElementById('btn-del-all').style.display = '';
-    document.getElementById('btn-ban').style.display = '';
-    document.getElementById('btn-hwban').style.display = '';
-    document.getElementById('btn-lock-chat').style.display = '';
-  }
+  const isAdm = adminRole === 'admin';
+  const isMod = adminRole === 'mod' || isAdm;
+  const isLMod = adminRole === 'little_mod' || isMod;
+  
+  // Supreme Tools
+  document.getElementById('admin-only-tools').style.display = isAdm ? 'block' : 'none';
+  
+  // Warnings
+  document.getElementById('btn-warn-no').style.display = isMod ? '' : 'none'; 
+  document.getElementById('btn-warn-1m').style.display = isLMod ? '' : 'none';
+  document.getElementById('btn-warn-24h').style.display = isAdm ? '' : 'none';
+  
+  // Timeouts
+  document.getElementById('btn-to-5m').style.display = isLMod ? '' : 'none';
+  document.getElementById('btn-to-15m').style.display = isMod ? '' : 'none';
+  document.getElementById('btn-to-1h').style.display = isAdm ? '' : 'none';
+  
+  // Big Punishments & Tools
+  document.getElementById('btn-ban').style.display = isAdm ? '' : 'none';
+  document.getElementById('btn-hwban').style.display = isAdm ? '' : 'none';
+  document.getElementById('btn-unban').style.display = isAdm ? '' : 'none'; // strictly admin
+  document.getElementById('btn-clear-msgs').style.display = isMod ? '' : 'none';
   
   loadAdminUsers();
-  toast(adminRole === 'admin' ? 'Admin mode active' : 'Moderator mode active', 'ok');
+  
+  let roleName = 'Little Mod Mode active';
+  if(isAdm) roleName = 'Admin Mode active';
+  else if(isMod) roleName = 'Moderator Mode active';
+  toast(roleName, 'ok');
 }
 
 async function loadAdminUsers(){
@@ -696,88 +747,143 @@ async function loadAUser(){
   const banned=u.banned,timed=u.timeoutUntil&&u.timeoutUntil>now;
   const dc=banned?'sd-ban':timed?'sd-to':'sd-ok';
   const st=banned?'Banned':timed?'Timed out ('+Math.ceil((u.timeoutUntil-now)/60000)+'m)':'Active';
-  
   const dName = u.displayName || uname;
+
+  // BAN EVASION CHECKER
+  let isEvader = false;
+  if(u.hwid) {
+    const allUsers = await db.ref('users').once('value');
+    allUsers.forEach(child => {
+      if(child.key !== uname && child.val().hwid === u.hwid && child.val().banned) isEvader = true;
+    });
+  }
+  const evaderBadge = isEvader ? `<div style="background:rgba(255,79,79,.15); color:var(--rd); padding:4px 6px; border-radius:4px; font-size:10px; font-weight:700; margin-top:2px; border:1px solid rgba(255,79,79,.3);">🚨 ALTERNATE ACCOUNT DETECTED (Banned HWID)</div>` : '';
 
   card.style.display='';acts.style.display='';
   card.innerHTML=`<div class="a-ucard">
-    <div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}; border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:bold;">${dName[0].toUpperCase()}</div>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:13px;font-weight:600">${esc(dName)} <span style="font-size:10px;color:var(--t2)">(@${esc(uname)})</span></div>
-      <div style="font-size:10px;color:var(--t2);margin-top:2px">Joined ${new Date(u.ts||0).toLocaleDateString()}</div>
+    <div class="auc-top">
+      <div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}; border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:bold;">${dName[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${esc(dName)} <span style="font-size:10px;color:var(--t2)">(@${esc(uname)})</span></div>
+        <div style="font-size:10px;color:var(--t2);margin-top:2px">Joined ${new Date(u.ts||0).toLocaleDateString()}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px"><div class="sdot ${dc}"></div><span style="font-size:11px;color:var(--t2)">${st}</span></div>
     </div>
-    <div style="display:flex;align-items:center;gap:5px"><div class="sdot ${dc}"></div><span style="font-size:11px;color:var(--t2)">${st}</span></div>
+    ${evaderBadge}
   </div>`;
 }
 
-// ── ADMIN SHUTDOWN / LOCKDOWN ──
+// ── SUPREME ADMIN FEATURES ──
+async function toggleGhostMode() {
+  if (adminRole !== 'admin') return;
+  await db.ref('users/'+me).update({ ghostMode: !isGhostMode });
+  toast(!isGhostMode ? '👻 Ghost Mode Activated' : '👤 Ghost Mode Deactivated', 'ok');
+}
+
+async function adminBroadcast() {
+  if (adminRole !== 'admin') return;
+  const msg = prompt("Enter global announcement. This will appear as a massive pop-up for everyone:");
+  if(!msg) return;
+  await db.ref('server_meta/broadcast').set({ text: msg, ts: Date.now() });
+  toast('Broadcast sent!', 'ok');
+}
+
+async function adminSetBanner() {
+  if (adminRole !== 'admin') return;
+  const msg = prompt("Enter banner text (leave blank to remove banner):");
+  await db.ref('server_meta/banner').set(msg || "");
+  toast('Banner updated', 'ok');
+}
+
+async function adminPurge() {
+  if (adminRole !== 'admin') return;
+  const count = parseInt(document.getElementById('purge-count').value);
+  if(!confirm(`Delete the last ${count} messages in this room?`)) return;
+  
+  const snap = await db.ref('chats/'+room).limitToLast(count).once('value');
+  const updates = {};
+  snap.forEach(c => { updates[c.key] = null; });
+  await db.ref('chats/'+room).update(updates);
+  toast(`Purged ${count} messages`, 'ok');
+}
+
 async function adminToggleLock() {
   if (adminRole !== 'admin') { toast('Only Admins can do this.', 'err'); return; }
-  
   if (isChatLocked) {
-    // Unlock Chat
     await db.ref('server_meta/chatLocked').set(false);
     await db.ref('chats/'+room).push({ sys: true, text: `🔓 The chat has been unlocked by an Admin.`, ts: Date.now() });
     toast('Chat unlocked', 'ok');
   } else {
-    // Lock and Clear Chat
-    if(!confirm('⚠️ Are you sure you want to completely SHUT DOWN the chat? This will clear all messages and globally lock the room.')) return;
-    await db.ref('chats/'+room).remove(); 
+    if(!confirm('⚠️ Are you sure you want to globally LOCK the chat? Users will not be able to type.')) return;
     await db.ref('server_meta/chatLocked').set(true);
     await db.ref('chats/'+room).push({ sys: true, text: `🛑 The chat has been SHUT DOWN by an Admin.`, ts: Date.now() });
-    toast('Chat shutdown and locked', 'ok');
+    toast('Chat locked', 'ok');
   }
 }
 
-// ── WARNING SYSTEM ──
-async function adminWarn(){
+// ── WARNING & PUNISHMENT SYSTEM ──
+async function adminWarn(minutes){
   const u=document.getElementById('a-sel').value;if(!u){return;}
   if(u===me){alert("Can't warn yourself");return;}
+  
+  // Security Checks
+  if(adminRole === 'little_mod' && minutes > 5) return;
+  if(adminRole === 'mod' && minutes > 15) return;
   
   const reason = prompt("Enter reason for warning:");
   if (reason === null) return; 
   const r = reason.trim() || 'No reason provided';
 
   const snap=await db.ref('users/'+u).once('value');
-  const ud=snap.val()||{};
-  const dName=ud.displayName||u;
+  const dName = snap.val()?.displayName || u;
 
-  await db.ref('users/'+u).update({pendingWarn: r});
-
-  await db.ref('chats/'+room).push({
-    sys: true,
-    text: `⚠️ ${dName} has been officially warned. Reason: ${r}`,
-    ts: Date.now()
+  await db.ref('users/'+u).update({
+    pendingWarnReason: r,
+    pendingWarnPenalty: minutes
   });
 
+  let sysMsg = `⚠️ ${dName} has been officially warned. Reason: ${r}`;
+  if(minutes > 0) sysMsg += ` (Penalty: ${minutes >= 1440 ? '24h' : minutes+'m'} timeout)`;
+
+  await db.ref('chats/'+room).push({ sys: true, text: sysMsg, ts: Date.now() });
   toast(`${u} has been sent a warning.`, 'ok');
   loadAdminUsers(); loadAUser();
 }
 
 async function acceptWarn() {
-  await db.ref('users/'+me).update({
-    pendingWarn: null,
-    timeoutUntil: Date.now() + 60000
-  });
+  const snap = await db.ref('users/'+me).once('value');
+  const p = snap.val().pendingWarnPenalty || 0;
+  
+  let updates = { pendingWarnReason: null, pendingWarnPenalty: null };
+  if (p > 0) updates.timeoutUntil = Date.now() + (p * 60000);
+  
+  await db.ref('users/'+me).update(updates);
   document.getElementById('warnOv').classList.remove('open');
-  toast('You have been timed out for 1 minute.', 'warn');
+  
+  if (p > 0) toast(`You have been timed out for ${p >= 1440 ? '24 hours' : p+' minutes'}.`, 'warn');
+  else toast('Warning acknowledged.', 'ok');
 }
 
 async function adminTO(min){
   const u=document.getElementById('a-sel').value;if(!u){return;}
+  
+  // Security Checks
+  if(adminRole === 'little_mod' && min > 5) return;
+  if(adminRole === 'mod' && min > 15) return;
+
   await db.ref('users/'+u).update({timeoutUntil:Date.now()+min*60000});
-  toast(u + ' timed out', 'ok');
-  loadAdminUsers();loadAUser();
+  toast(u + ' timed out', 'ok'); loadAdminUsers();loadAUser();
 }
+
 async function adminBan(){
   if (adminRole !== 'admin') { toast('Only Admins can ban.', 'err'); return; }
   const u=document.getElementById('a-sel').value;if(!u){return;}
   if(u===me){alert("Can't ban yourself");return;}
   if(!confirm('Permanently ban '+u+'?'))return;
   await db.ref('users/'+u).update({banned:true});
-  toast(u + ' banned', 'ok');
-  loadAdminUsers();loadAUser();
+  toast(u + ' banned', 'ok'); loadAdminUsers();loadAUser();
 }
+
 async function adminHWBan(){
   if (adminRole !== 'admin') { toast('Only Admins can HW-Ban.', 'err'); return; }
   const u=document.getElementById('a-sel').value;if(!u){return;}
@@ -788,45 +894,46 @@ async function adminHWBan(){
   const hk=btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]));
   await db.ref('hwbans/'+hk).set({hwid:ud.hwid,bannedAt:Date.now(),user:u});
   await db.ref('users/'+u).update({banned:true});
-  toast(u+' account & HW-ID banned', 'ok');
-  loadAdminUsers();loadAUser();
+  toast(u+' account & HW-ID banned', 'ok'); loadAdminUsers();loadAUser();
 }
+
 async function adminUnban(){
+  if (adminRole !== 'admin') { toast('Only Admins can unban.', 'err'); return; }
   const u=document.getElementById('a-sel').value;if(!u){return;}
   const snap=await db.ref('users/'+u).once('value');const ud=snap.val()||{};
   if(ud.hwid){
     const hk=btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]));
     await db.ref('hwbans/'+hk).remove();
   }
-  await db.ref('users/'+u).update({banned:false,timeoutUntil:0,pendingWarn:null});
-  toast(u + ' unbanned/untimed out', 'ok');
-  loadAdminUsers();loadAUser();
+  await db.ref('users/'+u).update({banned:false,timeoutUntil:0,pendingWarnReason:null,pendingWarnPenalty:null});
+  toast(u + ' unbanned/untimed out', 'ok'); loadAdminUsers();loadAUser();
 }
+
 async function adminClearUser(){
   const u=document.getElementById('a-sel').value;if(!u){return;}
+  if(adminRole === 'little_mod') return; // Little mods can't clear all messages
   if(!confirm('Delete all messages from '+u+' in current room?'))return;
   const snap=await db.ref('chats/'+room).once('value');
   const updates={};
   snap.forEach(c=>{if(c.val().user===u){updates['chats/'+room+'/'+c.key+'/text']='';updates['chats/'+room+'/'+c.key+'/deleted']=true;}});
-  await db.ref().update(updates);
-  toast('Messages cleared', 'ok');
+  await db.ref().update(updates); toast('Messages cleared', 'ok');
 }
+
 async function adminClearAllChats(){
   if (adminRole !== 'admin') { toast('Only Admins can clear all chats.', 'err'); return; }
   if(!confirm('⚠️ Delete ALL messages in the current room? This cannot be undone.'))return;
   await db.ref('chats/'+room).remove();
-  await db.ref('server_meta/lastReset').set(Date.now()); // Restart the 2-hour timer
+  await db.ref('server_meta/lastReset').set(Date.now());
   toast('Chat room wiped', 'ok');
 }
 
-// ── GIPHY LOGIC WITH BACKUP KEY ──
+// ── GIPHY LOGIC ──
 function toggleGifMenu(){ 
   document.getElementById('gifMenu').classList.toggle('open'); 
   if(document.getElementById('gifMenu').classList.contains('open')) {
     if(currentGifTab === 'search') searchGifs(); else renderFavGifs();
   }
 }
-
 function setGifTab(tab) {
   currentGifTab = tab;
   document.getElementById('tab-search').classList.toggle('active', tab === 'search');
@@ -834,78 +941,51 @@ function setGifTab(tab) {
   document.getElementById('gifSearchInp').style.display = tab === 'search' ? 'block' : 'none';
   if(tab === 'search') searchGifs(); else renderFavGifs();
 }
-
 async function searchGifs() {
   const q = document.getElementById('gifSearchInp').value;
   const primaryKey = 'P5hgFIPg3F1AIqXVdUTVIoq4p7A4DJFn';
   const backupKey = 'n653pzwYMyd8Z1I71vUWO29y9WlnBhJy';
-  
   const getUrl = (key) => q ? `https://api.giphy.com/v1/gifs/search?api_key=${key}&q=${q}&limit=8&rating=pg-13` : `https://api.giphy.com/v1/gifs/trending?api_key=${key}&limit=8&rating=pg-13`;
-  
   try {
     let res = await fetch(getUrl(primaryKey));
-    
-    if (res.status === 429 || !res.ok) {
-      console.log('Primary Giphy key rate limited. Trying backup key...');
-      res = await fetch(getUrl(backupKey));
-    }
-    
+    if (res.status === 429 || !res.ok) res = await fetch(getUrl(backupKey));
     const data = await res.json();
-    if (data && data.data) {
-      renderGifGrid(data.data);
-    }
-  } catch (error) {
-    toast('Error loading GIFs', 'err');
-    console.error(error);
-  }
+    if (data && data.data) renderGifGrid(data.data);
+  } catch (error) { toast('Error loading GIFs', 'err'); }
 }
-
 function renderGifGrid(gifs) {
   const grid=document.getElementById('gifGrid'); grid.innerHTML='';
   const favs = JSON.parse(localStorage.getItem('gif_favs') || '[]');
   gifs.forEach(g=>{
     const url = g.images.fixed_height.url;
     const isFav = favs.includes(url);
-    const container = document.createElement('div');
-    container.className = 'gif-container';
-    container.innerHTML = `
-      <img src="${url}" class="gif-item" onclick="sendGif('${url}')">
-      <button class="gif-fav-btn" onclick="toggleFavGif(event, '${url}')">${isFav ? '❤️' : '🤍'}</button>
-    `;
+    const container = document.createElement('div'); container.className = 'gif-container';
+    container.innerHTML = `<img src="${url}" class="gif-item" onclick="sendGif('${url}')"><button class="gif-fav-btn" onclick="toggleFavGif(event, '${url}')">${isFav ? '❤️' : '🤍'}</button>`;
     grid.appendChild(container);
   });
 }
-
 function toggleFavGif(e, url) {
-  e.stopPropagation();
-  let favs = JSON.parse(localStorage.getItem('gif_favs') || '[]');
-  if(favs.includes(url)) favs = favs.filter(f => f !== url);
-  else favs.push(url);
+  e.stopPropagation(); let favs = JSON.parse(localStorage.getItem('gif_favs') || '[]');
+  if(favs.includes(url)) favs = favs.filter(f => f !== url); else favs.push(url);
   localStorage.setItem('gif_favs', JSON.stringify(favs));
   if(currentGifTab === 'search') searchGifs(); else renderFavGifs();
 }
-
 function renderFavGifs() {
   const favs = JSON.parse(localStorage.getItem('gif_favs') || '[]');
   const grid=document.getElementById('gifGrid'); grid.innerHTML='';
   if(favs.length === 0) { grid.innerHTML = '<div style="color:var(--t2); font-size:11px; padding:20px;">No favorites yet</div>'; return; }
   favs.forEach(url => {
-    const container = document.createElement('div');
-    container.className = 'gif-container';
-    container.innerHTML = `
-      <img src="${url}" class="gif-item" onclick="sendGif('${url}')">
-      <button class="gif-fav-btn" onclick="toggleFavGif(event, '${url}')">❤️</button>
-    `;
+    const container = document.createElement('div'); container.className = 'gif-container';
+    container.innerHTML = `<img src="${url}" class="gif-item" onclick="sendGif('${url}')"><button class="gif-fav-btn" onclick="toggleFavGif(event, '${url}')">❤️</button>`;
     grid.appendChild(container);
   });
 }
-
 async function sendGif(url){ 
   if(isChatLocked) {toast('🔒 Chat is currently shutdown.', 'err'); return;}
   if(await isHWBanned()){toast('🚫 This device is banned', 'err');return;}
   const snap=await db.ref('users/'+me).once('value'); const d=snap.val()||{};
   if(d.banned){toast('🚫 Your account is banned', 'err');return;}
-  if(d.pendingWarn){toast('⚠️ You must acknowledge your warning first!', 'err'); return;}
+  if(d.pendingWarnReason){toast('⚠️ You must acknowledge your warning first!', 'err'); return;}
   if(d.timeoutUntil&&d.timeoutUntil>Date.now()){toast('⏱ You are timed out', 'warn');return;}
 
   await db.ref('chats/'+room).push({user:me, displayName:myDisplayName, pfp:myPfp, gif:url, ts:Date.now()}); 
@@ -955,12 +1035,9 @@ function switchRoom(id){
 function addMsg(key,msg, containerOverride = null){
   const box=containerOverride || document.getElementById('msgs'); 
 
-  // SYSTEM MESSAGES
   if (msg.sys) {
     const wrap=document.createElement('div');
-    wrap.className='sys';
-    wrap.id='msg-'+key;
-    // Check if it's a lock/unlock message for color coding
+    wrap.className='sys'; wrap.id='msg-'+key;
     const isLockMsg = msg.text.includes('🛑') || msg.text.includes('🔓');
     const bColor = isLockMsg ? (msg.text.includes('🛑') ? 'rgba(255,79,79,.3)' : 'rgba(46,204,138,.3)') : 'rgba(245,166,35,.3)';
     const bgColor = isLockMsg ? (msg.text.includes('🛑') ? 'rgba(255,79,79,.08)' : 'rgba(46,204,138,.08)') : 'rgba(245,166,35,.08)';
@@ -974,15 +1051,11 @@ function addMsg(key,msg, containerOverride = null){
 
   const dName=msg.displayName||msg.user;
   const {text:ct, censored:wc} = censor(msg.text||"");
-  
   const isMention = ct.includes('@' + me) || ct.includes('@' + myDisplayName);
   
   let content = '';
-  if(msg.deleted){
-    content = '<span class="msg-text deleted-txt">🗑 This message was deleted</span>';
-  } else {
-    content = msg.gif ? `<img class="msg-gif" src="${msg.gif}">` : `<span class="msg-text">${esc(ct)}</span>`;
-  }
+  if(msg.deleted) content = '<span class="msg-text deleted-txt">🗑 This message was deleted</span>';
+  else content = msg.gif ? `<img class="msg-gif" src="${msg.gif}">` : `<span class="msg-text">${esc(ct)}</span>`;
   
   let rpHTML='';
   if(msg.replyTo && !msg.deleted){
@@ -1013,16 +1086,10 @@ function addMsg(key,msg, containerOverride = null){
   box.appendChild(wrap); 
   if(!containerOverride) box.scrollTop=box.scrollHeight;
 
-  // DESKTOP NOTIFICATION LOGIC
   if (msg.ts > roomJoinTime && msg.user !== me && !msg.deleted && !containerOverride) {
     if ("Notification" in window && Notification.permission === "granted" && !document.hasFocus()) {
-      let nText = ct;
-      if(msg.gif) nText = "Sent a GIF";
-      
-      const notif = new Notification("Chatty: " + dName, {
-        body: nText,
-        icon: msg.pfp || "https://cdn-icons-png.flaticon.com/512/3114/3114810.png"
-      });
+      let nText = ct; if(msg.gif) nText = "Sent a GIF";
+      const notif = new Notification("Chatty: " + dName, { body: nText, icon: msg.pfp || "https://cdn-icons-png.flaticon.com/512/3114/3114810.png" });
       notif.onclick = function() { window.focus(); this.close(); };
     }
   }
@@ -1045,8 +1112,8 @@ async function doSend(){
   const snap=await db.ref('users/'+me).once('value'); const d=snap.val()||{};
   if(d.banned){toast('🚫 Your account is banned', 'err');return;}
   
-  if(d.pendingWarn){
-    document.getElementById('warnReasonTxt').textContent = d.pendingWarn;
+  if(d.pendingWarnReason){
+    document.getElementById('warnReasonTxt').textContent = d.pendingWarnReason;
     document.getElementById('warnOv').classList.add('open');
     toast('⚠️ You must acknowledge your warning first!', 'err'); 
     return;
@@ -1059,14 +1126,10 @@ async function doSend(){
 
   const {text:ct, censored:wc}=censor(txt);
   const obj = {user:me, displayName:myDisplayName, pfp:myPfp, text:ct, censored:wc, ts:Date.now(), deleted:false};
-  
-  if(replyTo) {
-    obj.replyTo = {key: replyTo.key, displayName: replyTo.displayName, text: replyTo.text};
-  }
+  if(replyTo) obj.replyTo = {key: replyTo.key, displayName: replyTo.displayName, text: replyTo.text};
   
   await db.ref('chats/'+room).push(obj);
-  inp.value='';
-  cancelReply();
+  inp.value=''; cancelReply();
 }
 
 function onKey(e){ if(e.key==='Enter')doSend(); if(e.key==='Escape')cancelReply(); }
