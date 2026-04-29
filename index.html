@@ -58,8 +58,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .si-btn:hover{color:var(--t1)}
 .fr-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;cursor:pointer;transition:all .14s;width:100%;border:none;background:none;font-family:'Sora',sans-serif;text-align:left}
 .fr-item:hover{background:var(--s2)}
-.fr-av{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;}
-.fr-name{font-size:12.5px;font-weight:500;color:var(--t2)}
+.fr-av{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;background:var(--s3);}
+.fr-name{font-size:12.5px;font-weight:500;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* CHAT */
 .chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0; position:relative;}
@@ -253,7 +253,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     <div class="sb-scroll">
       <div class="sb-sec">
         <span class="sb-lbl">Channels</span>
-        <button class="nav-item active" onclick="switchRoom('global')">🌐 Global Chat</button>
+        <button id="nav-global" class="nav-item active" onclick="switchRoom('global')">🌐 Global Chat</button>
       </div>
       <div class="sb-sec">
         <div class="sb-row"><span class="sb-lbl" style="flex:1">Servers</span><button class="ic-btn" onclick="createServer()">＋</button></div>
@@ -261,7 +261,10 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       </div>
       <div class="sb-sec">
         <span class="sb-lbl">Direct Messages</span>
-        <div class="sb-row"><input class="si" id="dmInp" placeholder="Add by username..."><button class="si-btn" onclick="addFriend()">Add</button></div>
+        <div class="sb-row">
+          <input class="si" id="dmInp" placeholder="Add by username..." onkeypress="if(event.key==='Enter')addFriend()">
+          <button class="si-btn" onclick="addFriend()">Add</button>
+        </div>
         <div id="friendsList"></div>
       </div>
     </div>
@@ -492,6 +495,9 @@ function onLoggedIn(){
       document.getElementById('warnOv').classList.add('open'); 
     }
   });
+
+  // Load Friends List
+  loadFriends();
 }
 
 function updateSidebarProfile() {
@@ -508,6 +514,84 @@ async function saveProfile(){
   const n=document.getElementById('ep-d').value.trim(), p=document.getElementById('ep-pfp').value.trim();
   await db.ref('users/'+me).update({displayName:n, pfp:p});
   myDisplayName=n; myPfp=p; updateSidebarProfile(); hideProfile(); toast('Profile saved', 'ok');
+}
+
+function createServer() {
+  toast("Server creation coming soon!", "info");
+}
+
+// ── FRIENDS & DIRECT MESSAGING ──
+async function addFriend() {
+  const inp = document.getElementById('dmInp');
+  const val = inp.value.trim().toLowerCase();
+  if(!val) return;
+
+  // Search the database for exact username, email, or display name match
+  const snap = await db.ref('users').once('value');
+  let foundUser = null;
+
+  snap.forEach(child => {
+    const u = child.val();
+    if (child.key === val || (u.username && u.username === val) || (u.displayName && u.displayName.toLowerCase() === val)) {
+      foundUser = child.key;
+    }
+  });
+
+  if(!foundUser) { toast('User not found!', 'err'); return; }
+  if(foundUser === me) { toast("You can't add yourself!", 'warn'); return; }
+
+  // Add to both users' friends lists (two-way)
+  await db.ref(`users/${me}/friends/${foundUser}`).set({ ts: Date.now() });
+  await db.ref(`users/${foundUser}/friends/${me}`).set({ ts: Date.now() });
+  
+  inp.value = '';
+  toast('Friend added successfully!', 'ok');
+}
+
+function loadFriends() {
+  db.ref(`users/${me}/friends`).on('value', async snap => {
+    const flist = document.getElementById('friendsList');
+    flist.innerHTML = '';
+    if(!snap.exists()) return;
+
+    const friends = snap.val();
+    for(let f of Object.keys(friends)) {
+      const fSnap = await db.ref(`users/${f}`).once('value');
+      const fData = fSnap.val();
+      if(!fData) continue;
+
+      const dName = fData.displayName || f;
+      const pfp = fData.pfp || '';
+
+      const btn = document.createElement('button');
+      btn.className = 'fr-item nav-item';
+      btn.id = 'nav-dm-' + f;
+      btn.onclick = () => openDM(f, dName);
+      
+      const avContent = pfp ? `<img src="${esc(pfp)}" style="width:100%;height:100%;object-fit:cover;border-radius:7px;">` : esc(dName[0].toUpperCase());
+      
+      btn.innerHTML = `
+        <div class="fr-av" style="background:${uCol(f)}">${avContent}</div>
+        <div class="fr-name">${esc(dName)}</div>
+      `;
+      flist.appendChild(btn);
+    }
+  });
+}
+
+function openDM(friendId, friendName) {
+  // Generate a unique room ID that is the same for both users regardless of who clicks who
+  const dmRoomId = [me, friendId].sort().join('_');
+  
+  // Update UI Sidebar Active State
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const myNav = document.getElementById('nav-dm-' + friendId);
+  if(myNav) myNav.classList.add('active');
+
+  // Update Header Title
+  document.getElementById('chTitle').textContent = '💬 ' + friendName;
+  
+  switchRoom('dm_' + dmRoomId);
 }
 
 // ── ADMIN / MODERATOR TOOLS ──
@@ -585,7 +669,7 @@ async function loadAUser(){
   </div>`;
 }
 
-// ── NEW WARNING SYSTEM ──
+// ── WARNING SYSTEM ──
 async function adminWarn(){
   const u=document.getElementById('a-sel').value;if(!u){return;}
   if(u===me){alert("Can't warn yourself");return;}
@@ -598,10 +682,8 @@ async function adminWarn(){
   const ud=snap.val()||{};
   const dName=ud.displayName||u;
 
-  // Set the warning hook for the user
   await db.ref('users/'+u).update({pendingWarn: r});
 
-  // Broadcast system message to everyone
   await db.ref('chats/'+room).push({
     sys: true,
     text: `⚠️ ${dName} has been officially warned. Reason: ${r}`,
@@ -613,7 +695,6 @@ async function adminWarn(){
 }
 
 async function acceptWarn() {
-  // Clears the warning and applies the 1 minute timeout penalty
   await db.ref('users/'+me).update({
     pendingWarn: null,
     timeoutUntil: Date.now() + 60000
@@ -704,7 +785,6 @@ async function searchGifs() {
   try {
     let res = await fetch(getUrl(primaryKey));
     
-    // If rate limited or unathorized, try the backup key
     if (res.status === 429 || !res.ok) {
       console.log('Primary Giphy key rate limited. Trying backup key...');
       res = await fetch(getUrl(backupKey));
@@ -788,7 +868,15 @@ async function delMsg(key){
 
 // ── MESSAGES ──
 function switchRoom(id){
-  if(msgRef) db.ref('chats/'+room).off(); room=id; roomJoinTime=Date.now();
+  if(msgRef) db.ref('chats/'+room).off(); 
+  room=id; roomJoinTime=Date.now();
+
+  if(id === 'global') {
+    document.getElementById('chTitle').textContent = '🌐 Global Chat';
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('nav-global').classList.add('active');
+  }
+
   document.getElementById('msgs').innerHTML='';
   msgRef=db.ref('chats/'+room).limitToLast(100);
   
@@ -889,7 +977,6 @@ async function doSend(){
   const snap=await db.ref('users/'+me).once('value'); const d=snap.val()||{};
   if(d.banned){toast('🚫 Your account is banned', 'err');return;}
   
-  // Extra security check if they tried to hack away the warn modal using browser console
   if(d.pendingWarn){
     document.getElementById('warnReasonTxt').textContent = d.pendingWarn;
     document.getElementById('warnOv').classList.add('open');
