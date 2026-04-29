@@ -136,7 +136,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .mbtn{width:100%;padding:12px;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;border:none;transition:all .14s;margin-bottom:8px;background:var(--ac);color:#fff}
 .mb-s{background:var(--s3);color:var(--t2);border:1px solid var(--b2)}
 
-/* ADMIN CSS RESTORED */
+/* ADMIN CSS */
 .a-sec{margin-bottom:14px}
 .a-lbl{font-size:9.5px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--t3);margin-bottom:8px;display:block}
 .a-sel{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:9px;padding:9px 13px;font-size:13px;color:var(--t1);font-family:'Sora',sans-serif;outline:none;margin-bottom:10px}
@@ -200,7 +200,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     <div style="font-size:12px;color:var(--t2);margin-bottom:20px">Moderation &amp; user management</div>
 
     <div id="aLock">
-      <label class="a-lbl">Admin Password</label>
+      <label class="a-lbl">Admin/Mod Password</label>
       <input class="fi" id="a-pw" type="password" placeholder="Enter password" onkeypress="if(event.key==='Enter')verifyAdmin()">
       <div id="a-err" style="color:var(--rd);font-size:12px;display:none;margin-bottom:10px"></div>
       <button class="mbtn mb-p" onclick="verifyAdmin()">Unlock</button>
@@ -210,7 +210,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <div class="a-sec">
         <span class="a-lbl">Global Actions</span>
         <div class="a-grid">
-          <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearAllChats()">🗑 Delete All Chats</button>
+          <button id="btn-del-all" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearAllChats()">🗑 Delete All Chats</button>
           <button class="abtn" style="background:var(--s3);color:var(--t2);border:1px solid var(--b2)" onclick="loadAdminUsers()">🔄 Refresh Users</button>
         </div>
       </div>
@@ -224,8 +224,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         <div class="a-grid" id="a-actions" style="display:none">
           <button class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminTO(5)">⏱ Timeout 5m</button>
           <button class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminTO(60)">⏱ Timeout 1h</button>
-          <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminBan()">🚫 Ban Account</button>
-          <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminHWBan()">🔨 HW-ID Ban</button>
+          <button id="btn-ban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminBan()">🚫 Ban Account</button>
+          <button id="btn-hwban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminHWBan()">🔨 HW-ID Ban</button>
           <button class="abtn" style="background:rgba(46,204,138,.09);color:var(--gr);border:1px solid rgba(46,204,138,.2)" onclick="adminUnban()">✅ Unban / Untimeout</button>
           <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearUser()">🗑 Clear Their Msgs</button>
         </div>
@@ -305,14 +305,14 @@ const db=firebase.database();
 
 // ── STATE ─────────────────────────────────────
 let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=0, replyTo=null, currentGifTab='search';
-let isAdmin = false; 
+let adminRole = null; // Can be 'admin', 'mod', or null
 const ADMIN_PW = '112111';
+const MOD_PW = '3717';
 
 // ── HARDWARE ID ───────────────────────────────
 function getHWID(){let id=localStorage.getItem('_chwid');if(!id){id='hw_'+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('_chwid',id);}return id;}
 const HWID=getHWID();
 async function isHWBanned(){try{const s=await db.ref('hwbans/'+btoa(HWID).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).once('value');return s.exists();}catch{return false;}}
-
 
 const COLORS=['#6c63ff','#2ecc8a','#f5a623','#ff5f5f','#4fa3ff','#d06ef7','#6ef7c2'];
 
@@ -341,6 +341,23 @@ function toast(msg,type='info'){
   document.getElementById('toasts').appendChild(el);
   setTimeout(()=>{el.style.transition='opacity .3s,transform .3s';el.style.opacity=0;el.style.transform='translateX(12px)';setTimeout(()=>el.remove(),320);},3000);
 }
+
+// ── 2 HOUR AUTO-RESET LOOP ────────────────────
+async function checkAutoReset() {
+  const snap = await db.ref('server_meta/lastReset').once('value');
+  const lastReset = snap.val() || 0;
+  const now = Date.now();
+  const TWO_HOURS = 2 * 60 * 60 * 1000;
+  
+  if (now - lastReset > TWO_HOURS) {
+    await db.ref('chats').remove(); 
+    await db.ref('server_meta/lastReset').set(now);
+    console.log('2-Hour Auto-reset triggered.');
+  }
+}
+// Run once on load, then every 60 seconds
+checkAutoReset();
+setInterval(checkAutoReset, 60000);
 
 window.onload = async () => {
   const savedUser = localStorage.getItem('chatty_user');
@@ -446,7 +463,7 @@ async function saveProfile(){
   myDisplayName=n; myPfp=p; updateSidebarProfile(); hideProfile(); toast('Profile saved', 'ok');
 }
 
-// ── ADMIN TOOLS ──
+// ── ADMIN / MODERATOR TOOLS ──
 function showAdmin(){
   document.getElementById('adminOv').classList.add('open');
   document.getElementById('aLock').style.display='';
@@ -457,15 +474,36 @@ function showAdmin(){
 function hideAdmin(){document.getElementById('adminOv').classList.remove('open');}
 
 function verifyAdmin(){
-  if(document.getElementById('a-pw').value===ADMIN_PW){
-    isAdmin=true;
-    document.getElementById('aLock').style.display='none';
-    document.getElementById('aCont').style.display='';
-    loadAdminUsers();
-    toast('Admin mode active', 'ok');
-  }else{
+  const pw = document.getElementById('a-pw').value;
+  if(pw === ADMIN_PW){
+    adminRole = 'admin';
+    setupAdminUI();
+  } else if (pw === MOD_PW) {
+    adminRole = 'mod';
+    setupAdminUI();
+  } else {
     const e=document.getElementById('a-err');e.textContent='Incorrect password';e.style.display='block';
   }
+}
+
+function setupAdminUI() {
+  document.getElementById('aLock').style.display='none';
+  document.getElementById('aCont').style.display='';
+  
+  // Hide specific buttons if they are just a moderator
+  if (adminRole === 'mod') {
+    document.getElementById('btn-del-all').style.display = 'none';
+    document.getElementById('btn-ban').style.display = 'none';
+    document.getElementById('btn-hwban').style.display = 'none';
+  } else {
+    // Show everything for admin
+    document.getElementById('btn-del-all').style.display = '';
+    document.getElementById('btn-ban').style.display = '';
+    document.getElementById('btn-hwban').style.display = '';
+  }
+  
+  loadAdminUsers();
+  toast(adminRole === 'admin' ? 'Admin mode active' : 'Moderator mode active', 'ok');
 }
 
 async function loadAdminUsers(){
@@ -509,6 +547,7 @@ async function adminTO(min){
   loadAdminUsers();loadAUser();
 }
 async function adminBan(){
+  if (adminRole !== 'admin') { toast('Only Admins can ban.', 'err'); return; }
   const u=document.getElementById('a-sel').value;if(!u){return;}
   if(u===me){alert("Can't ban yourself");return;}
   if(!confirm('Permanently ban '+u+'?'))return;
@@ -517,6 +556,7 @@ async function adminBan(){
   loadAdminUsers();loadAUser();
 }
 async function adminHWBan(){
+  if (adminRole !== 'admin') { toast('Only Admins can HW-Ban.', 'err'); return; }
   const u=document.getElementById('a-sel').value;if(!u){return;}
   if(u===me){alert("Can't ban yourself");return;}
   if(!confirm('HW-ID ban '+u+'? Blocks their specific device.'))return;
@@ -549,8 +589,10 @@ async function adminClearUser(){
   toast('Messages cleared', 'ok');
 }
 async function adminClearAllChats(){
+  if (adminRole !== 'admin') { toast('Only Admins can clear all chats.', 'err'); return; }
   if(!confirm('⚠️ Delete ALL messages in the current room? This cannot be undone.'))return;
   await db.ref('chats/'+room).remove();
+  await db.ref('server_meta/lastReset').set(Date.now()); // Restart the 2-hour timer
   toast('Chat room wiped', 'ok');
 }
 
@@ -649,10 +691,22 @@ function switchRoom(id){
   if(msgRef) db.ref('chats/'+room).off(); room=id; roomJoinTime=Date.now();
   document.getElementById('msgs').innerHTML='';
   msgRef=db.ref('chats/'+room).limitToLast(100);
+  
+  // Triggers when a message is added
   msgRef.on('child_added',s=>addMsg(s.key,s.val()));
+  
+  // Triggers when a message is updated (like deleted individually)
   msgRef.on('child_changed',s=>{
     const old=document.getElementById('msg-'+s.key);
     if(old){const tmp=document.createElement('div');addMsg(s.key,s.val(),tmp);if(tmp.firstChild)old.replaceWith(tmp.firstChild);}
+  });
+
+  // Triggers when messages are completely wiped from the database
+  msgRef.on('child_removed', s => {
+    const element = document.getElementById('msg-' + s.key);
+    if (element) {
+      element.remove();
+    }
   });
 }
 
@@ -694,7 +748,7 @@ function addMsg(key,msg, containerOverride = null){
     ${!msg.deleted ? `
     <div class="msg-acts">
       ${!msg.gif ? `<button class="ma" onclick="startReply('${key}','${msg.user}','${esc(dName)}',${JSON.stringify(ct)})">↩</button>` : ''}
-      ${msg.user===me || isAdmin ? `<button class="ma rd" onclick="delMsg('${key}')">🗑</button>` : ''}
+      ${msg.user===me || adminRole==='admin' || adminRole==='mod' ? `<button class="ma rd" onclick="delMsg('${key}')">🗑</button>` : ''}
     </div>` : ''}`;
   
   box.appendChild(wrap); 
