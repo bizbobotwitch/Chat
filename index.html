@@ -260,6 +260,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
           <div class="me-name" id="meName">—</div>
           <div class="me-status">● Online</div>
         </div>
+        <button class="ic-btn" id="notifBtn" title="Enable Notifications" onclick="reqNotif()">🔔</button>
         <button class="ic-btn" title="Edit Profile" onclick="showProfile()">✏️</button>
         <button class="ic-btn" title="Sign out" onclick="signOut()">⎋</button>
       </div>
@@ -340,6 +341,27 @@ function toast(msg,type='info'){
   el.innerHTML=`<span>${icons[type]||'💬'}</span><span>${msg}</span>`;
   document.getElementById('toasts').appendChild(el);
   setTimeout(()=>{el.style.transition='opacity .3s,transform .3s';el.style.opacity=0;el.style.transform='translateX(12px)';setTimeout(()=>el.remove(),320);},3000);
+}
+
+// ── BROWSER NOTIFICATIONS ─────────────────────
+function reqNotif() {
+  if (!("Notification" in window)) {
+    toast("Browser does not support notifications", "err");
+    return;
+  }
+  if (Notification.permission === "granted") {
+    toast("Notifications are already enabled!", "ok");
+  } else if (Notification.permission === "denied") {
+    alert("Notifications are currently blocked!\n\nPlease click the lock icon 🔒 next to the website URL at the top of your browser, change 'Notifications' to 'Allow', and refresh the page.");
+  } else {
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        toast("Notifications enabled!", "ok");
+      } else {
+        toast("Notification permission denied", "warn");
+      }
+    });
+  }
 }
 
 // ── 2 HOUR AUTO-RESET LOOP ────────────────────
@@ -614,7 +636,7 @@ async function searchGifs() {
   const primaryKey = 'P5hgFIPg3F1AIqXVdUTVIoq4p7A4DJFn';
   const backupKey = 'n653pzwYMyd8Z1I71vUWO29y9WlnBhJy';
   
-  const getUrl = (key) => q ? `https://api.giphy.com/v1/gifs/search?api_key=${key}&q=${q}&limit=8&rating=pg-13` : `https://api.giphy.com/v1/gifs/trending?api_key=${key}&limit=8&rating=pg-13`;
+  const getUrl = (key) => q ? `https://api.api.giphy.com/v1/gifs/search?api_key=${key}&q=${q}&limit=8&rating=pg-13` : `https://api.giphy.com/v1/gifs/trending?api_key=${key}&limit=8&rating=pg-13`;
   
   try {
     let res = await fetch(getUrl(primaryKey));
@@ -759,6 +781,20 @@ function addMsg(key,msg, containerOverride = null){
   
   box.appendChild(wrap); 
   if(!containerOverride) box.scrollTop=box.scrollHeight;
+
+  // DESKTOP NOTIFICATION LOGIC
+  if (msg.ts > roomJoinTime && msg.user !== me && !msg.deleted && !containerOverride) {
+    if ("Notification" in window && Notification.permission === "granted" && !document.hasFocus()) {
+      let nText = ct;
+      if(msg.gif) nText = "Sent a GIF";
+      
+      const notif = new Notification("Chatty: " + dName, {
+        body: nText,
+        icon: msg.pfp || "https://cdn-icons-png.flaticon.com/512/3114/3114810.png"
+      });
+      notif.onclick = function() { window.focus(); this.close(); };
+    }
+  }
 }
 
 function scrollToMsg(key) {
