@@ -251,7 +251,10 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <span class="a-lbl" style="margin:0;">User Actions</span><button class="abtn" style="background:var(--s3);color:var(--t2);border:1px solid var(--b2); padding:4px 8px; font-size:10px;" onclick="loadAdminUsers()">🔄 Refresh</button>
         </div>
+        
+        <input class="fi si" style="width:100%; margin-bottom:6px;" id="a-search" placeholder="Search by name or UID..." oninput="filterAdminUsers()">
         <select class="a-sel" id="a-sel" onchange="loadAUser()"><option value="">— select user —</option></select>
+        
         <div id="a-card" style="display:none"></div>
         <div class="a-grid" id="a-actions" style="display:none">
           <button id="btn-warn-no" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(0)">⚠️ Warn (No TO)</button>
@@ -362,6 +365,7 @@ firebase.initializeApp(FC); const db=firebase.database(); const storage=firebase
 // ── STATE ─────────────────────────────────────
 let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=0, replyTo=null, currentGifTab='search';
 let adminRole = null, isChatLocked = false, isGhostMode = false, myBlockedUsers = {}, typeTimer = null, auditRef = null;
+let adminUserList = []; // Caches users for searching
 const ADMIN_PW = '32ad', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
 
@@ -542,6 +546,7 @@ async function showAdmin(){
 } 
 function hideAdmin(){ document.getElementById('adminOv').classList.remove('open'); if(auditRef) auditRef.off(); }
 function verifyAdmin(){ const pw = document.getElementById('a-pw').value; if (pw === ADMIN_PW){ adminRole = 'admin'; setupAdminUI(); } else if (pw === MOD_PW) { adminRole = 'mod'; setupAdminUI(); } else if (pw === LITTLE_MOD_PW) { adminRole = 'little_mod'; setupAdminUI(); } else { const e=document.getElementById('a-err'); e.textContent='Incorrect'; e.style.display='block'; } }
+
 function setupAdminUI() { 
   document.getElementById('aLock').style.display='none'; 
   document.getElementById('aCont').style.display=''; 
@@ -564,6 +569,7 @@ function setupAdminUI() {
   document.getElementById('btn-clear-msgs').style.display = isMod ? '' : 'none'; 
   loadAdminUsers(); 
 }
+
 async function adminSetRole(r){
   const u=document.getElementById('a-sel').value;
   if(!u || !isSuperAdmin()) return;
@@ -572,7 +578,34 @@ async function adminSetRole(r){
   toast(r ? 'Promoted' : 'Stripped', 'ok');
   loadAdminUsers();
 }
-async function loadAdminUsers(){ const sel=document.getElementById('a-sel'); sel.innerHTML='<option value="">— select user —</option>'; (await db.ref('users').once('value')).forEach(c=>{ const u=c.val(), opt=document.createElement('option'); opt.value=c.key; opt.textContent= (u.displayName || c.key) + ' (@' + c.key + ')' + (u.role ? ' ['+u.role+']' : '') + (u.banned?' 🚫':u.timeoutUntil>Date.now()?' ⏱':''); sel.appendChild(opt); }); }
+
+async function loadAdminUsers(){ 
+  const searchInp = document.getElementById('a-search');
+  if(searchInp) searchInp.value = '';
+  
+  adminUserList = [];
+  const snap = await db.ref('users').once('value');
+  snap.forEach(c => { adminUserList.push({ key: c.key, val: c.val() }); });
+  
+  filterAdminUsers();
+}
+
+function filterAdminUsers() {
+  const sel = document.getElementById('a-sel');
+  const q = document.getElementById('a-search').value.toLowerCase();
+  
+  sel.innerHTML = '<option value="">— select user —</option>';
+  adminUserList.forEach(u => {
+    const text = (u.val.displayName || u.key) + ' (@' + u.key + ')' + (u.val.role ? ' ['+u.val.role+']' : '') + (u.val.banned?' 🚫':u.val.timeoutUntil>Date.now()?' ⏱':'');
+    if(!q || text.toLowerCase().includes(q)) {
+      const opt = document.createElement('option'); 
+      opt.value = u.key; 
+      opt.textContent = text; 
+      sel.appendChild(opt);
+    }
+  });
+}
+
 async function loadAUser(){ const uname=document.getElementById('a-sel').value, card=document.getElementById('a-card'), acts=document.getElementById('a-actions'); if(!uname){ card.style.display='none'; acts.style.display='none'; return; } const u=(await db.ref('users/'+uname).once('value')).val()||{}, now=Date.now(), timed=u.timeoutUntil&&u.timeoutUntil>now; card.style.display=''; acts.style.display=''; card.innerHTML=`<div class="a-ucard"><div class="auc-top"><div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${(u.displayName||uname)[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(u.displayName||uname)} ${u.role ? `<span style="color:var(--ac);font-size:10px">[${u.role}]</span>` : ''}</div><div style="font-size:10px;color:var(--t2)">Joined ${new Date(u.ts||0).toLocaleDateString()}</div></div><div class="sdot ${u.banned?'sd-ban':timed?'sd-to':'sd-ok'}"></div><span style="font-size:11px;color:var(--t2)">${u.banned?'Banned':timed?'Timed out':'Active'}</span></div></div>`; }
 
 async function toggleGhostMode() { if (!isSuperAdmin()) return; await db.ref('users/'+me).update({ ghostMode: !isGhostMode }); logAdminAction(isGhostMode ? 'Disabled Ghost Mode' : 'Enabled Ghost Mode'); toast(!isGhostMode ? '👻 ON' : '👤 OFF', 'ok'); }
@@ -581,7 +614,26 @@ async function adminSetBanner() { if (!isSuperAdmin()) return; const msg = promp
 async function adminPurge() { if (!isSuperAdmin()) return; const count = parseInt(document.getElementById('purge-count').value); if(!confirm(`Delete ${count} msgs?`)) return; const snap = await db.ref('chats/'+room).limitToLast(count).once('value'); const updates = {}; snap.forEach(c => updates[c.key] = null); await db.ref('chats/'+room).update(updates); logAdminAction(`Purged ${count} recent messages in room ${room}`); toast(`Purged`, 'ok'); }
 async function adminToggleLock() { if (!isSuperAdmin()) return; if (isChatLocked) { await db.ref('server_meta/chatLocked').set(false); await db.ref('chats/'+room).push({ sys: true, text: `🔓 Chat unlocked by ${myDisplayName}.`, ts: Date.now() }); logAdminAction(`Unlocked room ${room}`); } else { if(!confirm('SHUTDOWN chat?')) return; await db.ref('server_meta/chatLocked').set(true); await db.ref('chats/'+room).push({ sys: true, text: `🛑 Chat SHUT DOWN by ${myDisplayName}.`, ts: Date.now() }); logAdminAction(`Initiated Lockdown on room ${room}`); } }
 async function adminClearAllChats(){ if (!isSuperAdmin()) return; if(!confirm('Nuke ALL messages?'))return; await db.ref('chats/'+room).remove(); logAdminAction(`Nuked entire chat history in room ${room}`); toast('Room wiped', 'ok'); }
-async function adminWarn(m){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const r = prompt("Warning reason:"); if(r === null) return; const finalReason = r.trim() || 'No reason'; await db.ref('users/'+u).update({ pendingWarnReason: finalReason, pendingWarnPenalty: m }); await db.ref('chats/'+room).push({ sys: true, text: `⚠️ User warned by ${myDisplayName}. Reason: ${finalReason}`, ts: Date.now() }); logAdminAction(`Issued Warning (Penalty: ${m}m TO). Reason: ${finalReason}`, u); toast('Sent.', 'ok'); }
+
+async function adminWarn(m){ 
+  const u=document.getElementById('a-sel').value; 
+  if(!u||u===me) return; 
+  
+  const r = prompt("Warning reason:"); 
+  if(r === null) return; 
+  
+  const finalReason = r.trim() || 'No reason specified'; 
+  await db.ref('users/'+u).update({ pendingWarnReason: finalReason, pendingWarnPenalty: m }); 
+  
+  // Find display name from cached list
+  const targetObj = adminUserList.find(x => x.key === u);
+  const targetName = targetObj ? (targetObj.val.displayName || u) : u;
+
+  await db.ref('chats/'+room).push({ sys: true, text: `⚠️ ${targetName} was warned by ${myDisplayName}. Reason: ${finalReason}`, ts: Date.now() }); 
+  logAdminAction(`Issued Warning (Penalty: ${m}m TO). Reason: ${finalReason}`, u); 
+  toast('Sent.', 'ok'); 
+}
+
 async function acceptWarn() { const p = (await db.ref('users/'+me).once('value')).val().pendingWarnPenalty || 0; let u = { pendingWarnReason: null, pendingWarnPenalty: null }; if (p > 0) u.timeoutUntil = Date.now() + (p * 60000); await db.ref('users/'+me).update(u); document.getElementById('warnOv').classList.remove('open'); }
 async function adminTO(min){ const u=document.getElementById('a-sel').value; if(!u)return; await db.ref('users/'+u).update({timeoutUntil:Date.now()+min*60000}); logAdminAction(`Applied ${min}m Timeout`, u); toast('Timed out', 'ok'); }
 async function adminBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u).update({banned:true}); logAdminAction('Account Banned', u); toast('Banned', 'ok'); }
