@@ -226,6 +226,10 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <button class="mbtn mb-p" onclick="verifyAdmin()">Unlock</button>
     </div>
     <div id="aCont" style="display:none; max-height:65vh; overflow-y:auto; padding-right:5px;">
+      
+      <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2); width:100%; margin-bottom:14px; padding:10px;" onclick="toggleAuditLogs()">📜 View Audit Logs</button>
+      <div id="audit-logs-container" style="display:none; background:var(--s2); border:1px solid var(--b1); border-radius:8px; padding:10px; max-height:200px; overflow-y:auto; font-size:11px; margin-bottom:14px; font-family:'JetBrains Mono', monospace; word-wrap:break-word;"></div>
+
       <div id="admin-only-tools" style="display:none;">
         <div class="a-sec">
           <span class="a-lbl" style="color:var(--ac)">👑 Supreme Admin Tools</span>
@@ -357,7 +361,7 @@ firebase.initializeApp(FC); const db=firebase.database(); const storage=firebase
 
 // ── STATE ─────────────────────────────────────
 let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=0, replyTo=null, currentGifTab='search';
-let adminRole = null, isChatLocked = false, isGhostMode = false, myBlockedUsers = {}, typeTimer = null;
+let adminRole = null, isChatLocked = false, isGhostMode = false, myBlockedUsers = {}, typeTimer = null, auditRef = null;
 const ADMIN_PW = '32ad', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
 
@@ -375,16 +379,6 @@ function uCol(n){return COLORS[n?n.charCodeAt(0)%COLORS.length:0];}
 function fmt(ts){return new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
 function toast(msg,type='info'){ const el=document.createElement('div');el.className='toast '+type; el.innerHTML=`<span>${{ok:'✅',err:'❌',warn:'⚠️',info:'💬'}[type]||'💬'}</span><span>${msg}</span>`; document.getElementById('toasts').appendChild(el); setTimeout(()=>{el.style.opacity=0;el.style.transform='translateX(12px)';setTimeout(()=>el.remove(),320);},3000); }
 function reqNotif() { if (!("Notification" in window)) return toast("Not supported", "err"); if (Notification.permission === "granted") toast("Enabled!", "ok"); else if (Notification.permission === "denied") alert("Blocked in browser settings."); else Notification.requestPermission().then(p => { if (p === "granted") toast("Enabled!", "ok"); }); }
-
-// ── AUTO-WIPE (Only Global) ───────────────────
-async function checkAutoReset() {
-  const snap = await db.ref('server_meta/lastReset').once('value'); const now = Date.now();
-  if (now - (snap.val()||0) > 24 * 60 * 60 * 1000) {
-    await db.ref('chats/global').remove();
-    await db.ref('server_meta/lastReset').set(now);
-  }
-}
-checkAutoReset(); setInterval(checkAutoReset, 60000);
 
 // ── SERVER META LISTENERS ─────────────────────
 db.ref('server_meta/chatLocked').on('value', snap => {
@@ -410,12 +404,22 @@ async function doRegister(){ const dName=document.getElementById('ri-d').value.t
 function onLoggedIn(){
   document.getElementById('authOv').classList.remove('open'); document.getElementById('mainApp').style.display='flex';
   updateSidebarProfile(); switchRoom('global'); toast('Welcome back!', 'ok');
-  db.ref('users/' + me).on('value', snap => {
+  
+  db.ref('users/' + me).on('value', async snap => {
     const d = snap.val(); if(!d) return;
     if(d.banned) { alert("🚫 Banned."); signOut(); }
     if(d.pendingWarnReason) { document.getElementById('warnReasonTxt').textContent = d.pendingWarnReason; document.getElementById('warnPenaltyTxt').textContent = d.pendingWarnPenalty > 0 ? `Penalty: ${d.pendingWarnPenalty >= 1440 ? '24h' : d.pendingWarnPenalty+'m'} TO.` : 'Acknowledge to continue.'; document.getElementById('warnOv').classList.add('open'); }
     isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = '👻 Ghost'; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = '● Online'; statusEl.style.color = 'var(--gr)'; }
     myBlockedUsers = d.blocked || {};
+    
+    // Auto-join Moderation HQ if authorized
+    const isStaff = d.role || me.toLowerCase().includes('zasingl61');
+    if(isStaff) {
+      await db.ref('rooms/srv_mods').update({ name: '🛡️ Moderators HQ', owner: 'system', ts: Date.now() });
+      await db.ref('users/'+me+'/rooms/srv_mods').set(true);
+    } else {
+      await db.ref('users/'+me+'/rooms/srv_mods').remove();
+    }
   });
   loadFriends(); loadServers();
 }
@@ -442,7 +446,6 @@ function loadServers() {
     snap.forEach(async c => {
       const rData = (await db.ref('rooms/'+c.key).once('value')).val(); 
       if(!rData) {
-        // Automatically clean up deleted servers from user's list
         db.ref('users/'+me+'/rooms/'+c.key).remove();
         return; 
       }
@@ -465,19 +468,17 @@ function copyInvite() {
 
 async function leaveServer() {
   if(!room.startsWith('srv_')) return;
+  if(room === 'srv_mods') return toast("You cannot leave the Mod HQ", "err");
   if(!confirm("Are you sure you want to leave this server?\n\n(Note: If you created this server, leaving will permanently delete it for everyone!)")) return;
   
   const rSnap = await db.ref('rooms/' + room).once('value');
   if(rSnap.exists() && rSnap.val().owner === me) {
-    // Owner is deleting the server entirely
     await db.ref('rooms/' + room).remove();
     await db.ref('chats/' + room).remove();
     toast('Server deleted permanently.', 'ok');
   } else {
     toast('You left the server.', 'ok');
   }
-  
-  // Remove from personal list and return to global
   await db.ref('users/' + me + '/rooms/' + room).remove();
   switchRoom('global');
 }
@@ -498,6 +499,33 @@ function loadFriends() {
 }
 function openDM(fId, fName) { document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active')); const nav = document.getElementById('nav-dm-' + fId); if(nav) nav.classList.add('active'); localStorage.setItem('read_dm_' + fId, Date.now()); const badge = document.getElementById('badge-' + fId); if(badge) badge.style.display = 'none'; document.getElementById('chTitle').textContent = '💬 ' + fName; switchRoom('dm_' + [me, fId].sort().join('_')); if(window.innerWidth <= 768) mobToggle(); }
 
+// ── AUDIT LOGS ────────────────────────────────
+function logAdminAction(act, targetUID = null) {
+  db.ref('admin_logs').push({ admin: me, adminName: myDisplayName, action: act, target: targetUID, ts: Date.now() });
+}
+
+function toggleAuditLogs() {
+  const cont = document.getElementById('audit-logs-container');
+  if(cont.style.display === 'none') {
+    cont.style.display = 'block'; cont.innerHTML = 'Loading records...';
+    auditRef = db.ref('admin_logs').limitToLast(50);
+    auditRef.on('value', snap => {
+      cont.innerHTML = '';
+      if(!snap.exists()) { cont.innerHTML = 'No logs found.'; return; }
+      const logs = []; snap.forEach(c => logs.unshift(c.val()));
+      logs.forEach(l => {
+        const div = document.createElement('div');
+        div.style.marginBottom = '6px'; div.style.borderBottom = '1px solid var(--b2)'; div.style.paddingBottom = '4px';
+        div.innerHTML = `<span style="color:var(--t3)">[${fmt(l.ts)}]</span> <b style="color:var(--ac)">${esc(l.adminName)}</b>: ${esc(l.action)} ${l.target ? `<span style="color:var(--am)">(@${esc(l.target)})</span>` : ''}`;
+        cont.appendChild(div);
+      });
+    });
+  } else {
+    cont.style.display = 'none';
+    if(auditRef) auditRef.off();
+  }
+}
+
 // ── MOD TOOLS ─────────────────────────────────
 function isSuperAdmin() { return adminRole === 'admin' && me && me.toLowerCase().includes('zasingl61'); }
 async function showAdmin(){ 
@@ -512,7 +540,7 @@ async function showAdmin(){
     document.getElementById('aCont').style.display='none'; 
   }
 } 
-function hideAdmin(){ document.getElementById('adminOv').classList.remove('open'); }
+function hideAdmin(){ document.getElementById('adminOv').classList.remove('open'); if(auditRef) auditRef.off(); }
 function verifyAdmin(){ const pw = document.getElementById('a-pw').value; if (pw === ADMIN_PW){ adminRole = 'admin'; setupAdminUI(); } else if (pw === MOD_PW) { adminRole = 'mod'; setupAdminUI(); } else if (pw === LITTLE_MOD_PW) { adminRole = 'little_mod'; setupAdminUI(); } else { const e=document.getElementById('a-err'); e.textContent='Incorrect'; e.style.display='block'; } }
 function setupAdminUI() { 
   document.getElementById('aLock').style.display='none'; 
@@ -540,25 +568,26 @@ async function adminSetRole(r){
   const u=document.getElementById('a-sel').value;
   if(!u || !isSuperAdmin()) return;
   await db.ref('users/'+u).update({role: r});
+  logAdminAction(r ? 'Promoted to ' + r : 'Stripped all roles', u);
   toast(r ? 'Promoted' : 'Stripped', 'ok');
   loadAdminUsers();
 }
 async function loadAdminUsers(){ const sel=document.getElementById('a-sel'); sel.innerHTML='<option value="">— select user —</option>'; (await db.ref('users').once('value')).forEach(c=>{ const u=c.val(), opt=document.createElement('option'); opt.value=c.key; opt.textContent= (u.displayName || c.key) + ' (@' + c.key + ')' + (u.role ? ' ['+u.role+']' : '') + (u.banned?' 🚫':u.timeoutUntil>Date.now()?' ⏱':''); sel.appendChild(opt); }); }
 async function loadAUser(){ const uname=document.getElementById('a-sel').value, card=document.getElementById('a-card'), acts=document.getElementById('a-actions'); if(!uname){ card.style.display='none'; acts.style.display='none'; return; } const u=(await db.ref('users/'+uname).once('value')).val()||{}, now=Date.now(), timed=u.timeoutUntil&&u.timeoutUntil>now; card.style.display=''; acts.style.display=''; card.innerHTML=`<div class="a-ucard"><div class="auc-top"><div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${(u.displayName||uname)[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(u.displayName||uname)} ${u.role ? `<span style="color:var(--ac);font-size:10px">[${u.role}]</span>` : ''}</div><div style="font-size:10px;color:var(--t2)">Joined ${new Date(u.ts||0).toLocaleDateString()}</div></div><div class="sdot ${u.banned?'sd-ban':timed?'sd-to':'sd-ok'}"></div><span style="font-size:11px;color:var(--t2)">${u.banned?'Banned':timed?'Timed out':'Active'}</span></div></div>`; }
 
-async function toggleGhostMode() { if (!isSuperAdmin()) return; await db.ref('users/'+me).update({ ghostMode: !isGhostMode }); toast(!isGhostMode ? '👻 ON' : '👤 OFF', 'ok'); }
-async function adminBroadcast() { if (!isSuperAdmin()) return; const msg = prompt("Global announcement:"); if(msg) { await db.ref('server_meta/broadcast').set({ text: msg, ts: Date.now() }); toast('Sent!', 'ok'); } }
-async function adminSetBanner() { if (!isSuperAdmin()) return; const msg = prompt("Banner text (blank to remove):"); await db.ref('server_meta/banner').set(msg || ""); toast('Updated', 'ok'); }
-async function adminPurge() { if (!isSuperAdmin()) return; const count = parseInt(document.getElementById('purge-count').value); if(!confirm(`Delete ${count} msgs?`)) return; const snap = await db.ref('chats/'+room).limitToLast(count).once('value'); const updates = {}; snap.forEach(c => updates[c.key] = null); await db.ref('chats/'+room).update(updates); toast(`Purged`, 'ok'); }
-async function adminToggleLock() { if (!isSuperAdmin()) return; if (isChatLocked) { await db.ref('server_meta/chatLocked').set(false); await db.ref('chats/'+room).push({ sys: true, text: `🔓 Chat unlocked.`, ts: Date.now() }); } else { if(!confirm('SHUTDOWN chat?')) return; await db.ref('server_meta/chatLocked').set(true); await db.ref('chats/'+room).push({ sys: true, text: `🛑 Chat SHUT DOWN.`, ts: Date.now() }); } }
-async function adminClearAllChats(){ if (!isSuperAdmin()) return; if(!confirm('Nuke ALL messages?'))return; await db.ref('chats/'+room).remove(); toast('Room wiped', 'ok'); }
-async function adminWarn(m){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const r = prompt("Warning reason:")||'No reason'; await db.ref('users/'+u).update({ pendingWarnReason: r, pendingWarnPenalty: m }); await db.ref('chats/'+room).push({ sys: true, text: `⚠️ User warned. Reason: ${r}`, ts: Date.now() }); toast('Sent.', 'ok'); }
+async function toggleGhostMode() { if (!isSuperAdmin()) return; await db.ref('users/'+me).update({ ghostMode: !isGhostMode }); logAdminAction(isGhostMode ? 'Disabled Ghost Mode' : 'Enabled Ghost Mode'); toast(!isGhostMode ? '👻 ON' : '👤 OFF', 'ok'); }
+async function adminBroadcast() { if (!isSuperAdmin()) return; const msg = prompt("Global announcement:"); if(msg) { await db.ref('server_meta/broadcast').set({ text: msg, ts: Date.now() }); logAdminAction('Sent Broadcast: ' + msg); toast('Sent!', 'ok'); } }
+async function adminSetBanner() { if (!isSuperAdmin()) return; const msg = prompt("Banner text (blank to remove):"); if(msg !== null) { await db.ref('server_meta/banner').set(msg); logAdminAction('Updated global banner'); toast('Updated', 'ok'); } }
+async function adminPurge() { if (!isSuperAdmin()) return; const count = parseInt(document.getElementById('purge-count').value); if(!confirm(`Delete ${count} msgs?`)) return; const snap = await db.ref('chats/'+room).limitToLast(count).once('value'); const updates = {}; snap.forEach(c => updates[c.key] = null); await db.ref('chats/'+room).update(updates); logAdminAction(`Purged ${count} recent messages in room ${room}`); toast(`Purged`, 'ok'); }
+async function adminToggleLock() { if (!isSuperAdmin()) return; if (isChatLocked) { await db.ref('server_meta/chatLocked').set(false); await db.ref('chats/'+room).push({ sys: true, text: `🔓 Chat unlocked by ${myDisplayName}.`, ts: Date.now() }); logAdminAction(`Unlocked room ${room}`); } else { if(!confirm('SHUTDOWN chat?')) return; await db.ref('server_meta/chatLocked').set(true); await db.ref('chats/'+room).push({ sys: true, text: `🛑 Chat SHUT DOWN by ${myDisplayName}.`, ts: Date.now() }); logAdminAction(`Initiated Lockdown on room ${room}`); } }
+async function adminClearAllChats(){ if (!isSuperAdmin()) return; if(!confirm('Nuke ALL messages?'))return; await db.ref('chats/'+room).remove(); logAdminAction(`Nuked entire chat history in room ${room}`); toast('Room wiped', 'ok'); }
+async function adminWarn(m){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const r = prompt("Warning reason:"); if(r === null) return; const finalReason = r.trim() || 'No reason'; await db.ref('users/'+u).update({ pendingWarnReason: finalReason, pendingWarnPenalty: m }); await db.ref('chats/'+room).push({ sys: true, text: `⚠️ User warned by ${myDisplayName}. Reason: ${finalReason}`, ts: Date.now() }); logAdminAction(`Issued Warning (Penalty: ${m}m TO). Reason: ${finalReason}`, u); toast('Sent.', 'ok'); }
 async function acceptWarn() { const p = (await db.ref('users/'+me).once('value')).val().pendingWarnPenalty || 0; let u = { pendingWarnReason: null, pendingWarnPenalty: null }; if (p > 0) u.timeoutUntil = Date.now() + (p * 60000); await db.ref('users/'+me).update(u); document.getElementById('warnOv').classList.remove('open'); }
-async function adminTO(min){ const u=document.getElementById('a-sel').value; if(!u)return; await db.ref('users/'+u).update({timeoutUntil:Date.now()+min*60000}); toast('Timed out', 'ok'); }
-async function adminBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u).update({banned:true}); toast('Banned', 'ok'); }
-async function adminHWBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(!ud.hwid)return; await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).set({hwid:ud.hwid}); await db.ref('users/'+u).update({banned:true}); toast('HW-Banned', 'ok'); }
-async function adminUnban(){ const u=document.getElementById('a-sel').value; if(!u)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(ud.hwid) await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).remove(); await db.ref('users/'+u).update({banned:false,timeoutUntil:0,pendingWarnReason:null,pendingWarnPenalty:null}); toast('Unbanned', 'ok'); }
-async function adminClearUser(){ const u=document.getElementById('a-sel').value; if(!u)return; const snap=await db.ref('chats/'+room).once('value'); const updates={}; snap.forEach(c=>{if(c.val().user===u){updates['chats/'+room+'/'+c.key+'/text']='';updates['chats/'+room+'/'+c.key+'/deleted']=true;}}); await db.ref().update(updates); toast('Cleared', 'ok'); }
+async function adminTO(min){ const u=document.getElementById('a-sel').value; if(!u)return; await db.ref('users/'+u).update({timeoutUntil:Date.now()+min*60000}); logAdminAction(`Applied ${min}m Timeout`, u); toast('Timed out', 'ok'); }
+async function adminBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u).update({banned:true}); logAdminAction('Account Banned', u); toast('Banned', 'ok'); }
+async function adminHWBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(!ud.hwid)return; await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).set({hwid:ud.hwid}); await db.ref('users/'+u).update({banned:true}); logAdminAction('Hardware Device Banned', u); toast('HW-Banned', 'ok'); }
+async function adminUnban(){ const u=document.getElementById('a-sel').value; if(!u)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(ud.hwid) await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).remove(); await db.ref('users/'+u).update({banned:false,timeoutUntil:0,pendingWarnReason:null,pendingWarnPenalty:null}); logAdminAction('Unbanned/Pardoned User', u); toast('Unbanned', 'ok'); }
+async function adminClearUser(){ const u=document.getElementById('a-sel').value; if(!u)return; const snap=await db.ref('chats/'+room).once('value'); const updates={}; snap.forEach(c=>{if(c.val().user===u){updates['chats/'+room+'/'+c.key+'/text']='';updates['chats/'+room+'/'+c.key+'/deleted']=true;}}); await db.ref().update(updates); logAdminAction(`Scrubbed user history in room ${room}`, u); toast('Cleared', 'ok'); }
 
 // ── MEDIA (GIF & IMAGE UPLOAD) ────────────────
 function toggleGifMenu(){ document.getElementById('gifMenu').classList.toggle('open'); if(document.getElementById('gifMenu').classList.contains('open')) { if(currentGifTab === 'search') searchGifs(); else renderFavGifs(); } }
