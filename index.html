@@ -200,8 +200,6 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     <input class="fi" id="ep-pfp" type="url" placeholder="PFP Image URL">
     <button class="mbtn mb-p" onclick="saveProfile()">Save Changes</button>
     <button class="mbtn mb-s" onclick="hideProfile()">Cancel</button>
-    <hr style="border:none;border-top:1px solid var(--b2);margin:16px 0 12px 0;">
-    <button id="btn-tmod-pass" class="mbtn" style="background:rgba(245, 166, 35, 0.15); color:var(--am); border: 1px solid rgba(245, 166, 35, 0.3); font-size:12px; padding:10px;" onclick="claimTmodPass()">🎟️ Claim 24h T-Mod Pass (One-Time)</button>
   </div>
 </div>
 
@@ -291,6 +289,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
             <button class="abtn" style="background:var(--ac); color:#fff;" onclick="adminSetRole('mod')">🎖 Promote Mod</button>
             <button class="abtn" style="background:var(--bl); color:#fff;" onclick="adminSetRole('admin')">👑 Promote Admin</button>
             <button class="abtn" style="background:var(--rd); color:#fff;" onclick="adminSetRole(null)">📉 Strip Roles</button>
+            <button class="abtn" style="background:rgba(245,166,35,.15); color:var(--am); border:1px solid rgba(245,166,35,.3); grid-column: span 2;" onclick="adminGrantTmodPass()">🎟️ Grant 24h T-Mod Pass</button>
           </div>
         </div>
       </div>
@@ -495,25 +494,6 @@ async function saveProfile(){
   await db.ref('users/'+me).update({displayName:n, pfp:p}); myDisplayName=n; myPfp=p; updateSidebarProfile(); hideProfile(); toast('Saved', 'ok'); 
 }
 
-// ── T-MOD PASS SYSTEM ─────────────────────────
-async function claimTmodPass() {
-  const d = (await db.ref('users/'+me).once('value')).val() || {};
-  if (d.role) return toast("You already have a staff role!", "err");
-  if (d.usedTmodPass) return toast("You have already used your 1-day pass!", "err");
-  
-  if (!confirm("Claim your 24-hour Trial Mod pass?\n\nYou'll be able to warn and timeout users for up to 5 minutes. Do not abuse this! This is a one-time use item.")) return;
-  
-  await db.ref('users/'+me).update({
-    role: 'little_mod',
-    tmodExpiration: Date.now() + (24 * 60 * 60 * 1000), // Exactly 24 hours
-    usedTmodPass: true
-  });
-  
-  logAdminAction('Claimed the 24-hour T-Mod Pass', me);
-  toast("Pass claimed! Reloading...", "ok");
-  setTimeout(() => location.reload(), 1500);
-}
-
 // ── CUSTOM SERVERS ────────────────────────────
 async function createServer() { 
   const name = prompt('Enter New Server Name:'); 
@@ -674,6 +654,19 @@ async function adminSetRole(r){
   await db.ref('users/'+u).update({role: r});
   logAdminAction(r ? 'Promoted to ' + r : 'Stripped all roles', u);
   toast(r ? 'Promoted' : 'Stripped', 'ok');
+  loadAdminUsers();
+}
+
+async function adminGrantTmodPass() {
+  const u=document.getElementById('a-sel').value;
+  if(!u || !isSuperAdmin()) return;
+  if(!confirm("Grant a 24-hour Trial Mod pass to this user?")) return;
+  await db.ref('users/'+u).update({
+    role: 'little_mod',
+    tmodExpiration: Date.now() + (24 * 60 * 60 * 1000)
+  });
+  logAdminAction('Granted 24-hour T-Mod Pass', u);
+  toast('Pass granted', 'ok');
   loadAdminUsers();
 }
 
