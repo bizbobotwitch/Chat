@@ -8,7 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-<script src="https://meet.jit.si/external_api.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0a0a0f;--s1:#111118;--s2:#18181f;--s3:#1f1f28;--b1:#252530;--b2:#2d2d3d;--ac:#6c63ff;--ac-dim:rgba(108,99,255,.14);--ac-bdr:rgba(108,99,255,.28);--gr:#2ecc8a;--rd:#ff4f4f;--am:#f5a623;--bl:#4fa3ff;--t1:#ededf5;--t2:#8888aa;--t3:#4a4a66;--sw:260px;}
@@ -65,7 +65,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .chat-head{height:54px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0}
 .ch-title{font-size:14.5px;font-weight:600;letter-spacing:-.2px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .chat-banner{display:none;background:rgba(108,99,255,0.15);border-bottom:1px solid var(--ac-bdr);color:var(--ac);padding:10px 20px;font-size:12.5px;font-weight:600;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,0.1);flex-shrink:0;}
-.voice-container{flex:1; display:none; background:var(--bg);}
+.voice-container{flex:1; display:none; background:var(--bg); overflow-y:auto; padding:20px;}
 
 /* MESSAGES */
 .msgs{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:0}
@@ -141,7 +141,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .toast{background:var(--s1);border:1px solid var(--b2);border-radius:10px;padding:10px 14px;font-size:12.5px;font-weight:500;box-shadow:0 6px 22px rgba(0,0,0,.35);display:flex;align-items:center;gap:8px;animation:tIn .22s cubic-bezier(.34,1.56,.64,1);min-width:190px;max-width:290px}
 .toast.ok{border-color:rgba(46,204,138,.28)}.toast.err{border-color:rgba(255,79,79,.28)}.toast.warn{border-color:rgba(245,166,35,.28)}
 
-/* MODALS */
+/* MODALS & OVERLAYS */
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center;padding:16px}
 .ov.open{display:flex}
 .modal{background:var(--s1);border:1px solid var(--b2);border-radius:18px;width:100%;max-width:410px;padding:26px;box-shadow:0 28px 70px rgba(0,0,0,.6);animation:mIn .2s cubic-bezier(.34,1.56,.64,1)}
@@ -150,6 +150,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .fi{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:11px 14px;font-size:13.5px;color:var(--t1);font-family:'Sora',sans-serif;outline:none;margin-bottom:13px;transition:border-color .14s}
 .mbtn{width:100%;padding:12px;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;border:none;transition:all .14s;margin-bottom:8px;background:var(--ac);color:#fff}
 .mb-s{background:var(--s3);color:var(--t2);border:1px solid var(--b2)}
+
+#maintOv{background:var(--bg); z-index:100000; flex-direction:column; text-align:center;}
 
 /* ADMIN CSS */
 .a-sec{margin-bottom:14px}
@@ -172,6 +174,12 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 <div class="toasts" id="toasts"></div>
 <div class="mob-ov" id="mobOv" onclick="mobToggle()"></div>
 <div class="emo-menu" id="emoMenu"></div>
+
+<div class="ov" id="maintOv">
+  <div style="font-size:80px; margin-bottom:20px;">🚧</div>
+  <h1 style="color:var(--am); font-size:28px; margin-bottom:10px;">Under Maintenance</h1>
+  <p style="color:var(--t2); max-width:400px; line-height:1.6;">The server is currently undergoing upgrades. Only authorized staff members can bypass this screen right now. We'll be back shortly!</p>
+</div>
 
 <div class="ov open" id="authOv">
   <div class="modal" id="loginBox">
@@ -248,6 +256,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
             <button id="btn-ghost-mode" class="abtn" style="background:var(--s3);color:var(--t2);border:1px solid var(--b2)" onclick="toggleGhostMode()">👻 Ghost Mode</button>
             <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSetSlowmode()">🐢 Set Slowmode</button>
           </div>
+          <button id="btn-maint" class="abtn" style="width:100%; margin-bottom:8px; background:rgba(245,166,35,.15);color:var(--am);border:1px solid rgba(245,166,35,.3)" onclick="adminToggleMaintenance()">🚧 Toggle Maintenance Mode</button>
+          
           <div style="display:flex; gap:6px; margin-bottom: 8px;">
             <select id="purge-count" class="a-sel" style="margin:0; width:120px;"><option value="10">Last 10 msgs</option><option value="50">Last 50 msgs</option><option value="100">Last 100 msgs</option></select>
             <button class="abtn" style="flex:1; background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminPurge()">🗑 Purge Recent</button>
@@ -267,29 +277,27 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         
         <div id="a-card" style="display:none"></div>
         <div class="a-grid" id="a-actions" style="display:none">
-          <button id="btn-warn-no" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(0)">⚠️ Warn (No TO)</button>
           <button id="btn-warn-1m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(1)">⚠️ Warn + 1m TO</button>
+          <button id="btn-warn-no" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(0)">⚠️ Warn (No TO)</button>
           <button id="btn-warn-24h" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(1440)">⚠️ Warn + 24h TO</button>
-          
           <button id="btn-to-15m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminTO(15)">⏱ Timeout 15m</button>
           <button id="btn-mute" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminMute(true)">🔇 Mute User</button>
           <button id="btn-unmute" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminMute(false)">🔊 Unmute User</button>
-          
           <button id="btn-rename" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForceRename()">✏️ Force Rename</button>
           <button id="btn-clear-msgs" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearUser()">🗑 Clear Msgs</button>
-          
           <button id="btn-ban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminBan()">🚫 Ban Account</button>
           <button id="btn-hwban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminHWBan()">🔨 HW-ID Ban</button>
-          <button id="btn-unban" class="abtn" style="background:rgba(46,204,138,.09);color:var(--gr);border:1px solid rgba(46,204,138,.2)" onclick="adminUnban()">✅ Unban/Pardon</button>
+          <button id="btn-unban" class="abtn" style="background:rgba(46,204,138,.09);color:var(--gr);border:1px solid rgba(46,204,138,.2); grid-column: span 2;" onclick="adminUnban()">✅ Unban/Pardon</button>
         </div>
         <div id="supreme-user-tools" style="display:none; margin-top:14px;">
           <span class="a-lbl" style="color:var(--ac)">👑 Role Management</span>
           <div class="a-grid">
+            <button class="abtn" style="background:var(--s3); color:var(--t1); border:1px solid var(--b2);" onclick="adminSetRole('chat_helper')">🤝 Promote Helper</button>
             <button class="abtn" style="background:var(--ac); color:#fff;" onclick="adminSetRole('little_mod')">🎖 Promote T-Mod</button>
             <button class="abtn" style="background:var(--ac); color:#fff;" onclick="adminSetRole('mod')">🎖 Promote Mod</button>
             <button class="abtn" style="background:var(--bl); color:#fff;" onclick="adminSetRole('admin')">👑 Promote Admin</button>
             <button class="abtn" style="background:var(--rd); color:#fff;" onclick="adminSetRole(null)">📉 Strip Roles</button>
-            <button class="abtn" style="background:rgba(245,166,35,.15); color:var(--am); border:1px solid rgba(245,166,35,.3); grid-column: span 2;" onclick="adminGrantTmodPass()">🎟️ Grant 24h T-Mod Pass</button>
+            <button class="abtn" style="background:rgba(245,166,35,.15); color:var(--am); border:1px solid rgba(245,166,35,.3);" onclick="adminGrantHelperPass()">🎟️ Grant 24h Helper</button>
           </div>
         </div>
       </div>
@@ -382,9 +390,8 @@ firebase.initializeApp(FC); const db=firebase.database(); const storage=firebase
 
 // ── STATE & HELPERS ───────────────────────────
 let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=0, replyTo=null, currentGifTab='search';
-let adminRole = null, isChatLocked = false, isGhostMode = false, myBlockedUsers = {}, typeTimer = null, auditRef = null;
+let adminRole = null, isChatLocked = false, isGhostMode = false, isMaintenance = false, myBlockedUsers = {}, typeTimer = null, auditRef = null;
 let adminUserList = [];
-let jitsiApi = null;
 let serverSlowmode = 0, lastSendTime = 0;
 const ADMIN_PW = '32ad', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
@@ -401,8 +408,8 @@ function censor(t) { let o = t, hit = false; BAD.forEach(w => { const charMap = 
 
 function isNameSpoofed(name) {
   const lower = name.toLowerCase();
-  if(lower.includes('admin') || lower.includes('mod') || lower.includes('system') || lower.includes('zasingl61')) return true;
-  if(name.includes('👑') || name.includes('🛡') || name.includes('🎖') || name.includes('🛡️') || name.includes('🎖️')) return true;
+  if(lower.includes('admin') || lower.includes('mod') || lower.includes('system') || lower.includes('helper') || lower.includes('zasingl61')) return true;
+  if(name.includes('👑') || name.includes('🛡') || name.includes('🎖') || name.includes('🤝')) return true;
   return false;
 }
 
@@ -424,6 +431,15 @@ db.ref('server_meta/chatLocked').on('value', snap => {
 
 db.ref('server_meta/slowmode').on('value', snap => { serverSlowmode = snap.val() || 0; });
 db.ref('server_meta/banner').on('value', snap => { const b = document.getElementById('chatBanner'); if(snap.val()) { b.textContent = snap.val(); b.style.display = 'block'; } else b.style.display = 'none'; });
+db.ref('server_meta/maintenance').on('value', snap => { isMaintenance = snap.val() || false; checkMaintenance(); });
+
+function isSuperAdmin() { return adminRole === 'admin' && me && me.toLowerCase().includes('zasingl61'); }
+function checkMaintenance() {
+  const isStaff = adminRole || isSuperAdmin();
+  if (isMaintenance && !isStaff) { document.getElementById('maintOv').style.display = 'flex'; }
+  else { document.getElementById('maintOv').style.display = 'none'; }
+}
+
 let lbr = localStorage.getItem('lastBroadcastRead') || 0;
 db.ref('server_meta/broadcast').on('value', snap => { const d = snap.val(); if(d && d.ts > lbr && d.ts > roomJoinTime) { document.getElementById('broadcastTxt').textContent = d.text; document.getElementById('broadcastOv').classList.add('open'); localStorage.setItem('lastBroadcastRead', d.ts); lbr = d.ts; } });
 
@@ -457,10 +473,10 @@ function onLoggedIn(){
   db.ref('users/' + me).on('value', async snap => {
     const d = snap.val(); if(!d) return;
     
-    // Check if 24h T-Mod Pass expired
-    if(d.tmodExpiration && Date.now() > d.tmodExpiration) {
-      await db.ref('users/'+me).update({ role: null, tmodExpiration: null });
-      toast('Your 24h T-Mod pass has expired.', 'warn');
+    // Check if 24h Helper Pass expired
+    if(d.helperExpiration && Date.now() > d.helperExpiration) {
+      await db.ref('users/'+me).update({ role: null, helperExpiration: null });
+      toast('Your 24h Chat Helper pass has expired.', 'warn');
       setTimeout(() => location.reload(), 2000);
       return;
     }
@@ -469,9 +485,11 @@ function onLoggedIn(){
     if(d.pendingWarnReason) { document.getElementById('warnReasonTxt').textContent = d.pendingWarnReason; document.getElementById('warnPenaltyTxt').textContent = d.pendingWarnPenalty > 0 ? `Penalty: ${d.pendingWarnPenalty >= 1440 ? '24h' : d.pendingWarnPenalty+'m'} TO.` : 'Acknowledge to continue.'; document.getElementById('warnOv').classList.add('open'); }
     isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = '👻 Ghost'; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = '● Online'; statusEl.style.color = 'var(--gr)'; }
     myBlockedUsers = d.blocked || {};
+    adminRole = d.role || null;
+    checkMaintenance();
     
     // Auto-join Moderation HQ if authorized
-    const isStaff = d.role || me.toLowerCase().includes('zasingl61');
+    const isStaff = d.role || isSuperAdmin();
     if(isStaff) {
       await db.ref('rooms/srv_mods').update({ name: '🛡️ Moderators HQ', owner: 'system', ts: Date.now() });
       await db.ref('users/'+me+'/rooms/srv_mods').set(true);
@@ -487,10 +505,8 @@ function signOut(){ localStorage.removeItem('chatty_user'); location.reload(); }
 function showProfile(){ document.getElementById('profileOv').classList.add('open'); } function hideProfile(){ document.getElementById('profileOv').classList.remove('open'); }
 async function saveProfile(){ 
   const n=document.getElementById('ep-d').value.trim(), p=document.getElementById('ep-pfp').value.trim(); 
-  
   const d = (await db.ref('users/'+me).once('value')).val();
   if(!d.role && isNameSpoofed(n)) return alert("⚠️ Name contains reserved words or staff badges.");
-
   await db.ref('users/'+me).update({displayName:n, pfp:p}); myDisplayName=n; myPfp=p; updateSidebarProfile(); hideProfile(); toast('Saved', 'ok'); 
 }
 
@@ -501,8 +517,7 @@ async function createServer() {
   const id = 'srv_' + Math.random().toString(36).substr(2, 5); 
   await db.ref('rooms/'+id).set({name, owner: me, ts: Date.now()}); 
   await db.ref('users/'+me+'/rooms/'+id).set(true); 
-  switchRoom(id);
-  toast('Server Created!', 'ok'); 
+  switchRoom(id); toast('Server Created!', 'ok'); 
 }
 async function joinServer() { const id = prompt('Enter Server Invite Code (starts with srv_):'); if(!id) return; const snap = await db.ref('rooms/'+id).once('value'); if(!snap.exists()) return toast('Server not found!', 'err'); await db.ref('users/'+me+'/rooms/'+id).set(true); switchRoom(id); toast('Joined server!', 'ok'); }
 function loadServers() {
@@ -510,10 +525,7 @@ function loadServers() {
     const slist = document.getElementById('serversList'); slist.innerHTML=''; if(!snap.exists()) return;
     snap.forEach(async c => {
       const rData = (await db.ref('rooms/'+c.key).once('value')).val(); 
-      if(!rData) {
-        db.ref('users/'+me+'/rooms/'+c.key).remove();
-        return; 
-      }
+      if(!rData) { db.ref('users/'+me+'/rooms/'+c.key).remove(); return; }
       const btn = document.createElement('button'); btn.className='fr-item nav-item'; btn.id='nav-'+c.key;
       btn.onclick = () => { document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active')); btn.classList.add('active'); document.getElementById('chTitle').textContent = '🏠 ' + rData.name; switchRoom(c.key); if(window.innerWidth<=768) mobToggle(); };
       btn.innerHTML = `<div class="fr-av" style="background:${uCol(c.key)}">${esc(rData.name[0].toUpperCase())}</div><div class="fr-name">${esc(rData.name)}</div>`;
@@ -521,31 +533,15 @@ function loadServers() {
     });
   });
 }
-
-function copyInvite() {
-  if(!room.startsWith('srv_')) return;
-  navigator.clipboard.writeText(room).then(() => {
-    toast('Invite code copied to clipboard!', 'ok');
-  }).catch(err => {
-    prompt("Copy this code:", room); 
-  });
-}
-
+function copyInvite() { if(!room.startsWith('srv_')) return; navigator.clipboard.writeText(room).then(() => { toast('Invite code copied to clipboard!', 'ok'); }).catch(err => { prompt("Copy this code:", room); }); }
 async function leaveServer() {
   if(!room.startsWith('srv_')) return;
   if(room === 'srv_mods') return toast("You cannot leave the Mod HQ", "err");
   if(!confirm("Are you sure you want to leave this server?\n\n(Note: If you created this server, leaving will permanently delete it for everyone!)")) return;
-  
   const rSnap = await db.ref('rooms/' + room).once('value');
-  if(rSnap.exists() && rSnap.val().owner === me) {
-    await db.ref('rooms/' + room).remove();
-    await db.ref('chats/' + room).remove();
-    toast('Server deleted permanently.', 'ok');
-  } else {
-    toast('You left the server.', 'ok');
-  }
-  await db.ref('users/' + me + '/rooms/' + room).remove();
-  switchRoom('global');
+  if(rSnap.exists() && rSnap.val().owner === me) { await db.ref('rooms/' + room).remove(); await db.ref('chats/' + room).remove(); toast('Server deleted permanently.', 'ok');
+  } else { toast('You left the server.', 'ok'); }
+  await db.ref('users/' + me + '/rooms/' + room).remove(); switchRoom('global');
 }
 
 // ── FRIENDS & DIRECT MESSAGING ────────────────
@@ -565,53 +561,31 @@ function loadFriends() {
 function openDM(fId, fName) { document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active')); const nav = document.getElementById('nav-dm-' + fId); if(nav) nav.classList.add('active'); localStorage.setItem('read_dm_' + fId, Date.now()); const badge = document.getElementById('badge-' + fId); if(badge) badge.style.display = 'none'; document.getElementById('chTitle').textContent = '💬 ' + fName; switchRoom('dm_' + [me, fId].sort().join('_')); if(window.innerWidth <= 768) mobToggle(); }
 
 // ── AUDIT LOGS ────────────────────────────────
-function logAdminAction(act, targetUID = null) {
-  try {
-    db.ref('admin_logs').push({ 
-      admin: me || 'system', 
-      adminName: myDisplayName || 'System', 
-      action: act || 'Unknown action', 
-      target: targetUID || 'none', 
-      ts: Date.now() 
-    });
-  } catch(e) { console.error("Audit log failed to push:", e); }
-}
-
+function logAdminAction(act, targetUID = null) { try { db.ref('admin_logs').push({ admin: me || 'system', adminName: myDisplayName || 'System', action: act || 'Unknown action', target: targetUID || 'none', ts: Date.now() }); } catch(e) {} }
 function toggleAuditLogs() {
   const cont = document.getElementById('audit-logs-container');
   if(cont.style.display === 'none' || !cont.style.display) {
     cont.style.display = 'block'; cont.innerHTML = 'Loading records...';
     auditRef = db.ref('admin_logs').limitToLast(50);
     auditRef.on('value', snap => {
-      cont.innerHTML = '';
-      if(!snap.exists()) { cont.innerHTML = 'No logs found.'; return; }
+      cont.innerHTML = ''; if(!snap.exists()) { cont.innerHTML = 'No logs found.'; return; }
       const logs = []; snap.forEach(c => { logs.unshift(c.val()); });
       logs.forEach(l => {
-        const div = document.createElement('div');
-        div.style.marginBottom = '6px'; div.style.borderBottom = '1px solid var(--b2)'; div.style.paddingBottom = '4px';
+        const div = document.createElement('div'); div.style.marginBottom = '6px'; div.style.borderBottom = '1px solid var(--b2)'; div.style.paddingBottom = '4px';
         div.innerHTML = `<span style="color:var(--t3)">[${fmt(l.ts)}]</span> <b style="color:var(--ac)">${esc(l.adminName)}</b>: ${esc(l.action)} ${l.target && l.target !== 'none' ? `<span style="color:var(--am)">(@${esc(l.target)})</span>` : ''}`;
         cont.appendChild(div);
       });
     });
-  } else {
-    cont.style.display = 'none';
-    if(auditRef) auditRef.off();
-  }
+  } else { cont.style.display = 'none'; if(auditRef) auditRef.off(); }
 }
 
 // ── MOD TOOLS ─────────────────────────────────
-function isSuperAdmin() { return adminRole === 'admin' && me && me.toLowerCase().includes('zasingl61'); }
 async function showAdmin(){ 
   document.getElementById('adminOv').classList.add('open'); 
   const snap = await db.ref('users/'+me+'/role').once('value');
   const role = snap.val();
-  if(role) {
-    adminRole = role;
-    setupAdminUI();
-  } else {
-    document.getElementById('aLock').style.display=''; 
-    document.getElementById('aCont').style.display='none'; 
-  }
+  if(role || isSuperAdmin()) { adminRole = role; setupAdminUI(); } 
+  else { document.getElementById('aLock').style.display=''; document.getElementById('aCont').style.display='none'; }
 } 
 function hideAdmin(){ document.getElementById('adminOv').classList.remove('open'); if(auditRef) auditRef.off(); }
 function verifyAdmin(){ const pw = document.getElementById('a-pw').value; if (pw === ADMIN_PW){ adminRole = 'admin'; setupAdminUI(); } else if (pw === MOD_PW) { adminRole = 'mod'; setupAdminUI(); } else if (pw === LITTLE_MOD_PW) { adminRole = 'little_mod'; setupAdminUI(); } else { const e=document.getElementById('a-err'); e.textContent='Incorrect'; e.style.display='block'; } }
@@ -619,29 +593,34 @@ function verifyAdmin(){ const pw = document.getElementById('a-pw').value; if (pw
 function setupAdminUI() { 
   document.getElementById('aLock').style.display='none'; 
   document.getElementById('aCont').style.display=''; 
-  const isAdm = adminRole === 'admin', isMod = isAdm || adminRole === 'mod', isLMod = isMod || adminRole === 'little_mod'; 
+  const isAdm = adminRole === 'admin' || isSuperAdmin();
+  const isMod = isAdm || adminRole === 'mod';
+  const isLMod = isMod || adminRole === 'little_mod'; 
+  const isHelper = isLMod || adminRole === 'chat_helper';
   
   document.getElementById('admin-only-tools').style.display = isSuperAdmin() ? 'block' : 'none'; 
   document.getElementById('supreme-user-tools').style.display = isSuperAdmin() ? 'block' : 'none'; 
   
+  document.getElementById('btn-warn-1m').style.display = isHelper ? '' : 'none'; 
+  
   document.getElementById('btn-warn-no').style.display = isLMod ? '' : 'none'; 
-  document.getElementById('btn-warn-1m').style.display = isLMod ? '' : 'none'; 
+  document.getElementById('btn-to-15m').style.display = isLMod ? '' : 'none'; 
   document.getElementById('btn-warn-24h').style.display = isAdm ? '' : 'none'; 
-  document.getElementById('btn-to-15m').style.display = isMod ? '' : 'none'; 
+  
   document.getElementById('btn-mute').style.display = isMod ? '' : 'none'; 
   document.getElementById('btn-unmute').style.display = isMod ? '' : 'none'; 
   document.getElementById('btn-rename').style.display = isMod ? '' : 'none'; 
+  document.getElementById('btn-clear-msgs').style.display = isMod ? '' : 'none'; 
   
   document.getElementById('btn-ban').style.display = isAdm ? '' : 'none'; 
   document.getElementById('btn-unban').style.display = isAdm ? '' : 'none'; 
   document.getElementById('btn-hwban').style.display = isSuperAdmin() ? '' : 'none'; 
   
-  document.getElementById('btn-clear-msgs').style.display = isMod ? '' : 'none'; 
   loadAdminUsers(); 
 }
 
 async function toggleMyBadge() { 
-  if (!adminRole) return; 
+  if (!adminRole && !isSuperAdmin()) return; 
   const d = (await db.ref('users/'+me).once('value')).val() || {}; 
   const cur = d.showBadge || false; 
   await db.ref('users/'+me).update({ showBadge: !cur }); 
@@ -649,51 +628,29 @@ async function toggleMyBadge() {
 }
 
 async function adminSetRole(r){
-  const u=document.getElementById('a-sel').value;
-  if(!u || !isSuperAdmin()) return;
-  await db.ref('users/'+u).update({role: r});
-  logAdminAction(r ? 'Promoted to ' + r : 'Stripped all roles', u);
-  toast(r ? 'Promoted' : 'Stripped', 'ok');
-  loadAdminUsers();
+  const u=document.getElementById('a-sel').value; if(!u || !isSuperAdmin()) return;
+  await db.ref('users/'+u).update({role: r}); logAdminAction(r ? 'Promoted to ' + r : 'Stripped all roles', u); toast(r ? 'Promoted' : 'Stripped', 'ok'); loadAdminUsers();
 }
 
-async function adminGrantTmodPass() {
-  const u=document.getElementById('a-sel').value;
-  if(!u || !isSuperAdmin()) return;
-  if(!confirm("Grant a 24-hour Trial Mod pass to this user?")) return;
-  await db.ref('users/'+u).update({
-    role: 'little_mod',
-    tmodExpiration: Date.now() + (24 * 60 * 60 * 1000)
-  });
-  logAdminAction('Granted 24-hour T-Mod Pass', u);
-  toast('Pass granted', 'ok');
-  loadAdminUsers();
+async function adminGrantHelperPass() {
+  const u=document.getElementById('a-sel').value; if(!u || !isSuperAdmin()) return;
+  if(!confirm("Grant a 24-hour Chat Helper pass to this user?")) return;
+  await db.ref('users/'+u).update({ role: 'chat_helper', helperExpiration: Date.now() + (24 * 60 * 60 * 1000) });
+  logAdminAction('Granted 24-hour Chat Helper Pass', u); toast('Pass granted', 'ok'); loadAdminUsers();
 }
 
 async function loadAdminUsers(){ 
-  const searchInp = document.getElementById('a-search');
-  if(searchInp) searchInp.value = '';
-  
-  adminUserList = [];
-  const snap = await db.ref('users').once('value');
-  snap.forEach(c => { adminUserList.push({ key: c.key, val: c.val() }); });
-  
-  filterAdminUsers();
+  const searchInp = document.getElementById('a-search'); if(searchInp) searchInp.value = '';
+  adminUserList = []; const snap = await db.ref('users').once('value');
+  snap.forEach(c => { adminUserList.push({ key: c.key, val: c.val() }); }); filterAdminUsers();
 }
 
 function filterAdminUsers() {
-  const sel = document.getElementById('a-sel');
-  const q = document.getElementById('a-search').value.toLowerCase();
-  
+  const sel = document.getElementById('a-sel'), q = document.getElementById('a-search').value.toLowerCase();
   sel.innerHTML = '<option value="">— select user —</option>';
   adminUserList.forEach(u => {
     const text = (u.val.displayName || u.key) + ' (@' + u.key + ')' + (u.val.role ? ' ['+u.val.role+']' : '') + (u.val.banned?' 🚫':u.val.timeoutUntil>Date.now()?' ⏱':u.val.muted?' 🔇':'');
-    if(!q || text.toLowerCase().includes(q)) {
-      const opt = document.createElement('option'); 
-      opt.value = u.key; 
-      opt.textContent = text; 
-      sel.appendChild(opt);
-    }
+    if(!q || text.toLowerCase().includes(q)) { const opt = document.createElement('option'); opt.value = u.key; opt.textContent = text; sel.appendChild(opt); }
   });
 }
 
@@ -703,22 +660,19 @@ async function toggleGhostMode() { if (!isSuperAdmin()) return; await db.ref('us
 async function adminBroadcast() { if (!isSuperAdmin()) return; const msg = prompt("Global announcement:"); if(msg) { await db.ref('server_meta/broadcast').set({ text: msg, ts: Date.now() }); logAdminAction('Sent Broadcast: ' + msg); toast('Sent!', 'ok'); } }
 async function adminSetBanner() { if (!isSuperAdmin()) return; const msg = prompt("Banner text (blank to remove):"); if(msg !== null) { await db.ref('server_meta/banner').set(msg); logAdminAction('Updated global banner'); toast('Updated', 'ok'); } }
 async function adminSetSlowmode() { if (!isSuperAdmin()) return; const sec = prompt("Enter slowmode in seconds (0 to disable):", "5"); if(sec !== null && !isNaN(sec)) { await db.ref('server_meta/slowmode').set(parseInt(sec)); logAdminAction(`Set global slowmode to ${sec}s`); toast('Slowmode updated', 'ok'); } }
+async function adminToggleMaintenance() { if (!isSuperAdmin()) return; await db.ref('server_meta/maintenance').set(!isMaintenance); logAdminAction(`Toggled Maintenance Mode to ${!isMaintenance}`); toast('Maintenance toggled', 'ok'); }
 async function adminPurge() { if (!isSuperAdmin()) return; const count = parseInt(document.getElementById('purge-count').value); if(!confirm(`Delete ${count} msgs?`)) return; const snap = await db.ref('chats/'+room).limitToLast(count).once('value'); const updates = {}; snap.forEach(c => updates[c.key] = null); await db.ref('chats/'+room).update(updates); logAdminAction(`Purged ${count} recent messages in room ${room}`); toast(`Purged`, 'ok'); }
 async function adminToggleLock() { if (!isSuperAdmin()) return; if (isChatLocked) { await db.ref('server_meta/chatLocked').set(false); await db.ref('chats/'+room).push({ sys: true, text: `🔓 Chat unlocked by ${myDisplayName}.`, ts: Date.now() }); logAdminAction(`Unlocked room ${room}`); } else { if(!confirm('SHUTDOWN chat?')) return; await db.ref('server_meta/chatLocked').set(true); await db.ref('chats/'+room).push({ sys: true, text: `🛑 Chat SHUT DOWN by ${myDisplayName}.`, ts: Date.now() }); logAdminAction(`Initiated Lockdown on room ${room}`); } }
 async function adminClearAllChats(){ if (!isSuperAdmin()) return; if(!confirm('Nuke ALL messages?'))return; await db.ref('chats/'+room).remove(); logAdminAction(`Nuked entire chat history in room ${room}`); toast('Room wiped', 'ok'); }
 
 async function adminWarn(m){ 
-  const u=document.getElementById('a-sel').value; 
-  if(!u||u===me) return; 
-  const r = prompt("Warning reason:"); 
-  if(r === null) return; 
+  const u=document.getElementById('a-sel').value; if(!u||u===me) return; 
+  const r = prompt("Warning reason:"); if(r === null) return; 
   const finalReason = r.trim() || 'No reason specified'; 
   await db.ref('users/'+u).update({ pendingWarnReason: finalReason, pendingWarnPenalty: m }); 
-  const targetObj = adminUserList.find(x => x.key === u);
-  const targetName = targetObj ? (targetObj.val.displayName || u) : u;
+  const targetObj = adminUserList.find(x => x.key === u); const targetName = targetObj ? (targetObj.val.displayName || u) : u;
   await db.ref('chats/'+room).push({ sys: true, text: `⚠️ ${targetName} was warned by ${myDisplayName}. Reason: ${finalReason}`, ts: Date.now() }); 
-  logAdminAction(`Issued Warning (Penalty: ${m}m TO). Reason: ${finalReason}`, u); 
-  toast('Sent.', 'ok'); 
+  logAdminAction(`Issued Warning (Penalty: ${m}m TO). Reason: ${finalReason}`, u); toast('Sent.', 'ok'); 
 }
 
 async function acceptWarn() { const p = (await db.ref('users/'+me).once('value')).val().pendingWarnPenalty || 0; let u = { pendingWarnReason: null, pendingWarnPenalty: null }; if (p > 0) u.timeoutUntil = Date.now() + (p * 60000); await db.ref('users/'+me).update(u); document.getElementById('warnOv').classList.remove('open'); }
@@ -751,7 +705,15 @@ async function uploadImage(e) {
   e.target.value='';
 }
 
-async function sendMedia(url, isGif){ if(isChatLocked || await isHWBanned()) return; const d=(await db.ref('users/'+me).once('value')).val()||{}; if(d.banned || d.pendingWarnReason || d.muted || (d.timeoutUntil&&d.timeoutUntil>Date.now())) return; const p={user:me, displayName:myDisplayName, pfp:myPfp, ts:Date.now(), role:d.role||null, showBadge:d.showBadge||false}; if(isGif) p.gif = url; else p.img = url; await db.ref('chats/'+room).push(p); if(isGif) toggleGifMenu(); }
+async function sendMedia(url, isGif){ 
+  if(isChatLocked || await isHWBanned()) return; 
+  const d=(await db.ref('users/'+me).once('value')).val()||{}; 
+  if(d.banned || d.pendingWarnReason || d.muted || (d.timeoutUntil&&d.timeoutUntil>Date.now())) return; 
+  const p={user:me, displayName:myDisplayName, pfp:myPfp, ts:Date.now(), role:d.role||null, showBadge:d.showBadge||false}; 
+  if(isGif) p.gif = url; else p.img = url; 
+  await db.ref('chats/'+room).push(p); 
+  if(isGif) toggleGifMenu(); 
+}
 
 // ── BLOCKS & REACTIONS ────────────────────────
 async function blockUser(uid, name) { if(uid===me)return; if(!confirm(`Block ${name}? You won't see their messages anymore.`))return; await db.ref('users/'+me+'/blocked/'+uid).set(true); toast('Blocked', 'ok'); switchRoom(room); }
@@ -759,38 +721,128 @@ function openEmoMenu(e, msgKey) { e.stopPropagation(); const menu = document.get
 function closeEmoMenu() { document.getElementById('emoMenu').classList.remove('open'); }
 function toggleReact(key, emo) { const rRef = db.ref(`chats/${room}/${key}/reactions/${emo}/${me}`); rRef.once('value', s => s.exists() ? rRef.remove() : rRef.set(true)); }
 
-// ── MESSAGES & TYPING ─────────────────────────
-function onType() { if(isChatLocked) return; db.ref('typing/'+room+'/'+me).set(myDisplayName); clearTimeout(typeTimer); typeTimer = setTimeout(() => db.ref('typing/'+room+'/'+me).remove(), 2000); }
-function startReply(key, user, dName, text){ replyTo={key, user, displayName: dName, text}; document.getElementById('replyBar').style.display='flex'; document.getElementById('rbWho').textContent='Replying to ' + dName; document.getElementById('rbPrev').textContent=text.slice(0,60); document.getElementById('msgInp').focus(); }
-function cancelReply(){ replyTo=null; document.getElementById('replyBar').style.display='none'; }
-async function delMsg(key){ if(confirm('Delete?')) await db.ref('chats/'+room+'/'+key).update({text:'',deleted:true}); }
 
-function joinVoiceRoom() {
+// ── PEER JS VOICE (ALWAYS ON MESH) ────────────
+let myPeer = null, myStream = null, micMuted = false, voiceCalls = {};
+
+async function joinVoiceRoom() {
   document.getElementById('msgs').style.display = 'none';
   document.getElementById('inputZone').style.display = 'none';
   document.getElementById('typingInd').style.display = 'none';
   const vc = document.getElementById('voiceContainer');
   vc.style.display = 'block';
   
-  if(!jitsiApi) {
-    const domain = 'meet.jit.si';
-    const options = {
-      roomName: 'chatty_voice_' + FC.appId.split(':')[0],
-      width: '100%', height: '100%', parentNode: vc,
-      userInfo: { displayName: myDisplayName },
-      configOverwrite: { startWithAudioMuted: false, startWithVideoMuted: true }
-    };
-    jitsiApi = new JitsiMeetExternalAPI(domain, options);
+  vc.innerHTML = `
+    <div style="padding:20px; text-align:center; background:var(--s1); border-radius:12px; border:1px solid var(--b2);">
+      <h3 style="margin-bottom:5px; color:var(--ac);">🎙️ Live Peer-to-Peer Lounge</h3>
+      <p style="font-size:12px; color:var(--t2); margin-bottom:20px;">Always on. No moderators required. Click to join seamlessly.</p>
+      <button class="mbtn mb-p" id="muteMicBtn" onclick="toggleMuteMic()" style="width:auto; padding:10px 20px; font-size:14px; background:var(--ac);">Connecting Mic...</button>
+      <div id="activeSpeakers" style="margin-top:24px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;"></div>
+    </div>
+  `;
+
+  try {
+    myStream = await navigator.mediaDevices.getUserMedia({audio: true});
+    document.getElementById('muteMicBtn').textContent = '🔇 Mute My Mic';
+    
+    // Unique peer ID for this session
+    const peerId = me + '_' + Math.random().toString(36).substr(2,6);
+    myPeer = new Peer(peerId);
+    
+    myPeer.on('open', id => {
+      // Announce presence
+      db.ref('voice_lounge/'+id).set({ uid: me, name: myDisplayName, ts: Date.now() });
+      
+      // Add self to screen
+      renderSpeaker(id, myDisplayName, me);
+
+      // Listen for others in the room
+      db.ref('voice_lounge').on('child_added', s => {
+        if(s.key !== id) {
+          const call = myPeer.call(s.key, myStream);
+          handleCall(call, s.val().name, s.val().uid);
+        }
+      });
+      
+      db.ref('voice_lounge').on('child_removed', s => {
+         removeAudio(s.key);
+      });
+    });
+
+    myPeer.on('call', call => {
+      call.answer(myStream);
+      db.ref('voice_lounge/'+call.peer).once('value', s => {
+        if(s.exists()) handleCall(call, s.val().name, s.val().uid);
+      });
+    });
+
+  } catch(err) {
+    document.getElementById('muteMicBtn').textContent = 'Microphone Blocked';
+    document.getElementById('muteMicBtn').style.background = 'var(--rd)';
+    toast('Mic permission denied', 'err');
   }
 }
 
+function toggleMuteMic() {
+  if(!myStream) return;
+  micMuted = !micMuted;
+  myStream.getAudioTracks()[0].enabled = !micMuted;
+  const btn = document.getElementById('muteMicBtn');
+  btn.textContent = micMuted ? '🔈 Unmute Mic' : '🔇 Mute My Mic';
+  btn.style.background = micMuted ? 'var(--s3)' : 'var(--ac)';
+  btn.style.color = micMuted ? 'var(--t2)' : '#fff';
+}
+
+function handleCall(call, name, uid) {
+  voiceCalls[call.peer] = call;
+  call.on('stream', remoteStream => {
+    addAudio(call.peer, remoteStream, name, uid);
+  });
+  call.on('close', () => removeAudio(call.peer));
+}
+
+function renderSpeaker(id, name, uid) {
+  if(document.getElementById('spk-'+id)) return;
+  const spk = document.createElement('div'); spk.id = 'spk-'+id;
+  spk.style.cssText = `background:var(--s2); padding:8px 16px; border-radius:99px; border:1px solid ${uCol(uid)}; font-size:12.5px; font-weight:600; color:var(--t1); display:flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(0,0,0,0.2);`;
+  spk.innerHTML = `<div style="width:8px; height:8px; border-radius:50%; background:var(--gr); animation: pulse 2s infinite;"></div> ${esc(name)}`;
+  document.getElementById('activeSpeakers').appendChild(spk);
+}
+
+function addAudio(peerId, stream, name, uid) {
+  if(document.getElementById('audio-'+peerId)) return;
+  const au = document.createElement('audio');
+  au.id = 'audio-'+peerId; au.srcObject = stream; au.autoplay = true;
+  document.body.appendChild(au);
+  renderSpeaker(peerId, name, uid);
+}
+
+function removeAudio(peerId) {
+  const au = document.getElementById('audio-'+peerId); if(au) au.remove();
+  const spk = document.getElementById('spk-'+peerId); if(spk) spk.remove();
+  if(voiceCalls[peerId]) { voiceCalls[peerId].close(); delete voiceCalls[peerId]; }
+}
+
 function leaveVoiceRoom() {
-  if(jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
+  if(myPeer) { db.ref('voice_lounge/'+myPeer.id).remove(); myPeer.destroy(); myPeer = null; }
+  if(myStream) { myStream.getTracks().forEach(t=>t.stop()); myStream=null; }
+  document.querySelectorAll('audio[id^="audio-"]').forEach(e=>e.remove());
+  db.ref('voice_lounge').off();
+  document.getElementById('voiceContainer').innerHTML='';
   document.getElementById('voiceContainer').style.display = 'none';
   document.getElementById('msgs').style.display = 'flex';
   document.getElementById('inputZone').style.display = 'block';
   document.getElementById('typingInd').style.display = 'block';
 }
+
+window.addEventListener('beforeunload', () => { if(myPeer) db.ref('voice_lounge/'+myPeer.id).remove(); });
+
+
+// ── MESSAGES & TYPING ─────────────────────────
+function onType() { if(isChatLocked) return; db.ref('typing/'+room+'/'+me).set(myDisplayName); clearTimeout(typeTimer); typeTimer = setTimeout(() => db.ref('typing/'+room+'/'+me).remove(), 2000); }
+function startReply(key, user, dName, text){ replyTo={key, user, displayName: dName, text}; document.getElementById('replyBar').style.display='flex'; document.getElementById('rbWho').textContent='Replying to ' + dName; document.getElementById('rbPrev').textContent=text.slice(0,60); document.getElementById('msgInp').focus(); }
+function cancelReply(){ replyTo=null; document.getElementById('replyBar').style.display='none'; }
+async function delMsg(key){ if(confirm('Delete?')) await db.ref('chats/'+room+'/'+key).update({text:'',deleted:true}); }
 
 function switchRoom(id){
   if(msgRef) { db.ref('chats/'+room).off(); db.ref('typing/'+room).off(); } 
@@ -849,11 +901,12 @@ function addMsg(key,msg, containerOverride = null){
   
   let badgeHTML = '';
   if (msg.showBadge && msg.role) {
-      const b = msg.role === 'admin' ? '👑' : msg.role === 'mod' ? '🛡️' : '🎖️';
+      const b = msg.role === 'admin' ? '👑' : msg.role === 'mod' ? '🛡️' : msg.role === 'little_mod' ? '🎖️' : '🤝';
       badgeHTML = `<span style="font-size:11px; margin-left:3px; cursor:help;" title="Verified Staff">${b}</span>`;
   }
 
   let mediaUrl = msg.img || msg.gif;
+
   let content = msg.deleted 
     ? '<span class="msg-text deleted-txt">🗑 Deleted</span>' 
     : mediaUrl 
@@ -878,7 +931,7 @@ function addMsg(key,msg, containerOverride = null){
   wrap.innerHTML=`
     <div class="msg-av" style="background:${uCol(msg.user)}">${msg.pfp?`<img src="${esc(msg.pfp)}" style="width:100%;height:100%;object-fit:contain;background:var(--s2);">`:dName[0]}</div>
     <div class="msg-body"><div class="msg-meta"><span class="msg-name" style="color:${uCol(msg.user)}">${esc(dName)}${badgeHTML}</span> <span class="msg-time">${fmt(msg.ts)}</span></div>${rpHTML}${content}${rxnsHTML}</div>
-    ${!msg.deleted ? `<div class="msg-acts">
+    ${(!msg.deleted) ? `<div class="msg-acts">
       ${(!msg.gif && !msg.img) ? `<button class="ma" onclick="startReply('${key}','${msg.user}', decodeURIComponent('${safeStr(dName)}'), decodeURIComponent('${safeStr(ct)}'))">↩</button>` : ''}
       <button class="ma" onclick="openEmoMenu(event, '${key}')">😀</button>
       ${msg.user!==me ? `<button class="ma am" onclick="blockUser('${msg.user}', '${esc(dName)}')">🚫</button>` : ''}
