@@ -307,7 +307,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     <div class="chat-head">
       <button class="ham" id="ham" onclick="mobToggle()">☰</button>
       <div class="ch-title" id="chTitle">Global Chat</div>
-      <button id="inviteBtn" class="si-btn" style="display:none; width:auto; font-size:11px;" onclick="copyInvite()">Copy Invite</button>
+      <div id="inviteDisplay" style="display:none; font-size:12px; background:var(--s2); padding:5px 9px; border-radius:7px; border:1px solid var(--b2); color:var(--ac); font-family:'JetBrains Mono', monospace; font-weight:600;"></div>
+      <button id="inviteBtn" class="si-btn" style="display:none; width:auto; font-size:11px;" onclick="copyInvite()">Copy</button>
       <button id="leaveBtn" class="si-btn" style="display:none; width:auto; font-size:11px; background:rgba(255,79,79,.1); color:var(--rd); border-color:rgba(255,79,79,.22);" onclick="leaveServer()">Leave</button>
     </div>
     <div class="chat-banner" id="chatBanner"></div>
@@ -416,7 +417,15 @@ function showProfile(){ document.getElementById('profileOv').classList.add('open
 async function saveProfile(){ const n=document.getElementById('ep-d').value.trim(), p=document.getElementById('ep-pfp').value.trim(); await db.ref('users/'+me).update({displayName:n, pfp:p}); myDisplayName=n; myPfp=p; updateSidebarProfile(); hideProfile(); toast('Saved', 'ok'); }
 
 // ── CUSTOM SERVERS ────────────────────────────
-async function createServer() { const name = prompt('Enter New Server Name:'); if(!name) return; const id = 'srv_' + Math.random().toString(36).substr(2, 9); await db.ref('rooms/'+id).set({name, owner: me, ts: Date.now()}); await db.ref('users/'+me+'/rooms/'+id).set(true); toast('Server Created! Invite Code: '+id, 'ok'); }
+async function createServer() { 
+  const name = prompt('Enter New Server Name:'); 
+  if(!name) return; 
+  const id = 'srv_' + Math.random().toString(36).substr(2, 5); 
+  await db.ref('rooms/'+id).set({name, owner: me, ts: Date.now()}); 
+  await db.ref('users/'+me+'/rooms/'+id).set(true); 
+  switchRoom(id);
+  toast('Server Created!', 'ok'); 
+}
 async function joinServer() { const id = prompt('Enter Server Invite Code (starts with srv_):'); if(!id) return; const snap = await db.ref('rooms/'+id).once('value'); if(!snap.exists()) return toast('Server not found!', 'err'); await db.ref('users/'+me+'/rooms/'+id).set(true); switchRoom(id); toast('Joined server!', 'ok'); }
 function loadServers() {
   db.ref('users/'+me+'/rooms').on('value', snap => {
@@ -548,12 +557,17 @@ function switchRoom(id){
   
   const invBtn = document.getElementById('inviteBtn');
   const lvBtn = document.getElementById('leaveBtn');
+  const invDisp = document.getElementById('inviteDisplay');
+  
   if (id.startsWith('srv_')) {
     invBtn.style.display = 'block';
     lvBtn.style.display = 'block';
+    invDisp.style.display = 'block';
+    invDisp.textContent = id;
   } else {
     invBtn.style.display = 'none';
     lvBtn.style.display = 'none';
+    invDisp.style.display = 'none';
   }
 
   document.getElementById('msgs').innerHTML=''; 
