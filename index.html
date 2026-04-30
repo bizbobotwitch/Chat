@@ -62,7 +62,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 /* CHAT */
 .chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0; position:relative;}
 .chat-head{height:54px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0}
-.ch-title{font-size:14.5px;font-weight:600;letter-spacing:-.2px}
+.ch-title{font-size:14.5px;font-weight:600;letter-spacing:-.2px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .chat-banner{display:none;background:rgba(108,99,255,0.15);border-bottom:1px solid var(--ac-bdr);color:var(--ac);padding:10px 20px;font-size:12.5px;font-weight:600;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,0.1);flex-shrink:0;}
 
 /* MESSAGES */
@@ -307,6 +307,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     <div class="chat-head">
       <button class="ham" id="ham" onclick="mobToggle()">☰</button>
       <div class="ch-title" id="chTitle">Global Chat</div>
+      <button id="inviteBtn" class="si-btn" style="display:none; width:auto; font-size:11px;" onclick="copyInvite()">Copy Invite</button>
+      <button id="leaveBtn" class="si-btn" style="display:none; width:auto; font-size:11px; background:rgba(255,79,79,.1); color:var(--rd); border-color:rgba(255,79,79,.22);" onclick="leaveServer()">Leave</button>
     </div>
     <div class="chat-banner" id="chatBanner"></div>
     <div class="msgs" id="msgs"></div>
@@ -415,18 +417,51 @@ async function saveProfile(){ const n=document.getElementById('ep-d').value.trim
 
 // ── CUSTOM SERVERS ────────────────────────────
 async function createServer() { const name = prompt('Enter New Server Name:'); if(!name) return; const id = 'srv_' + Math.random().toString(36).substr(2, 9); await db.ref('rooms/'+id).set({name, owner: me, ts: Date.now()}); await db.ref('users/'+me+'/rooms/'+id).set(true); toast('Server Created! Invite Code: '+id, 'ok'); }
-async function joinServer() { const id = prompt('Enter Server Invite Code (starts with srv_):'); if(!id) return; const snap = await db.ref('rooms/'+id).once('value'); if(!snap.exists()) return toast('Server not found!', 'err'); await db.ref('users/'+me+'/rooms/'+id).set(true); toast('Joined server!', 'ok'); }
+async function joinServer() { const id = prompt('Enter Server Invite Code (starts with srv_):'); if(!id) return; const snap = await db.ref('rooms/'+id).once('value'); if(!snap.exists()) return toast('Server not found!', 'err'); await db.ref('users/'+me+'/rooms/'+id).set(true); switchRoom(id); toast('Joined server!', 'ok'); }
 function loadServers() {
   db.ref('users/'+me+'/rooms').on('value', snap => {
     const slist = document.getElementById('serversList'); slist.innerHTML=''; if(!snap.exists()) return;
     snap.forEach(async c => {
-      const rData = (await db.ref('rooms/'+c.key).once('value')).val(); if(!rData) return;
+      const rData = (await db.ref('rooms/'+c.key).once('value')).val(); 
+      if(!rData) {
+        // Automatically clean up deleted servers from user's list
+        db.ref('users/'+me+'/rooms/'+c.key).remove();
+        return; 
+      }
       const btn = document.createElement('button'); btn.className='fr-item nav-item'; btn.id='nav-'+c.key;
       btn.onclick = () => { document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active')); btn.classList.add('active'); document.getElementById('chTitle').textContent = '🏠 ' + rData.name; switchRoom(c.key); if(window.innerWidth<=768) mobToggle(); };
       btn.innerHTML = `<div class="fr-av" style="background:${uCol(c.key)}">${esc(rData.name[0].toUpperCase())}</div><div class="fr-name">${esc(rData.name)}</div>`;
       slist.appendChild(btn);
     });
   });
+}
+
+function copyInvite() {
+  if(!room.startsWith('srv_')) return;
+  navigator.clipboard.writeText(room).then(() => {
+    toast('Invite code copied to clipboard!', 'ok');
+  }).catch(err => {
+    prompt("Copy this code:", room); // Fallback for older browsers
+  });
+}
+
+async function leaveServer() {
+  if(!room.startsWith('srv_')) return;
+  if(!confirm("Are you sure you want to leave this server?\n\n(Note: If you created this server, leaving will permanently delete it for everyone!)")) return;
+  
+  const rSnap = await db.ref('rooms/' + room).once('value');
+  if(rSnap.exists() && rSnap.val().owner === me) {
+    // Owner is deleting the server entirely
+    await db.ref('rooms/' + room).remove();
+    await db.ref('chats/' + room).remove();
+    toast('Server deleted permanently.', 'ok');
+  } else {
+    toast('You left the server.', 'ok');
+  }
+  
+  // Remove from personal list and return to global
+  await db.ref('users/' + me + '/rooms/' + room).remove();
+  switchRoom('global');
 }
 
 // ── FRIENDS & DIRECT MESSAGING ────────────────
@@ -504,7 +539,23 @@ async function delMsg(key){ if(confirm('Delete?')) await db.ref('chats/'+room+'/
 function switchRoom(id){
   if(msgRef) { db.ref('chats/'+room).off(); db.ref('typing/'+room).off(); } 
   room=id; roomJoinTime=Date.now();
-  if(id === 'global') { document.getElementById('chTitle').textContent = '🌐 Global Chat'; document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); document.getElementById('nav-global').classList.add('active'); }
+  
+  if(id === 'global') { 
+    document.getElementById('chTitle').textContent = '🌐 Global Chat'; 
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
+    document.getElementById('nav-global').classList.add('active'); 
+  }
+  
+  const invBtn = document.getElementById('inviteBtn');
+  const lvBtn = document.getElementById('leaveBtn');
+  if (id.startsWith('srv_')) {
+    invBtn.style.display = 'block';
+    lvBtn.style.display = 'block';
+  } else {
+    invBtn.style.display = 'none';
+    lvBtn.style.display = 'none';
+  }
+
   document.getElementById('msgs').innerHTML=''; 
   
   // Typing listener
@@ -529,7 +580,14 @@ function addMsg(key,msg, containerOverride = null){
   }
 
   const dName=msg.displayName||msg.user, {text:ct, censored:wc} = censor(msg.text||""), isMention = ct.includes('@' + me) || ct.includes('@' + myDisplayName);
-  let content = msg.deleted ? '<span class="msg-text deleted-txt">🗑 Deleted</span>' : (msg.gif || msg.img) ? `<img class="msg-media" src="${msg.gif || msg.img}">` : `<span class="msg-text">${esc(ct)}</span>`;
+  
+  let mediaUrl = msg.img || msg.gif;
+  let content = msg.deleted 
+    ? '<span class="msg-text deleted-txt">🗑 Deleted</span>' 
+    : mediaUrl 
+      ? `<img class="msg-media" src="${mediaUrl}" style="min-height:50px; background:var(--s3);" onerror="this.src='https://via.placeholder.com/250x100/1f1f28/ff4f4f?text=Image+Blocked+(CORS+or+Rules)'">` 
+      : `<span class="msg-text">${esc(ct)}</span>`;
+
   let rpHTML= (msg.replyTo && !msg.deleted) ? `<div class="rp-block" onclick="scrollToMsg('${msg.replyTo.key}')"><div class="rp-who">${esc(msg.replyTo.displayName)}</div><div class="rp-txt">${esc(msg.replyTo.text)}</div></div>` : '';
   
   // Reactions Builder
