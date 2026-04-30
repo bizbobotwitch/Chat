@@ -94,6 +94,12 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .emo-btn:hover{background:var(--s3)}
 
 /* REPLY SYSTEM */
+.reply-bar { display: none; background: var(--s2); border-top: 1px solid var(--b2); padding: 8px 18px; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0; }
+.rb-info { flex: 1; min-width: 0; border-left: 3px solid var(--ac); padding-left: 8px; }
+.rb-who { font-size: 11px; font-weight: 600; color: var(--ac); margin-bottom: 2px; }
+.rb-preview { font-size: 11.5px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rb-x { background: transparent; border: none; color: var(--t2); font-size: 16px; cursor: pointer; transition: color .14s; }
+.rb-x:hover { color: var(--rd); }
 .rp-block{display:flex;align-items:flex-start;gap:8px;background:var(--s3);border-left:2px solid var(--ac);border-radius:0 7px 7px 0;padding:5px 10px;margin-bottom:5px;cursor:pointer;transition:background .12s;max-width:500px}
 .rp-block:hover{background:var(--b1)}
 .rp-who{font-size:11px;font-weight:600;color:var(--ac);margin-bottom:1px}
@@ -339,7 +345,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <div class="gif-grid" id="gifGrid"></div>
     </div>
 
-    <div class="reply-bar" id="replyBar" style="display:none">
+    <div class="reply-bar" id="replyBar">
       <div class="rb-info"><div class="rb-who" id="rbWho"></div><div class="rb-preview" id="rbPrev"></div></div>
       <button class="rb-x" onclick="cancelReply()">✕</button>
     </div>
@@ -362,12 +368,14 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 const FC={apiKey:"AIzaSyB-dwq2yjLEUSNZ0UT5oq4-u_KXghysXfw",authDomain:"discord2-1ed09.firebaseapp.com",databaseURL:"https://discord2-1ed09-default-rtdb.firebaseio.com",projectId:"discord2-1ed09",storageBucket:"discord2-1ed09.appspot.com",messagingSenderId:"856172729472",appId:"1:856172729472:web:fa00078f5968d3e30a0265"};
 firebase.initializeApp(FC); const db=firebase.database(); const storage=firebase.storage();
 
-// ── STATE ─────────────────────────────────────
+// ── STATE & HELPERS ───────────────────────────
 let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=0, replyTo=null, currentGifTab='search';
 let adminRole = null, isChatLocked = false, isGhostMode = false, myBlockedUsers = {}, typeTimer = null, auditRef = null;
-let adminUserList = []; // Caches users for searching
+let adminUserList = [];
 const ADMIN_PW = '32ad', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
+
+const safeStr = s => encodeURIComponent(s || '').replace(/'/g, "%27");
 
 function getHWID(){let id=localStorage.getItem('_chwid');if(!id){id='hw_'+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('_chwid',id);}return id;}
 const HWID=getHWID();
@@ -505,22 +513,32 @@ function openDM(fId, fName) { document.querySelectorAll('.nav-item').forEach(e =
 
 // ── AUDIT LOGS ────────────────────────────────
 function logAdminAction(act, targetUID = null) {
-  db.ref('admin_logs').push({ admin: me, adminName: myDisplayName, action: act, target: targetUID, ts: Date.now() });
+  try {
+    db.ref('admin_logs').push({ 
+      admin: me || 'system', 
+      adminName: myDisplayName || 'System', 
+      action: act || 'Unknown action', 
+      target: targetUID || 'none', 
+      ts: Date.now() 
+    });
+  } catch(e) {
+    console.error("Audit log failed to push:", e);
+  }
 }
 
 function toggleAuditLogs() {
   const cont = document.getElementById('audit-logs-container');
-  if(cont.style.display === 'none') {
+  if(cont.style.display === 'none' || !cont.style.display) {
     cont.style.display = 'block'; cont.innerHTML = 'Loading records...';
     auditRef = db.ref('admin_logs').limitToLast(50);
     auditRef.on('value', snap => {
       cont.innerHTML = '';
       if(!snap.exists()) { cont.innerHTML = 'No logs found.'; return; }
-      const logs = []; snap.forEach(c => logs.unshift(c.val()));
+      const logs = []; snap.forEach(c => { logs.unshift(c.val()); });
       logs.forEach(l => {
         const div = document.createElement('div');
         div.style.marginBottom = '6px'; div.style.borderBottom = '1px solid var(--b2)'; div.style.paddingBottom = '4px';
-        div.innerHTML = `<span style="color:var(--t3)">[${fmt(l.ts)}]</span> <b style="color:var(--ac)">${esc(l.adminName)}</b>: ${esc(l.action)} ${l.target ? `<span style="color:var(--am)">(@${esc(l.target)})</span>` : ''}`;
+        div.innerHTML = `<span style="color:var(--t3)">[${fmt(l.ts)}]</span> <b style="color:var(--ac)">${esc(l.adminName)}</b>: ${esc(l.action)} ${l.target && l.target !== 'none' ? `<span style="color:var(--am)">(@${esc(l.target)})</span>` : ''}`;
         cont.appendChild(div);
       });
     });
@@ -625,7 +643,6 @@ async function adminWarn(m){
   const finalReason = r.trim() || 'No reason specified'; 
   await db.ref('users/'+u).update({ pendingWarnReason: finalReason, pendingWarnPenalty: m }); 
   
-  // Find display name from cached list
   const targetObj = adminUserList.find(x => x.key === u);
   const targetName = targetObj ? (targetObj.val.displayName || u) : u;
 
@@ -751,7 +768,7 @@ function addMsg(key,msg, containerOverride = null){
     <div class="msg-av" style="background:${uCol(msg.user)}">${msg.pfp?`<img src="${esc(msg.pfp)}" style="width:100%;height:100%;object-fit:contain;background:var(--s2);">`:dName[0]}</div>
     <div class="msg-body"><div class="msg-meta"><span class="msg-name" style="color:${uCol(msg.user)}">${esc(dName)}</span> <span class="msg-time">${fmt(msg.ts)}</span></div>${rpHTML}${content}${rxnsHTML}</div>
     ${!msg.deleted ? `<div class="msg-acts">
-      ${(!msg.gif && !msg.img) ? `<button class="ma" onclick="startReply('${key}','${msg.user}','${esc(dName)}',${JSON.stringify(ct)})">↩</button>` : ''}
+      ${(!msg.gif && !msg.img) ? `<button class="ma" onclick="startReply('${key}','${msg.user}', decodeURIComponent('${safeStr(dName)}'), decodeURIComponent('${safeStr(ct)}'))">↩</button>` : ''}
       <button class="ma" onclick="openEmoMenu(event, '${key}')">😀</button>
       ${msg.user!==me ? `<button class="ma am" onclick="blockUser('${msg.user}', '${esc(dName)}')">🚫</button>` : ''}
       ${msg.user===me || adminRole==='admin' || adminRole==='mod' ? `<button class="ma rd" onclick="delMsg('${key}')">🗑</button>` : ''}
