@@ -316,6 +316,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
           <button id="btn-reset-pfp" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminResetIndividualPFP()">🖼️ Reset PFP</button>
           <button id="btn-rename" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForceRename()">✏️ Force Rename</button>
           <button id="btn-sys-dm" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSystemDM()">📥 Send System DM</button>
+          <button id="btn-reset-pass" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForcePasswordReset()">🔑 Reset Password</button>
 
           <button id="btn-ban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminBan()">🚫 Ban Account</button>
           <button id="btn-hwban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminHWBan()">🔨 HW-ID Ban</button>
@@ -761,6 +762,7 @@ function setupAdminUI() {
   document.getElementById('btn-rename').style.display = isAdm ? '' : 'none'; 
   document.getElementById('btn-reset-pfp').style.display = isMod ? '' : 'none';
   document.getElementById('btn-sys-dm').style.display = isMod ? '' : 'none';
+  document.getElementById('btn-reset-pass').style.display = isAdm ? '' : 'none';
 
   // Bans
   document.getElementById('btn-ban').style.display = isAdm ? '' : 'none'; 
@@ -914,6 +916,20 @@ async function adminSystemDM() {
   await db.ref(`users/${u}/friends/${me}`).set({ ts: Date.now() });
   await db.ref('chats/dm_'+dmId).push({ sys: true, text: `🛡️ SYSTEM MESSAGE FROM MODERATION:\n\n${txt}`, ts: Date.now() });
   logAdminAction('Sent System DM to user', u); toast('System DM Sent', 'ok');
+}
+
+async function adminForcePasswordReset() {
+  const u = document.getElementById('a-sel').value; 
+  if(!u || u === me) return; 
+  
+  const newPass = prompt(`Enter a new temporary password for user @${u}\n(Must be at least 6 characters):`);
+  if(!newPass || newPass.length < 6) return toast("Password must be at least 6 characters.", "err");
+  
+  if(!confirm(`Are you absolutely sure you want to overwrite ${u}'s password?`)) return;
+  
+  await db.ref('users/' + u).update({ password: simpleHash(newPass) });
+  logAdminAction(`Force-reset password`, u);
+  toast('Password updated successfully', 'ok');
 }
 
 // ── MEDIA (GIF & IMAGE UPLOAD) ────────────────
