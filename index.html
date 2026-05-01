@@ -72,8 +72,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 
 /* MESSAGES */
 .msgs{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:0}
-.sys{text-align:center;margin:10px 0}
-.sys span{background:var(--s1);border:1px solid var(--b1);padding:5px 14px;border-radius:99px;font-size:11px;font-weight:500;color:var(--t3);display:inline-block;white-space:pre-wrap;}
+.sys{text-align:center;margin:10px 0; width:100%; display:flex; justify-content:center;}
+.sys-inner{background:var(--s1);border:1px solid var(--b1);padding:5px 14px;border-radius:12px;font-size:11px;font-weight:500;color:var(--t3);display:inline-block;white-space:pre-wrap;}
 .msg-wrap{display:flex;gap:10px;padding:5px 8px;border-radius:10px;transition:background .12s;position:relative;align-items:flex-start}
 .msg-wrap:hover{background:var(--s2)}
 .msg-wrap:hover .msg-acts{opacity:1;pointer-events:all}
@@ -235,10 +235,10 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 
 <div class="ov" id="warnOv" style="z-index: 9999;">
   <div class="modal">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;color:var(--am)"><div class="m-title">⚠️ Admin Warning</div></div>
-    <p style="font-size:13px; color:var(--t2); margin-bottom:10px;">You have received an official warning from moderation:</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;color:var(--am)"><div class="m-title" id="warnTitle">⚠️ Admin Warning</div></div>
+    <p style="font-size:13px; color:var(--t2); margin-bottom:10px;" id="warnSubtitle">You have received an official warning from moderation:</p>
     <div id="warnReasonTxt" style="padding:14px; background:rgba(245, 166, 35, 0.1); border-radius:8px; border:1px solid rgba(245, 166, 35, 0.3); color:var(--am); font-size:14px; margin-bottom:18px; font-weight:600; text-align:center;"></div>
-    <p id="warnPenaltyTxt" style="font-size:11px; color:var(--t3); margin-bottom:15px; text-align:center;">You must acknowledge this warning to continue using the chat.</p>
+    <p id="warnPenaltyTxt" style="font-size:11px; color:var(--t3); margin-bottom:15px; text-align:center;">You must acknowledge this message to continue.</p>
     <button class="mbtn mb-p" style="background:var(--am); color:#000;" onclick="acceptWarn()">I Understand (OK)</button>
   </div>
 </div>
@@ -462,7 +462,7 @@ let adminRole = null, isChatLocked = false, isMediaLocked = false, isGhostMode =
 let adminUserList = [];
 let serverSlowmode = 0, lastSendTime = 0, myCustomTitle = null;
 let loadedRooms = {}; 
-let dmLockUntil = 0, dmLockRoom = null; // System DM Page Lock feature
+let dmLockUntil = 0, dmLockRoom = null; 
 
 const ADMIN_PW = '32ad', H_MOD_PW = '2hmod', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
@@ -576,7 +576,6 @@ async function doLogin(){
   if(await isHWBanned()) return alert("🚫 Banned."); 
   const snap=await db.ref('users/'+u).once('value'); 
   if(!snap.exists() || snap.val().password !== simpleHash(p)) return alert("Invalid Login"); 
-  if(snap.val().banned) return alert("🚫 Banned."); 
   
   await db.ref('users/'+u).update({hwid: HWID}); 
   
@@ -631,15 +630,6 @@ function onLoggedIn(){
         }, d.force_dm.until - Date.now());
     }
 
-    // Check if forced logout by admin
-    if(d.force_logout) { 
-      if(me && room) db.ref('typing/'+room+'/'+me).remove();
-      await db.ref('users/'+me+'/force_logout').remove(); 
-      toast("You have been forcibly logged out by an admin.", "err");
-      setTimeout(() => signOut(), 1500);
-      return;
-    }
-
     // Check targeted force reload
     if(d.force_reload && d.force_reload > roomJoinTime) {
       document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;">Refreshing app...</div>';
@@ -655,19 +645,30 @@ function onLoggedIn(){
       return;
     }
 
-    if(d.banned) { 
+    if(d.banned && !d.pendingWarnReason) { 
       if(me && room) db.ref('typing/'+room+'/'+me).remove();
       alert("🚫 Banned."); 
       signOut(); 
+      return;
     }
 
     if(d.timeoutUntil && d.timeoutUntil > Date.now()) {
       if(me && room) db.ref('typing/'+room+'/'+me).remove();
     }
 
-    if(d.pendingWarnReason) { document.getElementById('warnReasonTxt').textContent = d.pendingWarnReason; document.getElementById('warnPenaltyTxt').textContent = d.pendingWarnPenalty > 0 ? `Penalty: ${d.pendingWarnPenalty >= 60 ? (d.pendingWarnPenalty >= 1440 ? '24h' : (d.pendingWarnPenalty/60)+'h') : d.pendingWarnPenalty+'m'} TO.` : 'Acknowledge to continue.'; document.getElementById('warnOv').classList.add('open'); }
+    if(d.pendingWarnReason) { 
+        document.getElementById('warnTitle').innerHTML = d.pendingWarnTitle || '⚠️ Admin Warning';
+        document.getElementById('warnSubtitle').textContent = d.pendingWarnSubtitle || 'You have received an official warning from moderation:';
+        document.getElementById('warnReasonTxt').textContent = d.pendingWarnReason; 
+        document.getElementById('warnPenaltyTxt').textContent = d.pendingWarnPenalty > 0 ? `Penalty: ${d.pendingWarnPenalty >= 60 ? (d.pendingWarnPenalty >= 1440 ? '24h' : (d.pendingWarnPenalty/60)+'h') : d.pendingWarnPenalty+'m'} TO.` : 'Acknowledge to continue.'; 
+        document.getElementById('warnOv').classList.add('open'); 
+        
+        const inp = document.getElementById('msgInp');
+        if(inp) inp.blur();
+    }
     
-    if(d.force_voice_leave) { await db.ref('users/'+me+'/force_voice_leave').remove(); leaveVoiceRoom(); toast("You were disconnected from voice by a moderator.", "err"); switchRoom('global'); }
+    // Note: Handled by pendingWarnReason 'kick' type now, but kept for legacy cleanup
+    if(d.force_voice_leave) { await db.ref('users/'+me+'/force_voice_leave').remove(); leaveVoiceRoom(); switchRoom('global'); }
 
     isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = '👻 Ghost'; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = '● Online'; statusEl.style.color = 'var(--gr)'; }
     myBlockedUsers = d.blocked || {};
@@ -1017,22 +1018,106 @@ async function adminGlobalSystemMsg() {
   toast('Global System Msg Sent', 'ok');
 }
 
+// ADMIN REMOVE VOTE
+window.adminRemoveVote = async function(key) {
+  if(!isStaffMember()) return;
+  if(!confirm("Are you sure you want to permanently delete this vote?")) return;
+  await db.ref(`chats/${room}/${key}`).remove();
+  toast('Vote deleted', 'ok');
+}
+
 // --- Advanced Moderation Functions --- //
 async function adminWarn(m){ 
   const u=document.getElementById('a-sel').value; if(!u||u===me) return; 
   const r = prompt("Warning reason:"); if(r === null) return; 
   const finalReason = r.trim() || 'No reason specified'; 
-  await db.ref('users/'+u).update({ pendingWarnReason: finalReason, pendingWarnPenalty: m }); 
+  await db.ref('users/'+u).update({ 
+      pendingWarnTitle: '⚠️ Admin Warning',
+      pendingWarnSubtitle: 'You have received an official warning from moderation:',
+      pendingWarnReason: finalReason, 
+      pendingWarnPenalty: m,
+      pendingWarnType: 'warn'
+  }); 
   const targetObj = adminUserList.find(x => x.key === u); const targetName = targetObj ? (targetObj.val.displayName || u) : u;
   await db.ref('chats/'+room).push({ sys: true, text: `⚠️ ${targetName} was warned by ${myDisplayName}. Reason: ${finalReason}`, ts: Date.now() }); 
   logAdminAction(`Issued Warning (Penalty: ${m}m TO). Reason: ${finalReason}`, u); toast('Sent.', 'ok'); loadAUser();
 }
 
-async function acceptWarn() { const p = (await db.ref('users/'+me).once('value')).val().pendingWarnPenalty || 0; let u = { pendingWarnReason: null, pendingWarnPenalty: null }; if (p > 0) u.timeoutUntil = Date.now() + (p * 60000); await db.ref('users/'+me).update(u); document.getElementById('warnOv').classList.remove('open'); }
-async function adminTO(min){ const u=document.getElementById('a-sel').value; if(!u)return; await db.ref('users/'+u).update({timeoutUntil:Date.now()+min*60000}); await db.ref('typing/'+room+'/'+u).remove(); logAdminAction(`Applied ${min}m Timeout`, u); toast('Timed out', 'ok'); loadAUser(); }
-async function adminVoiceKick(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u+'/force_voice_leave').set(true); logAdminAction(`Kicked from Voice Room`, u); toast('User booted from voice', 'ok'); }
-async function adminMute(isMute){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u).update({muted: isMute}); logAdminAction(isMute ? 'Muted User' : 'Unmuted User', u); toast(isMute ? 'Muted' : 'Unmuted', 'ok'); loadAUser(); }
-async function adminForceRename(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const nn=prompt("Enter new display name:"); if(!nn)return; await db.ref('users/'+u).update({displayName: nn.trim()}); logAdminAction(`Force renamed to ${nn.trim()}`, u); toast('Renamed', 'ok'); loadAdminUsers(); }
+async function acceptWarn() { 
+    const d = (await db.ref('users/'+me).once('value')).val();
+    const p = d.pendingWarnPenalty || 0; 
+    const type = d.pendingWarnType || 'warn';
+
+    let u = { pendingWarnReason: null, pendingWarnPenalty: null, pendingWarnTitle: null, pendingWarnSubtitle: null, pendingWarnType: null }; 
+    if (p > 0) u.timeoutUntil = Date.now() + (p * 60000); 
+    
+    await db.ref('users/'+me).update(u); 
+    document.getElementById('warnOv').classList.remove('open'); 
+
+    if(type === 'ban' || type === 'hwban') {
+        alert("🚫 Banned.");
+        signOut();
+    } else if (type === 'logout') {
+        signOut();
+    }
+}
+
+async function adminTO(min){ 
+  const u=document.getElementById('a-sel').value; if(!u)return; 
+  const r = prompt("Reason for timeout:"); if(r===null)return;
+  await db.ref('users/'+u).update({
+      pendingWarnTitle: '⏱️ Timed Out',
+      pendingWarnSubtitle: 'An admin has issued a timeout:',
+      pendingWarnReason: r.trim() || `You have been timed out for ${min} minutes.`,
+      pendingWarnPenalty: min,
+      pendingWarnType: 'timeout'
+  }); 
+  await db.ref('typing/'+room+'/'+u).remove(); 
+  logAdminAction(`Applied ${min}m Timeout`, u); toast('Timed out', 'ok'); loadAUser(); 
+}
+
+async function adminVoiceKick(){ 
+  const u=document.getElementById('a-sel').value; if(!u||u===me)return; 
+  const r = prompt("Reason for voice kick:"); if(r===null)return;
+  await db.ref('users/'+u).update({
+      force_voice_leave: true,
+      pendingWarnTitle: '🥾 Booted from Voice',
+      pendingWarnSubtitle: 'You were removed from the voice lounge:',
+      pendingWarnReason: r.trim() || 'Please follow voice chat rules.',
+      pendingWarnType: 'kick'
+  });
+  logAdminAction(`Kicked from Voice Room`, u); toast('User booted from voice', 'ok'); 
+}
+
+async function adminMute(isMute){ 
+  const u=document.getElementById('a-sel').value; if(!u||u===me)return; 
+  if(isMute) {
+      const r = prompt("Reason for mute:"); if(r===null)return;
+      await db.ref('users/'+u).update({
+          muted: true,
+          pendingWarnTitle: '🔇 Account Muted',
+          pendingWarnSubtitle: 'You have been muted by moderation:',
+          pendingWarnReason: r.trim() || 'You have lost your ability to send messages.',
+          pendingWarnType: 'mute'
+      });
+  } else {
+      await db.ref('users/'+u).update({muted: false}); 
+  }
+  logAdminAction(isMute ? 'Muted User' : 'Unmuted User', u); toast(isMute ? 'Muted' : 'Unmuted', 'ok'); loadAUser(); 
+}
+
+async function adminForceRename(){ 
+  const u=document.getElementById('a-sel').value; if(!u||u===me)return; 
+  const nn=prompt("Enter new display name:"); if(!nn)return; 
+  await db.ref('users/'+u).update({
+      displayName: nn.trim(),
+      pendingWarnTitle: '✏️ Name Reset',
+      pendingWarnSubtitle: 'An admin has force-changed your display name:',
+      pendingWarnReason: `Your name was inappropriate. New name: ${nn.trim()}`,
+      pendingWarnType: 'rename'
+  }); 
+  logAdminAction(`Force renamed to ${nn.trim()}`, u); toast('Renamed', 'ok'); loadAdminUsers(); 
+}
 
 async function adminClearUser(){ 
   const u=document.getElementById('a-sel').value; if(!u)return; 
@@ -1041,11 +1126,45 @@ async function adminClearUser(){
   const updates={}; 
   snap.forEach(c=>{if(c.val().user===u){updates['chats/'+room+'/'+c.key+'/text']='';updates['chats/'+room+'/'+c.key+'/deleted']=true;}}); 
   await db.ref().update(updates); 
+  await db.ref('users/'+u).update({
+      pendingWarnTitle: '🗑️ Messages Purged',
+      pendingWarnSubtitle: 'Your recent messages were cleared:',
+      pendingWarnReason: 'Spam or inappropriate content detected.',
+      pendingWarnType: 'purge'
+  });
   logAdminAction(`Scrubbed user history in room ${room}`, u); toast('Cleared', 'ok'); 
 }
 
-async function adminBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u).update({banned:true}); await db.ref('typing/'+room+'/'+u).remove(); logAdminAction('Account Banned', u); toast('Banned', 'ok'); loadAUser(); }
-async function adminHWBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(!ud.hwid)return; await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).set({hwid:ud.hwid}); await db.ref('users/'+u).update({banned:true}); await db.ref('typing/'+room+'/'+u).remove(); logAdminAction('Hardware Device Banned', u); toast('HW-Banned', 'ok'); loadAUser(); }
+async function adminBan(){ 
+  const u=document.getElementById('a-sel').value; if(!u||u===me)return; 
+  const r = prompt("Reason for Ban:"); if(r===null)return;
+  await db.ref('users/'+u).update({
+      banned: true,
+      pendingWarnTitle: '🚫 Account Banned',
+      pendingWarnSubtitle: 'Your account has been permanently suspended:',
+      pendingWarnReason: r.trim() || 'Severe rule violations.',
+      pendingWarnType: 'ban'
+  }); 
+  await db.ref('typing/'+room+'/'+u).remove(); 
+  logAdminAction('Account Banned', u); toast('Banned', 'ok'); loadAUser(); 
+}
+
+async function adminHWBan(){ 
+  const u=document.getElementById('a-sel').value; if(!u||u===me)return; 
+  const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(!ud.hwid)return; 
+  const r = prompt("Reason for HW-Ban:"); if(r===null)return;
+  await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).set({hwid:ud.hwid}); 
+  await db.ref('users/'+u).update({
+      banned: true,
+      pendingWarnTitle: '🔨 Hardware Ban',
+      pendingWarnSubtitle: 'Your device has been permanently banned:',
+      pendingWarnReason: r.trim() || 'Extreme violations. Do not return.',
+      pendingWarnType: 'hwban'
+  }); 
+  await db.ref('typing/'+room+'/'+u).remove(); 
+  logAdminAction('Hardware Device Banned', u); toast('HW-Banned', 'ok'); loadAUser(); 
+}
+
 async function adminUnban(){ const u=document.getElementById('a-sel').value; if(!u)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(ud.hwid) await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).remove(); await db.ref('users/'+u).update({banned:false,timeoutUntil:0,pendingWarnReason:null,pendingWarnPenalty:null,muted:false,shadowbanned:false}); logAdminAction('Unbanned/Pardoned User', u); toast('Unbanned', 'ok'); loadAUser(); }
 
 // New Admin Tools
@@ -1086,7 +1205,13 @@ async function adminForcePasswordReset() {
   
   if(!confirm(`Are you absolutely sure you want to overwrite ${u}'s password?`)) return;
   
-  await db.ref('users/' + u).update({ password: simpleHash(newPass) });
+  await db.ref('users/' + u).update({ 
+      password: simpleHash(newPass),
+      pendingWarnTitle: '🔑 Password Reset',
+      pendingWarnSubtitle: 'An admin has reset your password:',
+      pendingWarnReason: 'Your session will be terminated. Please log back in with your new temporary password.',
+      pendingWarnType: 'logout'
+  });
   logAdminAction(`Force-reset password`, u);
   toast('Password updated successfully', 'ok');
 }
@@ -1095,7 +1220,12 @@ async function adminForceLogout() {
   const u = document.getElementById('a-sel').value; 
   if(!u || u === me) return; 
   if(!confirm(`Are you sure you want to forcibly disconnect @${u}?`)) return;
-  await db.ref('users/' + u + '/force_logout').set(true);
+  await db.ref('users/' + u).update({
+      pendingWarnTitle: '🔌 Forcibly Disconnected',
+      pendingWarnSubtitle: 'An admin has terminated your session:',
+      pendingWarnReason: 'You are being logged out.',
+      pendingWarnType: 'logout'
+  });
   await db.ref('typing/'+room+'/'+u).remove();
   logAdminAction(`Forced logout`, u);
   toast('User disconnected', 'ok');
@@ -1132,7 +1262,13 @@ async function adminWipeProfile() {
   if(!u) return; 
   if(!confirm(`Are you sure you want to wipe @${u}'s profile entirely?`)) return;
   const newName = "User_" + Math.floor(Math.random() * 10000);
-  await db.ref('users/' + u).update({ pfp: "", displayName: newName, customTitle: null });
+  await db.ref('users/' + u).update({ 
+      pfp: "", displayName: newName, customTitle: null,
+      pendingWarnTitle: '🧼 Profile Wiped',
+      pendingWarnSubtitle: 'Your profile has been wiped by moderation:',
+      pendingWarnReason: 'Inappropriate profile content (Avatar, Name, or Title).',
+      pendingWarnType: 'wipe'
+  });
   logAdminAction(`Wiped user profile (PFP, Title, and Username)`, u);
   toast('Profile Wiped', 'ok');
   loadAdminUsers();
@@ -1470,7 +1606,7 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
     if(msg.text.includes('🎮') || msg.text.includes('🎰') || msg.text.includes('🎱') || msg.text.includes('🎲') || msg.text.includes('🪙') || msg.text.includes('🃏') || msg.text.includes('🧑') || msg.text.includes('🤖') || msg.text.includes('✂️') || msg.text.includes('🤔') || msg.text.includes('🔥') || msg.text.includes('😂')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
     if(msg.isVote) { bColor = 'rgba(108,99,255,.6)'; bgColor = 'rgba(108,99,255,.15)'; tColor = 'var(--t1)'; }
     
-    let inner = `<span style="border-color:${bColor};color:${tColor};background:${bgColor}; ${(isSysDm || msg.isVote) ? 'text-align:left; max-width:85%; padding:14px; font-size:13px; font-weight:600;' : ''}">${esc(msg.text)}`;
+    let inner = `<span class="sys-inner" style="border-color:${bColor};color:${tColor};background:${bgColor}; ${(isSysDm || msg.isVote) ? 'text-align:left; max-width:85%; padding:14px; font-size:13px; font-weight:600;' : ''}">${esc(msg.text)}`;
     
     // RENDER VOTE BUTTONS
     if(msg.isVote) {
@@ -1479,9 +1615,15 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
       let isActive = msg.active;
       let myChoice = (msg.yes && msg.yes[me]) ? 'yes' : (msg.no && msg.no[me]) ? 'no' : null;
 
-      inner += `<div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">`;
+      inner += `<div style="margin-top:12px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">`;
       inner += `<button class="mbtn mb-p" style="width:auto; padding:6px 12px; background:${myChoice==='yes'?'var(--gr)':'var(--s3)'}; color:${myChoice==='yes'?'#000':'var(--t1)'}; border:1px solid var(--gr); opacity:${isActive?'1':'0.5'}; cursor:${isActive?'pointer':'default'}" ${isActive?`onclick="castVote('${key}','yes')"`:'disabled'}>✅ Yes (${yCount})</button>`;
       inner += `<button class="mbtn mb-p" style="width:auto; padding:6px 12px; background:${myChoice==='no'?'var(--rd)':'var(--s3)'}; color:${myChoice==='no'?'#fff':'var(--t1)'}; border:1px solid var(--rd); opacity:${isActive?'1':'0.5'}; cursor:${isActive?'pointer':'default'}" ${isActive?`onclick="castVote('${key}','no')"`:'disabled'}>❌ No (${nCount})</button>`;
+      
+      // ADMIN REMOVE VOTE BUTTON
+      if(isStaffMember()) {
+         inner += `<button class="mbtn mb-p" style="width:auto; padding:6px 12px; background:rgba(255,79,79,.15); color:var(--rd); border:1px solid rgba(255,79,79,.4);" onclick="adminRemoveVote('${key}')">🗑️ Force Delete</button>`;
+      }
+      
       inner += `</div>`;
     }
     inner += `</span>`;
@@ -1701,7 +1843,7 @@ async function doSend(){
   if(isChatLocked) return toast('🔒 Chat shutdown.', 'err'); if(await isHWBanned()) return toast('🚫 Banned', 'err');
   const d=(await db.ref('users/'+me).once('value')).val()||{}; if(d.banned) return toast('🚫 Banned', 'err');
   if(d.muted) return toast('🔇 You are currently muted by an admin.', 'err');
-  if(d.pendingWarnReason){ document.getElementById('warnReasonTxt').textContent = d.pendingWarnReason; document.getElementById('warnOv').classList.add('open'); return; }
+  if(d.pendingWarnReason){ document.getElementById('warnTitle').innerHTML = d.pendingWarnTitle || '⚠️ Admin Warning'; document.getElementById('warnSubtitle').textContent = d.pendingWarnSubtitle || 'You have received an official warning from moderation:'; document.getElementById('warnReasonTxt').textContent = d.pendingWarnReason; document.getElementById('warnOv').classList.add('open'); return; }
   if(d.timeoutUntil&&d.timeoutUntil>Date.now()) return toast('⏱ Timed out', 'warn');
   
   if(serverSlowmode > 0 && !d.role && (Date.now() - lastSendTime) < (serverSlowmode * 1000)) {
