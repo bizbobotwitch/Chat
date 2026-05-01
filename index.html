@@ -606,6 +606,7 @@ function onLoggedIn(){
     
     // Check if forced logout by admin
     if(d.force_logout) { 
+      if(me && room) db.ref('typing/'+room+'/'+me).remove();
       await db.ref('users/'+me+'/force_logout').remove(); 
       toast("You have been forcibly logged out by an admin.", "err");
       setTimeout(() => signOut(), 1500);
@@ -620,7 +621,16 @@ function onLoggedIn(){
       return;
     }
 
-    if(d.banned) { alert("🚫 Banned."); signOut(); }
+    if(d.banned) { 
+      if(me && room) db.ref('typing/'+room+'/'+me).remove();
+      alert("🚫 Banned."); 
+      signOut(); 
+    }
+
+    if(d.timeoutUntil && d.timeoutUntil > Date.now()) {
+      if(me && room) db.ref('typing/'+room+'/'+me).remove();
+    }
+
     if(d.pendingWarnReason) { document.getElementById('warnReasonTxt').textContent = d.pendingWarnReason; document.getElementById('warnPenaltyTxt').textContent = d.pendingWarnPenalty > 0 ? `Penalty: ${d.pendingWarnPenalty >= 60 ? (d.pendingWarnPenalty >= 1440 ? '24h' : (d.pendingWarnPenalty/60)+'h') : d.pendingWarnPenalty+'m'} TO.` : 'Acknowledge to continue.'; document.getElementById('warnOv').classList.add('open'); }
     
     if(d.force_voice_leave) { await db.ref('users/'+me+'/force_voice_leave').remove(); leaveVoiceRoom(); toast("You were disconnected from voice by a moderator.", "err"); switchRoom('global'); }
@@ -656,7 +666,12 @@ function updateSidebarProfile() {
   document.getElementById('meName').textContent = nameToUse; 
 }
 
-function signOut(){ localStorage.removeItem('chatty_user'); location.reload(); }
+function signOut(){ 
+  if(me && room) db.ref('typing/'+room+'/'+me).remove();
+  localStorage.removeItem('chatty_user'); 
+  location.reload(); 
+}
+
 function showProfile(){ document.getElementById('profileOv').classList.add('open'); } function hideProfile(){ document.getElementById('profileOv').classList.remove('open'); }
 async function saveProfile(){ 
   const n=document.getElementById('ep-d').value.trim(), p=document.getElementById('ep-pfp').value.trim(); 
@@ -1203,7 +1218,10 @@ function leaveVoiceRoom() {
   document.getElementById('typingInd').style.display = 'block';
 }
 
-window.addEventListener('beforeunload', () => { if(myPeer) db.ref('voice_lounge/'+myPeer.id).remove(); });
+window.addEventListener('beforeunload', () => { 
+  if(myPeer) db.ref('voice_lounge/'+myPeer.id).remove(); 
+  if(me && room) db.ref('typing/'+room+'/'+me).remove();
+});
 
 
 // ── COMMUNITY VOTING SYSTEM ───────────────────
@@ -1224,7 +1242,7 @@ window.castVote = async function(msgKey, choice) {
   const uMsg = uSnap.val();
   let yCount = uMsg.yes ? Object.keys(uMsg.yes).length : 0;
   let nCount = uMsg.no ? Object.keys(uMsg.no).length : 0;
-  const THRESHOLD = 3;
+  const THRESHOLD = 5; // Updated to 5 required votes!
 
   if (yCount >= THRESHOLD && uMsg.active) {
     await db.ref(`chats/${room}/${msgKey}`).update({ active: false, text: uMsg.text.replace(/\*\(.*\)\*/, '') + `\n\n✅ **PASSED!**` });
@@ -1236,6 +1254,9 @@ window.castVote = async function(msgKey, choice) {
       await db.ref(`users/${uMsg.targetUid}`).update({ banned: true });
       await db.ref('typing/'+room+'/'+uMsg.targetUid).remove();
       sysMsg(`🚫 The community voted to permanently BAN ${uMsg.targetName}.`);
+    } else if(uMsg.voteType === 'mute') {
+      await db.ref(`users/${uMsg.targetUid}`).update({ muted: true });
+      sysMsg(`🔇 The community voted to MUTE ${uMsg.targetName}.`);
     }
   } else if (nCount >= THRESHOLD && uMsg.active) {
     await db.ref(`chats/${room}/${msgKey}`).update({ active: false, text: uMsg.text.replace(/\*\(.*\)\*/, '') + `\n\n❌ **FAILED.**` });
@@ -1250,6 +1271,7 @@ function cancelReply(){ replyTo=null; document.getElementById('replyBar').style.
 async function delMsg(key){ if(confirm('Delete?')) await db.ref('chats/'+room+'/'+key).update({text:'',deleted:true}); }
 
 function switchRoom(id) {
+  if(me && room && room !== id) db.ref('typing/'+room+'/'+me).remove();
   room = id; roomJoinTime = Date.now();
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
 
@@ -1310,7 +1332,7 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
     
     if(isLockMsg) { bColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.3)' : 'rgba(46,204,138,.3)'; bgColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.08)' : 'rgba(46,204,138,.08)'; tColor = msg.text.includes('🛑') ? 'var(--rd)' : 'var(--gr)'; }
     if(isSysDm) { bColor = 'rgba(255,79,79,.6)'; bgColor = 'rgba(255,79,79,.15)'; tColor = 'var(--rd)'; }
-    if(msg.text.includes('🎮') || msg.text.includes('🎰') || msg.text.includes('🎱') || msg.text.includes('🎲') || msg.text.includes('🪙') || msg.text.includes('🃏') || msg.text.includes('🧑') || msg.text.includes('🤖')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
+    if(msg.text.includes('🎮') || msg.text.includes('🎰') || msg.text.includes('🎱') || msg.text.includes('🎲') || msg.text.includes('🪙') || msg.text.includes('🃏') || msg.text.includes('🧑') || msg.text.includes('🤖') || msg.text.includes('✂️') || msg.text.includes('🤔') || msg.text.includes('🔥') || msg.text.includes('😂')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
     if(msg.isVote) { bColor = 'rgba(108,99,255,.6)'; bgColor = 'rgba(108,99,255,.15)'; tColor = 'var(--t1)'; }
     
     let inner = `<span style="border-color:${bColor};color:${tColor};background:${bgColor}; ${(isSysDm || msg.isVote) ? 'text-align:left; max-width:85%; padding:14px; font-size:13px; font-weight:600;' : ''}">${esc(msg.text)}`;
@@ -1388,22 +1410,28 @@ function scrollToMsg(key) { const el = document.getElementById('msg-' + key); if
 
 // ── COMMAND MENU AUTOCOMPLETE ─────────────────
 const COMMANDS = [
-  { cmd: '/vote timeout', desc: '[Staff] Start a 15m timeout vote on a user' },
-  { cmd: '/vote ban', desc: '[Admin] Start a ban vote on a user' },
+  { cmd: '/vote timeout', desc: '[Staff] Start a 15m timeout vote (5 req)' },
+  { cmd: '/vote mute', desc: '[Staff] Start a mute vote (5 req)' },
+  { cmd: '/vote ban', desc: '[Admin] Start a ban vote (5 req)' },
   { cmd: '/vote custom', desc: '[Admin] Start a custom poll' },
   { cmd: '/roll', desc: 'Roll a dice (e.g. /roll 20)' },
   { cmd: '/flip', desc: 'Flip a coin' },
+  { cmd: '/rps ', desc: 'Rock Paper Scissors (e.g. /rps rock)' },
   { cmd: '/slots', desc: 'Spin the slot machine!' },
+  { cmd: '/truth', desc: 'Get a random truth question' },
+  { cmd: '/dare', desc: 'Get a random dare' },
+  { cmd: '/joke', desc: 'Hear a terrible joke' },
   { cmd: '/8ball ', desc: 'Ask the Magic 8-Ball a question' },
   { cmd: '/hangman start', desc: 'Start a new game of hangman' },
   { cmd: '/guess ', desc: 'Guess a letter (e.g. /guess a)' },
   { cmd: '/hangman stop', desc: '[Admin] Stop an active hangman game' },
-  { cmd: '/bj create', desc: 'Open a Multiplayer Blackjack lobby' },
-  { cmd: '/bj join', desc: 'Join an open Blackjack lobby' },
-  { cmd: '/bj start', desc: 'Start the Multiplayer Blackjack game' },
+  { cmd: '/bj create', desc: 'Open a PvP Multiplayer Blackjack lobby' },
+  { cmd: '/bj join', desc: 'Join an open PvP Blackjack lobby' },
+  { cmd: '/bj start', desc: 'Start the PvP Blackjack game' },
+  { cmd: '/bj play', desc: 'Play Singleplayer Blackjack against dealer' },
   { cmd: '/bj hit', desc: 'Draw another card in Blackjack' },
   { cmd: '/bj stand', desc: 'End your turn in Blackjack' },
-  { cmd: '/bj stop', desc: '[Admin] Force stop Blackjack game' }
+  { cmd: '/bj stop', desc: '[Admin] Force stop a multiplayer Blackjack game' }
 ];
 
 function checkCommandMenu(e) {
@@ -1421,7 +1449,7 @@ function checkCommandMenu(e) {
         const div = document.createElement('div');
         div.className = 'cmd-item';
         div.innerHTML = `<div class="cmd-name">${m.cmd}</div><div class="cmd-desc">${m.desc}</div>`;
-        div.onclick = () => { inp.value = m.cmd + (['start','stop','join','create','hit','stand','slots','flip','roll'].some(w => m.cmd.includes(w)) ? '' : ' '); inp.focus(); menu.classList.remove('open'); };
+        div.onclick = () => { inp.value = m.cmd + (['start','stop','join','create','hit','stand','slots','flip','roll','play','truth','dare','joke'].some(w => m.cmd.includes(w)) ? '' : ' '); inp.focus(); menu.classList.remove('open'); };
         menu.appendChild(div);
       });
       menu.classList.add('open');
@@ -1453,21 +1481,63 @@ function calcScore(hand) {
   return score;
 }
 
-async function checkBjResolution(roomId) {
+// MULTIPLAYER PvP (No Dealer) RESOLUTION
+async function checkBjMultiResolution(roomId) {
   const snap = await db.ref('server_meta/bj_'+roomId).once('value');
   const game = snap.val();
-  if(!game || game.phase !== 'playing') return;
+  if(!game || game.phase !== 'playing' || game.type !== 'multi') return;
 
   let allDone = true;
-  for(let uid in game.players) {
-    if(game.players[uid].status === 'playing') allDone = false;
-  }
+  for(let uid in game.players) { if(game.players[uid].status === 'playing') allDone = false; }
 
   if(allDone) {
-    let dHand = game.dHand || [];
-    let dScore = calcScore(dHand);
-    let msg = `🃏 **MULTIPLAYER BLACKJACK RESULTS** 🃏\n\n`;
+    let msg = `🃏 **PvP BLACKJACK RESULTS** 🃏\n\n`;
     
+    let maxScore = -1;
+    let winners = [];
+    
+    // Calculate everyone's final score
+    for(let uid in game.players) {
+      let pScore = calcScore(game.players[uid].hand);
+      if(pScore <= 21) {
+        if(pScore > maxScore) { maxScore = pScore; winners = [game.players[uid].name]; }
+        else if(pScore === maxScore) { winners.push(game.players[uid].name); }
+      }
+    }
+
+    // Print hands
+    for(let uid in game.players) {
+      let p = game.players[uid];
+      let pScore = calcScore(p.hand);
+      msg += `🧑 ${p.name}: ${p.hand.map(c=>c.face).join(' ')} (Score: ${pScore}) ${pScore>21?'💥 BUST!':''}\n`;
+    }
+
+    msg += `\n`;
+    if(maxScore === -1) msg += `💀 Everyone BUSTED! Nobody wins!`;
+    else if(winners.length === 1) msg += `👑 **${winners[0]} WINS** with a score of ${maxScore}!`;
+    else msg += `🤝 **TIE!** ${winners.join(' and ')} share the crown with ${maxScore}!`;
+
+    await db.ref('server_meta/bj_'+roomId).remove();
+    db.ref('chats/'+roomId).push({ sys: true, text: msg, ts: Date.now() });
+  }
+}
+
+// SINGLEPLAYER RESOLUTION (Against Dealer)
+async function checkBjSingleResolution(roomId) {
+  const snap = await db.ref('server_meta/spbj_'+me).once('value');
+  const game = snap.val();
+  if(!game || game.status === 'playing') return; // Wait until player stands or busts
+
+  let pScore = calcScore(game.hand);
+  let dHand = game.dHand || [];
+  let dScore = calcScore(dHand);
+  
+  let msg = `🃏 **SINGLEPLAYER BLACKJACK** 🃏\n\n`;
+  msg += `🧑 ${myDisplayName}'s Hand: ${game.hand.map(c=>c.face).join(' ')} (Score: ${pScore})\n\n`;
+
+  if(game.status === 'bust') {
+    msg += `💥 You BUSTED! The dealer wins.`;
+  } else {
     msg += `🤖 Dealer reveals: ${dHand[0].face}\n`;
     while(dScore < 17) {
       let c = drawCard();
@@ -1477,22 +1547,14 @@ async function checkBjResolution(roomId) {
     }
     msg += `\n**Dealer Final Hand:** ${dHand.map(c=>c.face).join(' ')} (Score: ${dScore} ${dScore>21?'💥 BUST!':''})\n\n`;
 
-    for(let uid in game.players) {
-      let p = game.players[uid];
-      let pScore = calcScore(p.hand);
-      let res = '';
-      if(p.status === 'bust') res = '💀 BUST';
-      else if(dScore > 21) res = '🎉 WIN';
-      else if(pScore > dScore) res = '🎉 WIN';
-      else if(pScore < dScore) res = '💀 LOSE';
-      else res = '🤝 PUSH';
-      
-      msg += `🧑 ${p.name}: ${pScore} -> ${res}\n`;
-    }
-
-    await db.ref('server_meta/bj_'+roomId).remove();
-    db.ref('chats/'+roomId).push({ sys: true, text: msg, ts: Date.now() });
+    if(dScore > 21) msg += `🎉 DEALER BUSTS! You WIN!`;
+    else if(pScore > dScore) msg += `🎉 YOU WIN!`;
+    else if(pScore < dScore) msg += `💀 DEALER WINS!`;
+    else msg += `🤝 PUSH! It's a tie.`;
   }
+
+  await db.ref('server_meta/spbj_'+me).remove();
+  db.ref('chats/'+roomId).push({ sys: true, text: msg, ts: Date.now() });
 }
 
 // ── SEND MESSAGE & COMMAND INTERPRETER ────────
@@ -1520,7 +1582,7 @@ async function doSend(){
       const vType = args[1] ? args[1].toLowerCase() : '';
       if(!isStaffMember()) return toast("Only staff can start votes.", "err");
 
-      if(vType === 'timeout' || vType === 'ban') {
+      if(vType === 'timeout' || vType === 'ban' || vType === 'mute') {
         if(vType === 'ban' && adminRole !== 'admin' && !isSuperAdmin()) return toast("Only Admins can do ban votes.", "err");
         const targetStr = args[2];
         if(!targetStr) return toast(`Usage: /vote ${vType} [username]`, "warn");
@@ -1540,8 +1602,8 @@ async function doSend(){
         const tSnap = await db.ref('users/'+tUid).once('value');
         if(tSnap.val() && (tSnap.val().role === 'admin' || tUid.includes('zasingl61'))) return toast("Cannot initiate votes against Admins.", "err");
 
-        const q = vType === 'timeout' ? `Timeout ${tName} for 15 minutes?` : `Permanently BAN ${tName}?`;
-        const vTxt = `🗳️ **VOTE INITIATED by ${myDisplayName}**\n${q}\n*(Requires 3 Yes votes to pass)*`;
+        const q = vType === 'timeout' ? `Timeout ${tName} for 15 minutes?` : vType === 'mute' ? `Mute ${tName}?` : `Permanently BAN ${tName}?`;
+        const vTxt = `🗳️ **VOTE INITIATED by ${myDisplayName}**\n${q}\n*(Requires 5 Yes votes to pass)*`;
 
         return db.ref('chats/'+room).push({ sys: true, isVote: true, voteType: vType, targetUid: tUid, targetName: tName, text: vTxt, yes: {[me]: true}, no: {}, active: true, ts: Date.now() });
       }
@@ -1550,14 +1612,14 @@ async function doSend(){
         if(adminRole !== 'admin' && !isSuperAdmin()) return toast("Only Admins can do custom polls.", "err");
         const question = args.slice(2).join(' ');
         if(!question) return toast("Usage: /vote custom [question]", "warn");
-        const vTxt = `📊 **CUSTOM POLL by ${myDisplayName}**\n${question}\n*(3 votes to close)*`;
+        const vTxt = `📊 **CUSTOM POLL by ${myDisplayName}**\n${question}\n*(5 votes to close)*`;
         return db.ref('chats/'+room).push({ sys: true, isVote: true, voteType: 'custom', targetUid: null, targetName: null, text: vTxt, yes: {[me]: true}, no: {}, active: true, ts: Date.now() });
       }
 
-      return toast("Usage: /vote [timeout|ban|custom]", "err");
+      return toast("Usage: /vote [timeout|mute|ban|custom]", "err");
     }
 
-    // CASUAL GAMES
+    // CASUAL GAMES & ARCADE
     if(cmd === '/roll') {
       const max = parseInt(args[1]) || 6;
       const result = Math.floor(Math.random() * max) + 1;
@@ -1567,6 +1629,33 @@ async function doSend(){
     if(cmd === '/flip') {
       const result = Math.random() > 0.5 ? 'Heads' : 'Tails';
       return sysMsg(`🪙 ${myDisplayName} flipped a coin and got: ${result}`);
+    }
+
+    if(cmd === '/rps') {
+      const choices = ['rock', 'paper', 'scissors'];
+      const uChoice = args[1] ? args[1].toLowerCase() : '';
+      if(!choices.includes(uChoice)) return toast("Usage: /rps [rock|paper|scissors]", "warn");
+      const bChoice = choices[Math.floor(Math.random()*3)];
+      let res = '';
+      if(uChoice === bChoice) res = 'Tie!';
+      else if((uChoice==='rock'&&bChoice==='scissors') || (uChoice==='paper'&&bChoice==='rock') || (uChoice==='scissors'&&bChoice==='paper')) res = 'You win!';
+      else res = 'I win!';
+      return sysMsg(`✂️ **RPS:** ${myDisplayName} chose ${uChoice}, I chose ${bChoice}. **${res}**`);
+    }
+
+    if(cmd === '/truth') {
+      const tr = ["What's your biggest fear?", "What's the most embarrassing thing you've done?", "Who is your secret crush?", "What's a lie you've told recently?", "What is your worst habit?", "What is the weirdest dream you've ever had?"];
+      return sysMsg(`🤔 **TRUTH for ${myDisplayName}:**\n\n${tr[Math.floor(Math.random()*tr.length)]}`);
+    }
+
+    if(cmd === '/dare') {
+      const dr = ["Send a voice message barking like a dog.", "Type your next 3 messages blindfolded.", "Change your display name to something silly for 10 minutes.", "Send the 5th picture in your camera roll.", "Confess something weird you love eating.", "Do 10 pushups right now."];
+      return sysMsg(`🔥 **DARE for ${myDisplayName}:**\n\n${dr[Math.floor(Math.random()*dr.length)]}`);
+    }
+
+    if(cmd === '/joke') {
+      const jk = ["Why do programmers prefer dark mode? Because light attracts bugs.", "I told my computer I needed a break... now it won't stop sending me Kit-Kats.", "Why did the web developer walk out of the restaurant? Because of the table layout.", "A SQL query goes into a bar, walks up to two tables and asks... 'Can I join you?'"];
+      return sysMsg(`😂 **JOKE:**\n\n${jk[Math.floor(Math.random()*jk.length)]}`);
     }
 
     if(cmd === '/slots') {
@@ -1645,81 +1734,132 @@ async function doSend(){
       return db.ref('chats/'+room).push({ sys: false, user: 'system', displayName: 'Hangman Bot', pfp: 'https://cdn-icons-png.flaticon.com/512/3004/3004382.png', text: resultMsg, ts: Date.now(), isGame: true });
     }
 
-    // MULTIPLAYER BLACKJACK
+    // MULTIPLAYER AND SINGLEPLAYER BLACKJACK
     if(cmd === '/bj') {
       const action = args[1] ? args[1].toLowerCase() : '';
       
+      // Stop Multi
       if(action === 'stop') {
         if(!isStaffMember()) return toast("Only staff can forcefully stop games.", "err");
         await db.ref('server_meta/bj_'+room).remove();
-        return sysMsg(`🛑 Blackjack game was forcibly stopped by staff (${myDisplayName}).`);
+        return sysMsg(`🛑 Multiplayer Blackjack game was forcibly stopped by staff (${myDisplayName}).`);
       }
 
+      // Singleplayer Init
+      if(action === 'play') {
+        const spSnap = await db.ref('server_meta/spbj_'+me).once('value');
+        if(spSnap.exists()) return toast("You already have a singleplayer game running! Use /bj hit or stand.", "err");
+
+        const pHand = [drawCard(), drawCard()];
+        const dHand = [drawCard(), drawCard()];
+        let pScore = calcScore(pHand);
+        let status = pScore === 21 ? 'stood' : 'playing';
+
+        await db.ref('server_meta/spbj_'+me).set({
+            type: 'single', hand: pHand, dHand: dHand, status: status, ts: Date.now()
+        });
+
+        let msg = `🃏 **SINGLEPLAYER BLACKJACK**\n\n🤖 Dealer shows: ${dHand[0].face} 🎴\n🧑 Your Hand: ${pHand.map(c=>c.face).join(' ')} (Score: ${pScore})\n\nType /bj hit or /bj stand!`;
+        sysMsg(msg);
+        if(status === 'stood') checkBjSingleResolution(room);
+        return;
+      }
+
+      // Multiplayer Init
       if(action === 'create') {
         const gameSnap = await db.ref('server_meta/bj_'+room).once('value');
-        if(gameSnap.exists()) return toast("A Blackjack game is already active or forming in this room.", "err");
+        if(gameSnap.exists()) return toast("A Multiplayer Blackjack game is already active or forming in this room.", "err");
 
         await db.ref('server_meta/bj_'+room).set({
-          phase: 'lobby', host: me, players: { [me]: { name: myDisplayName, hand: [], status: 'waiting' } }
+          type: 'multi', phase: 'lobby', host: me, players: { [me]: { name: myDisplayName, hand: [], status: 'waiting' } }
         });
-        return sysMsg(`🃏 **BLACKJACK LOBBY** created by ${myDisplayName}!\n\nOthers: Type /bj join to enter!\nHost: Type /bj start when ready.`);
+        return sysMsg(`🃏 **PvP BLACKJACK LOBBY** created by ${myDisplayName}!\n\nOthers: Type /bj join to enter!\nHost: Type /bj start when ready.`);
       }
 
+      // Check Multi state
       const gameSnap = await db.ref('server_meta/bj_'+room).once('value');
-      const game = gameSnap.val();
-      if(!game) return toast("No active Blackjack game. Type /bj create", "err");
+      const gameMulti = gameSnap.val();
 
       if(action === 'join') {
-        if(game.phase !== 'lobby') return toast("Game has already started!", "err");
-        if(game.players && game.players[me]) return toast("You already joined!", "warn");
+        if(!gameMulti) return toast("No multiplayer lobby active. Type /bj create", "err");
+        if(gameMulti.phase !== 'lobby') return toast("Game has already started!", "err");
+        if(gameMulti.players && gameMulti.players[me]) return toast("You already joined!", "warn");
         await db.ref('server_meta/bj_'+room+'/players/'+me).set({ name: myDisplayName, hand: [], status: 'waiting' });
-        return sysMsg(`🃏 ${myDisplayName} joined the Blackjack lobby!`);
+        return sysMsg(`🃏 ${myDisplayName} joined the PvP Blackjack lobby!`);
       }
 
       if(action === 'start') {
-        if(game.phase !== 'lobby') return toast("Already started!", "err");
-        if(game.host !== me && !isStaffMember()) return toast("Only the host can start the game.", "err");
+        if(!gameMulti) return toast("No multiplayer lobby active. Type /bj create", "err");
+        if(gameMulti.phase !== 'lobby') return toast("Already started!", "err");
+        if(gameMulti.host !== me && !isStaffMember()) return toast("Only the host can start the game.", "err");
 
-        const dHand = [drawCard()];
-        let updates = { phase: 'playing', dHand };
-        let msg = `🃏 **MULTIPLAYER BLACKJACK HAS STARTED!**\n\n🤖 Dealer shows: ${dHand[0].face} 🎴\n\n`;
+        let updates = { phase: 'playing' };
+        let msg = `🃏 **PvP BLACKJACK HAS STARTED!**\nNo Dealer! Highest hand without going over 21 wins!\n\n`;
 
-        for(let uid in game.players) {
+        for(let uid in gameMulti.players) {
           let hand = [drawCard(), drawCard()];
           let score = calcScore(hand);
-          let status = score === 21 ? 'stood' : 'playing'; // auto-stand on 21
+          let status = score === 21 ? 'stood' : 'playing';
           updates[`players/${uid}/hand`] = hand;
           updates[`players/${uid}/status`] = status;
-          msg += `🧑 ${game.players[uid].name}: ${hand.map(c=>c.face).join(' ')} (Score: ${score})${score===21?' - BLACKJACK!':''}\n`;
+          msg += `🧑 ${gameMulti.players[uid].name}: ${hand.map(c=>c.face).join(' ')} (Score: ${score})${score===21?' - BLACKJACK!':''}\n`;
         }
         msg += `\nType /bj hit or /bj stand! Game resolves when everyone finishes.`;
 
         await db.ref('server_meta/bj_'+room).update(updates);
-        checkBjResolution(room); // Just in case everyone gets Blackjack instantly
+        checkBjMultiResolution(room);
         return sysMsg(msg);
       }
       
       if(action === 'hit' || action === 'stand') {
-        if(game.phase !== 'playing') return toast("Game is not in the playing phase.", "err");
-        if(!game.players[me]) return toast("You are not in this game.", "err");
-        if(game.players[me].status !== 'playing') return toast("You have already finished your turn.", "err");
+        // Determine if they are playing SP or MP
+        const spSnap = await db.ref('server_meta/spbj_'+me).once('value');
+        const gameSingle = spSnap.val();
 
-        if(action === 'hit') {
-          let hand = game.players[me].hand || [];
-          hand.push(drawCard());
-          let score = calcScore(hand);
-          let status = score > 21 ? 'bust' : 'playing';
-          
-          await db.ref(`server_meta/bj_${room}/players/${me}`).update({ hand, status });
-          sysMsg(`🧑 ${myDisplayName} hits: ${hand[hand.length-1].face}\nHand: ${hand.map(c=>c.face).join(' ')} (Score: ${score}) ${status==='bust'?'💥 BUST!':''}`);
-        } 
-        else if (action === 'stand') {
-          await db.ref(`server_meta/bj_${room}/players/${me}`).update({ status: 'stood' });
-          sysMsg(`🧑 ${myDisplayName} stands at ${calcScore(game.players[me].hand)}.`);
+        // Handle Singleplayer hit/stand
+        if(gameSingle) {
+            if(gameSingle.status !== 'playing') return toast("Game over, wait for resolution.", "err");
+            if(action === 'hit') {
+                let hand = gameSingle.hand || [];
+                hand.push(drawCard());
+                let score = calcScore(hand);
+                let status = score > 21 ? 'bust' : 'playing';
+                await db.ref('server_meta/spbj_'+me).update({ hand, status });
+                sysMsg(`🧑 ${myDisplayName} hits: ${hand[hand.length-1].face}\nHand: ${hand.map(c=>c.face).join(' ')} (Score: ${score}) ${status==='bust'?'💥 BUST!':''}`);
+                if(status === 'bust') checkBjSingleResolution(room);
+            } else {
+                await db.ref('server_meta/spbj_'+me).update({ status: 'stood' });
+                sysMsg(`🧑 ${myDisplayName} stands at ${calcScore(gameSingle.hand)}.`);
+                checkBjSingleResolution(room);
+            }
+            return;
         }
 
-        checkBjResolution(room);
-        return;
+        // Handle Multiplayer hit/stand
+        if(gameMulti) {
+            if(gameMulti.phase !== 'playing') return toast("Game is not in the playing phase.", "err");
+            if(!gameMulti.players[me]) return toast("You are not in this game.", "err");
+            if(gameMulti.players[me].status !== 'playing') return toast("You have already finished your turn.", "err");
+
+            if(action === 'hit') {
+              let hand = gameMulti.players[me].hand || [];
+              hand.push(drawCard());
+              let score = calcScore(hand);
+              let status = score > 21 ? 'bust' : 'playing';
+              
+              await db.ref(`server_meta/bj_${room}/players/${me}`).update({ hand, status });
+              sysMsg(`🧑 ${myDisplayName} hits: ${hand[hand.length-1].face}\nHand: ${hand.map(c=>c.face).join(' ')} (Score: ${score}) ${status==='bust'?'💥 BUST!':''}`);
+            } 
+            else if (action === 'stand') {
+              await db.ref(`server_meta/bj_${room}/players/${me}`).update({ status: 'stood' });
+              sysMsg(`🧑 ${myDisplayName} stands at ${calcScore(gameMulti.players[me].hand)}.`);
+            }
+
+            checkBjMultiResolution(room);
+            return;
+        }
+
+        return toast("You are not in any Blackjack games. Type /bj create or /bj play", "warn");
       }
       
       return toast("Unknown Blackjack action.", "err");
