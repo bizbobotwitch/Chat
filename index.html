@@ -403,7 +403,9 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     <div class="chat-banner" id="chatBanner"></div>
     
     <div class="voice-container" id="voiceContainer"></div>
-    <div class="msgs" id="msgs"></div>
+    
+    <div id="msgs-container" style="flex:1; overflow:hidden; display:flex; flex-direction:column; position:relative;">
+      </div>
     
     <div class="gif-menu" id="gifMenu">
       <div class="gif-tabs">
@@ -442,6 +444,8 @@ let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinT
 let adminRole = null, isChatLocked = false, isMediaLocked = false, isGhostMode = false, isMaintenance = false, myBlockedUsers = {}, typeTimer = null, auditRef = null, updateInterval = null;
 let adminUserList = [];
 let serverSlowmode = 0, lastSendTime = 0, myCustomTitle = null;
+let loadedRooms = {}; // NEW: Keeps track of multiple servers at once
+let activeHangman = null; // NEW: Tracks active hangman game
 const ADMIN_PW = '32ad', H_MOD_PW = '2hmod', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
 
@@ -1054,7 +1058,7 @@ function toggleReact(key, emo) { const rRef = db.ref(`chats/${room}/${key}/react
 let myPeer = null, myStream = null, micMuted = false, voiceCalls = {};
 
 async function joinVoiceRoom() {
-  document.getElementById('msgs').style.display = 'none';
+  document.getElementById('msgs-container').style.display = 'none';
   document.getElementById('inputZone').style.display = 'none';
   document.getElementById('typingInd').style.display = 'none';
   const vc = document.getElementById('voiceContainer');
@@ -1065,19 +1069,23 @@ async function joinVoiceRoom() {
       <h3 style="margin-bottom:5px; color:var(--ac);">🎙️ Live Peer-to-Peer Lounge</h3>
       <p style="font-size:12px; color:var(--t2); margin-bottom:20px;">Always on. No moderators required. Click to join seamlessly.</p>
       <button class="mbtn mb-p" id="muteMicBtn" onclick="toggleMuteMic()" style="width:auto; padding:10px 20px; font-size:14px; background:var(--ac);">Connecting Mic...</button>
+      <div id="vc-status" style="margin-top:10px; font-size:11px; color:var(--am); font-family:monospace;">Status: Requesting Microphone...</div>
       <div id="activeSpeakers" style="margin-top:24px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;"></div>
     </div>
   `;
 
+  const statusTxt = document.getElementById('vc-status');
+
   try {
     myStream = await navigator.mediaDevices.getUserMedia({audio: true});
     document.getElementById('muteMicBtn').textContent = '🔇 Mute My Mic';
+    statusTxt.textContent = "Status: Mic acquired. Connecting to Peer server...";
+    statusTxt.style.color = "var(--gr)";
     
-    // Unique peer ID for this session
     const peerId = me + '_' + Math.random().toString(36).substr(2,6);
     
-    // UPDATED: Added Google STUN servers to punch through firewalls
     myPeer = new Peer(peerId, {
+      debug: 2, 
       config: {
         'iceServers': [
           { urls: 'stun:stun.l.google.com:19302' },
@@ -1086,12 +1094,21 @@ async function joinVoiceRoom() {
       }
     });
     
+    myPeer.on('error', (err) => {
+      console.error("PEERJS ERROR:", err);
+      statusTxt.textContent = "Error: " + err.type;
+      statusTxt.style.color = "var(--rd)";
+      toast("Voice Error: " + err.type, "err");
+    });
+    
     myPeer.on('open', id => {
+      statusTxt.textContent = "Status: Connected! Waiting for others...";
       db.ref('voice_lounge/'+id).set({ uid: me, name: myDisplayName, ts: Date.now() });
       renderSpeaker(id, myDisplayName, me);
 
       db.ref('voice_lounge').on('child_added', s => {
         if(s.key !== id) {
+          toast(s.val().name + " is in the room. Calling them...", "info");
           const call = myPeer.call(s.key, myStream);
           handleCall(call, s.val().name, s.val().uid);
         }
@@ -1103,6 +1120,7 @@ async function joinVoiceRoom() {
     });
 
     myPeer.on('call', call => {
+      toast("Incoming audio stream...", "info");
       call.answer(myStream);
       db.ref('voice_lounge/'+call.peer).once('value', s => {
         if(s.exists()) handleCall(call, s.val().name, s.val().uid);
@@ -1113,6 +1131,8 @@ async function joinVoiceRoom() {
     console.error("Mic error:", err);
     document.getElementById('muteMicBtn').textContent = 'Microphone Blocked';
     document.getElementById('muteMicBtn').style.background = 'var(--rd)';
+    statusTxt.textContent = "Error: Microphone permission denied or not HTTPS.";
+    statusTxt.style.color = "var(--rd)";
     toast('Mic permission denied. Ensure you are on HTTPS or localhost.', 'err');
   }
 }
@@ -1164,7 +1184,7 @@ function leaveVoiceRoom() {
   db.ref('voice_lounge').off();
   document.getElementById('voiceContainer').innerHTML='';
   document.getElementById('voiceContainer').style.display = 'none';
-  document.getElementById('msgs').style.display = 'flex';
+  document.getElementById('msgs-container').style.display = 'flex';
   document.getElementById('inputZone').style.display = 'block';
   document.getElementById('typingInd').style.display = 'block';
 }
@@ -1172,72 +1192,79 @@ function leaveVoiceRoom() {
 window.addEventListener('beforeunload', () => { if(myPeer) db.ref('voice_lounge/'+myPeer.id).remove(); });
 
 
-// ── MESSAGES & TYPING ─────────────────────────
+// ── MESSAGES, TYPING, AND MULTI-SERVER ────────
 function onType() { if(isChatLocked) return; db.ref('typing/'+room+'/'+me).set(myDisplayName); clearTimeout(typeTimer); typeTimer = setTimeout(() => db.ref('typing/'+room+'/'+me).remove(), 2000); }
 function startReply(key, user, dName, text){ replyTo={key, user, displayName: dName, text}; document.getElementById('replyBar').style.display='flex'; document.getElementById('rbWho').textContent='Replying to ' + dName; document.getElementById('rbPrev').textContent=text.slice(0,60); document.getElementById('msgInp').focus(); }
 function cancelReply(){ replyTo=null; document.getElementById('replyBar').style.display='none'; }
 async function delMsg(key){ if(confirm('Delete?')) await db.ref('chats/'+room+'/'+key).update({text:'',deleted:true}); }
 
-function switchRoom(id){
-  if(msgRef) { db.ref('chats/'+room).off(); db.ref('typing/'+room).off(); } 
-  room=id; roomJoinTime=Date.now();
-  
+function switchRoom(id) {
+  room = id; roomJoinTime = Date.now();
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
 
   if(id === 'global') { 
-    leaveVoiceRoom();
-    document.getElementById('chTitle').textContent = '🌐 Global Chat'; 
-    document.getElementById('nav-global').classList.add('active'); 
+    leaveVoiceRoom(); document.getElementById('chTitle').textContent = '🌐 Global Chat'; document.getElementById('nav-global').classList.add('active'); 
   } else if (id === 'voice_global') {
-    document.getElementById('chTitle').textContent = '🎙️ Global Voice Lounge'; 
-    document.getElementById('nav-voice').classList.add('active'); 
-    joinVoiceRoom();
-    return; // Stop here so we don't load text msgs
-  } else {
-    leaveVoiceRoom();
-  }
+    document.getElementById('chTitle').textContent = '🎙️ Global Voice Lounge'; document.getElementById('nav-voice').classList.add('active'); joinVoiceRoom(); return;
+  } else { leaveVoiceRoom(); }
   
-  const invBtn = document.getElementById('inviteBtn');
-  const lvBtn = document.getElementById('leaveBtn');
-  const invDisp = document.getElementById('inviteDisplay');
-  
-  if (id.startsWith('srv_')) {
-    invBtn.style.display = 'block'; lvBtn.style.display = 'block';
-    invDisp.style.display = 'block'; invDisp.textContent = id;
+  const invBtn = document.getElementById('inviteBtn'), lvBtn = document.getElementById('leaveBtn'), invDisp = document.getElementById('inviteDisplay');
+  if (id.startsWith('srv_')) { invBtn.style.display = 'block'; lvBtn.style.display = 'block'; invDisp.style.display = 'block'; invDisp.textContent = id; } 
+  else { invBtn.style.display = 'none'; lvBtn.style.display = 'none'; invDisp.style.display = 'none'; }
+
+  // MULTI-SERVER LOGIC: Hide all rooms, show the active one
+  const container = document.getElementById('msgs-container');
+  Array.from(container.children).forEach(child => child.style.display = 'none');
+
+  // If this room hasn't been loaded yet, build it and attach listeners!
+  if (!loadedRooms[id]) {
+    const newRoomDiv = document.createElement('div');
+    newRoomDiv.className = 'msgs';
+    newRoomDiv.id = 'room-log-' + id;
+    newRoomDiv.style.display = 'flex';
+    container.appendChild(newRoomDiv);
+    
+    loadedRooms[id] = true;
+    
+    const msgRef = db.ref('chats/'+id).limitToLast(100);
+    msgRef.on('child_added', s => addMsg(s.key, s.val(), id));
+    msgRef.on('child_changed', s => { const old = document.getElementById('msg-'+s.key); if(old){ const tmp = document.createElement('div'); addMsg(s.key, s.val(), id, tmp); if(tmp.firstChild) old.replaceWith(tmp.firstChild); }});
+    msgRef.on('child_removed', s => { const el = document.getElementById('msg-' + s.key); if (el) el.remove(); });
   } else {
-    invBtn.style.display = 'none'; lvBtn.style.display = 'none'; invDisp.style.display = 'none';
+    // If it's already loaded, just show it and scroll to bottom
+    const activeDiv = document.getElementById('room-log-' + id);
+    activeDiv.style.display = 'flex';
+    activeDiv.scrollTop = activeDiv.scrollHeight;
   }
 
-  document.getElementById('msgs').innerHTML=''; 
-  
-  // Typing listener
+  // Handle typing indicators for the active room
+  db.ref('typing/'+room).off();
   db.ref('typing/'+room).on('value', snap => {
     let typers = []; snap.forEach(c => { if(c.key !== me) typers.push(c.val()); });
     document.getElementById('typingInd').textContent = typers.length ? typers.join(', ') + (typers.length>1?' are':' is') + ' typing...' : '';
   });
-
-  msgRef=db.ref('chats/'+room).limitToLast(100);
-  msgRef.on('child_added',s=>addMsg(s.key,s.val()));
-  msgRef.on('child_changed',s=>{ const old=document.getElementById('msg-'+s.key); if(old){const tmp=document.createElement('div');addMsg(s.key,s.val(),tmp);if(tmp.firstChild)old.replaceWith(tmp.firstChild);} });
-  msgRef.on('child_removed', s => { const element = document.getElementById('msg-' + s.key); if (element) element.remove(); });
 }
 
-function addMsg(key,msg, containerOverride = null){
-  if(myBlockedUsers[msg.user] && !containerOverride) return; // Hide blocked
-  
-  // SHADOWBAN LOGIC: Hide message if sender is shadowbanned and viewer is not the sender or staff
+function addMsg(key, msg, targetRoomId, containerOverride = null){
+  if(myBlockedUsers[msg.user] && !containerOverride) return; 
   if(msg.shadowbanned && msg.user !== me && !isStaffMember() && !containerOverride) return;
 
-  const box=containerOverride || document.getElementById('msgs'); 
+  // Append to the specific room's div
+  const box = containerOverride || document.getElementById('room-log-' + targetRoomId); 
+  if(!box) return;
+
   if (msg.sys) {
     const wrap=document.createElement('div'); wrap.className='sys'; wrap.id='msg-'+key;
     const isLockMsg = msg.text.includes('🛑') || msg.text.includes('🔓');
     const isSysDm = msg.text.includes('🛡️ SYSTEM MESSAGE');
     let bColor = 'rgba(245,166,35,.3)', bgColor = 'rgba(245,166,35,.08)', tColor = 'var(--am)';
+    
     if(isLockMsg) { bColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.3)' : 'rgba(46,204,138,.3)'; bgColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.08)' : 'rgba(46,204,138,.08)'; tColor = msg.text.includes('🛑') ? 'var(--rd)' : 'var(--gr)'; }
     if(isSysDm) { bColor = 'rgba(255,79,79,.6)'; bgColor = 'rgba(255,79,79,.15)'; tColor = 'var(--rd)'; }
+    if(msg.text.includes('🎮') || msg.text.includes('🎲') || msg.text.includes('🪙')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
     
-    wrap.innerHTML=`<span style="border-color:${bColor};color:${tColor};background:${bgColor}; ${isSysDm ? 'text-align:left; max-width:85%; padding:14px; font-size:12.5px; font-weight:600;' : ''}">${esc(msg.text)}</span>`; box.appendChild(wrap); if(!containerOverride) box.scrollTop=box.scrollHeight; return;
+    wrap.innerHTML=`<span style="border-color:${bColor};color:${tColor};background:${bgColor}; ${isSysDm ? 'text-align:left; max-width:85%; padding:14px; font-size:12.5px; font-weight:600;' : ''}">${esc(msg.text)}</span>`; 
+    box.appendChild(wrap); if(!containerOverride && room === targetRoomId) box.scrollTop=box.scrollHeight; return;
   }
 
   const dName=msg.displayName||msg.user, {text:ct, censored:wc} = censor(msg.text||""), isMention = ct.includes('@' + me) || ct.includes('@' + myDisplayName);
@@ -1257,11 +1284,10 @@ function addMsg(key,msg, containerOverride = null){
     ? '<span class="msg-text deleted-txt">🗑 Deleted</span>' 
     : mediaUrl 
       ? `<img class="msg-media" src="${mediaUrl}" style="min-height:50px; background:var(--s3);" onerror="this.src='https://via.placeholder.com/250x100/1f1f28/ff4f4f?text=Image+Blocked+(CORS+or+Rules)'">` 
-      : `<span class="msg-text">${esc(ct)}</span>`;
+      : `<span class="msg-text" style="font-family:${msg.isGame ? "'JetBrains Mono', monospace" : "inherit"}">${esc(ct)}</span>`;
 
   let rpHTML= (msg.replyTo && !msg.deleted) ? `<div class="rp-block" onclick="scrollToMsg('${msg.replyTo.key}')"><div class="rp-who">${esc(msg.replyTo.displayName)}</div><div class="rp-txt">${esc(msg.replyTo.text)}</div></div>` : '';
   
-  // Reactions Builder
   let rxnsHTML = '';
   if(msg.reactions && !msg.deleted) {
     rxnsHTML = '<div class="rxn-bar">';
@@ -1283,9 +1309,11 @@ function addMsg(key,msg, containerOverride = null){
       ${msg.user!==me ? `<button class="ma am" onclick="blockUser('${msg.user}', '${esc(dName)}')">🚫</button>` : ''}
       ${msg.user===me || adminRole==='admin' || adminRole==='h_mod' || adminRole==='mod' ? `<button class="ma rd" onclick="delMsg('${key}')">🗑</button>` : ''}
     </div>` : ''}`;
-  box.appendChild(wrap); if(!containerOverride) box.scrollTop=box.scrollHeight;
+  
+  box.appendChild(wrap); 
+  if(!containerOverride && room === targetRoomId) box.scrollTop=box.scrollHeight;
 
-  if (room.startsWith('dm_') && msg.user !== me && !containerOverride) localStorage.setItem('read_dm_' + room.replace('dm_', '').replace(me, '').replace('_', ''), Date.now());
+  if (targetRoomId.startsWith('dm_') && msg.user !== me && !containerOverride) localStorage.setItem('read_dm_' + targetRoomId.replace('dm_', '').replace(me, '').replace('_', ''), Date.now());
   if (msg.ts > roomJoinTime && msg.user !== me && !msg.deleted && !containerOverride && "Notification" in window && Notification.permission === "granted" && !document.hasFocus()) { const notif = new Notification("Chatty", { body: msg.gif||msg.img ? "Sent media" : ct, icon: msg.pfp || "https://cdn-icons-png.flaticon.com/512/3114/3114810.png" }); notif.onclick = function() { window.focus(); this.close(); }; }
 }
 
@@ -1301,6 +1329,72 @@ async function doSend(){
   
   if(serverSlowmode > 0 && !d.role && (Date.now() - lastSendTime) < (serverSlowmode * 1000)) {
     return toast(`🐢 Slowmode active. Please wait ${serverSlowmode} seconds.`, 'warn');
+  }
+
+  // 🎮 GAME & COMMAND ENGINE
+  if (txt.startsWith('/')) {
+    inp.value = ''; 
+    const args = txt.split(' ');
+    const cmd = args[0].toLowerCase();
+    
+    if(cmd === '/roll') {
+      const max = parseInt(args[1]) || 6;
+      const result = Math.floor(Math.random() * max) + 1;
+      return db.ref('chats/'+room).push({ sys: true, text: `🎲 ${myDisplayName} rolled a d${max} and got: ${result}`, ts: Date.now() });
+    }
+    
+    if(cmd === '/flip') {
+      const result = Math.random() > 0.5 ? 'Heads' : 'Tails';
+      return db.ref('chats/'+room).push({ sys: true, text: `🪙 ${myDisplayName} flipped a coin and got: ${result}`, ts: Date.now() });
+    }
+
+    if(cmd === '/hangman') {
+      const action = args[1] ? args[1].toLowerCase() : '';
+      if(action === 'start') {
+        const word = args[2] ? args[2].toLowerCase() : ['javascript', 'firebase', 'hacker', 'programming', 'network'][Math.floor(Math.random()*5)];
+        await db.ref('server_meta/hangman_'+room).set({ word: word, guessed: '', strikes: 0, starter: myDisplayName });
+        return db.ref('chats/'+room).push({ sys: true, text: `🎮 ${myDisplayName} started a game of Hangman! Type /guess [letter] to play.\n\n${word.replace(/[a-z]/g, '⬜ ')}`, ts: Date.now() });
+      }
+      return toast("Usage: /hangman start [word]", "info");
+    }
+
+    if(cmd === '/guess') {
+      const letter = args[1] ? args[1].toLowerCase().charAt(0) : '';
+      if(!letter || !/[a-z]/.test(letter)) return toast("Please guess a single letter: /guess a", "err");
+      
+      const gameSnap = await db.ref('server_meta/hangman_'+room).once('value');
+      const game = gameSnap.val();
+      if(!game) return toast("No hangman game running. Type /hangman start", "err");
+      
+      if(game.guessed.includes(letter)) return toast("Letter already guessed!", "warn");
+      
+      let newGuessed = game.guessed + letter;
+      let isCorrect = game.word.includes(letter);
+      let newStrikes = isCorrect ? game.strikes : game.strikes + 1;
+      
+      let displayWord = '';
+      let isWin = true;
+      for(let char of game.word) {
+        if(newGuessed.includes(char)) { displayWord += char.toUpperCase() + ' '; } 
+        else { displayWord += '⬜ '; isWin = false; }
+      }
+
+      await db.ref('server_meta/hangman_'+room).update({ guessed: newGuessed, strikes: newStrikes });
+
+      let resultMsg = `🎮 ${myDisplayName} guessed '${letter.toUpperCase()}'! ${isCorrect ? '✅ Correct!' : '❌ Wrong!'}\n\n${displayWord}\nStrikes: ${newStrikes}/6`;
+      
+      if(isWin) {
+        resultMsg += `\n\n🎉 ${myDisplayName} won the game!`;
+        await db.ref('server_meta/hangman_'+room).remove();
+      } else if (newStrikes >= 6) {
+        resultMsg += `\n\n💀 Game Over! The word was: ${game.word.toUpperCase()}`;
+        await db.ref('server_meta/hangman_'+room).remove();
+      }
+
+      return db.ref('chats/'+room).push({ sys: false, user: 'system', displayName: 'Hangman Bot', pfp: 'https://cdn-icons-png.flaticon.com/512/3004/3004382.png', text: resultMsg, ts: Date.now(), isGame: true });
+    }
+
+    return toast("Unknown command. Try /roll, /flip, /hangman start", "err");
   }
 
   const {text:ct, censored:wc}=censor(txt), obj = {user:me, displayName:myDisplayName, pfp:myPfp, text:ct, censored:wc, ts:Date.now(), deleted:false, role:d.role||null, showBadge:d.showBadge||false, shadowbanned: d.shadowbanned||false, customTitle: d.customTitle||null};
