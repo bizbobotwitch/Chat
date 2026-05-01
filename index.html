@@ -132,7 +132,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .gif-fav-btn{position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.6);border:none;color:white;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
 
 /* COMMAND MENU */
-.cmd-menu { position:absolute; bottom:64px; left:20px; background:var(--s1); border:1px solid var(--b2); border-radius:12px; width:280px; box-shadow:0 10px 40px rgba(0,0,0,.5); display:none; flex-direction:column; z-index:40; overflow:hidden; }
+.cmd-menu { position:absolute; bottom:64px; left:20px; background:var(--s1); border:1px solid var(--b2); border-radius:12px; width:280px; box-shadow:0 10px 40px rgba(0,0,0,.5); display:none; flex-direction:column; z-index:40; overflow-y:auto; max-height:250px; }
 .cmd-menu.open { display:flex; animation:mIn .15s ease-out; }
 .cmd-item { padding:10px 14px; cursor:pointer; display:flex; flex-direction:column; border-bottom:1px solid var(--b1); transition:background .1s; }
 .cmd-item:last-child { border-bottom:none; }
@@ -337,6 +337,10 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
           
           <button id="btn-sys-dm" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSystemDM()">📥 Send System DM</button>
           <button id="btn-force-logout" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminForceLogout()">🔌 Force Logout</button>
+          
+          <button id="btn-reload-user" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForceReloadUser()">🔄 Force Reload App</button>
+          <button id="btn-wipe-profile" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminWipeProfile()">🧼 Wipe Profile</button>
+          
           <button id="btn-reset-pass" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2); grid-column: span 2;" onclick="adminForcePasswordReset()">🔑 Reset Password</button>
 
           <button id="btn-ban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminBan()">🚫 Ban Account</button>
@@ -613,6 +617,13 @@ function onLoggedIn(){
       return;
     }
 
+    // Check targeted force reload
+    if(d.force_reload && d.force_reload > roomJoinTime) {
+      document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;">Refreshing app...</div>';
+      setTimeout(() => location.reload(), 1000);
+      return;
+    }
+
     // Check if 24h Helper Pass expired
     if(d.helperExpiration && Date.now() > d.helperExpiration) {
       await db.ref('users/'+me).update({ role: null, helperExpiration: null });
@@ -836,6 +847,10 @@ function setupAdminUI() {
   document.getElementById('btn-sys-dm').style.display = isMod ? '' : 'none';
   document.getElementById('btn-force-logout').style.display = isMod ? '' : 'none';
   document.getElementById('btn-reset-pass').style.display = isAdm ? '' : 'none';
+  
+  // New Moderation Actions
+  document.getElementById('btn-reload-user').style.display = isMod ? '' : 'none';
+  document.getElementById('btn-wipe-profile').style.display = isMod ? '' : 'none';
 
   // Bans
   document.getElementById('btn-ban').style.display = isAdm ? '' : 'none'; 
@@ -866,18 +881,26 @@ async function adminGrantHelperPass() {
 }
 
 async function loadAdminUsers(){ 
+  const sel = document.getElementById('a-sel');
+  const currentSel = sel ? sel.value : null;
   const searchInp = document.getElementById('a-search'); if(searchInp) searchInp.value = '';
   adminUserList = []; const snap = await db.ref('users').once('value');
-  snap.forEach(c => { adminUserList.push({ key: c.key, val: c.val() }); }); filterAdminUsers();
+  snap.forEach(c => { adminUserList.push({ key: c.key, val: c.val() }); }); 
+  filterAdminUsers(currentSel);
 }
 
-function filterAdminUsers() {
+function filterAdminUsers(keepSelection = null) {
   const sel = document.getElementById('a-sel'), q = document.getElementById('a-search').value.toLowerCase();
+  const oldVal = keepSelection || sel.value;
   sel.innerHTML = '<option value="">— select user —</option>';
   adminUserList.forEach(u => {
     const text = (u.val.displayName || u.key) + ' (@' + u.key + ')' + (u.val.role ? ' ['+u.val.role+']' : '') + (u.val.banned?' 🚫':u.val.timeoutUntil>Date.now()?' ⏱':u.val.muted?' 🔇':u.val.shadowbanned?' 👻':'');
     if(!q || text.toLowerCase().includes(q)) { const opt = document.createElement('option'); opt.value = u.key; opt.textContent = text; sel.appendChild(opt); }
   });
+  if (oldVal && Array.from(sel.options).some(o => o.value === oldVal)) {
+    sel.value = oldVal;
+    loadAUser();
+  }
 }
 
 async function loadAUser(){ 
@@ -891,6 +914,19 @@ async function loadAUser(){
   let titleTag = u.customTitle ? `<span style="font-size:9.5px; background:var(--s3); color:var(--t1); padding:1px 6px; border-radius:4px; margin-left:4px; border:1px solid var(--b2); letter-spacing:0.5px;">${esc(u.customTitle)}</span>` : '';
 
   card.innerHTML=`<div class="a-ucard"><div class="auc-top"><div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${u.pfp?`<img src="${esc(u.pfp)}" style="width:100%;height:100%;object-fit:cover;">`:(u.displayName||uname)[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(u.displayName||uname)} ${u.role ? `<span style="color:var(--ac);font-size:10px">[${u.role}]</span>` : ''}${titleTag}${shadowTag}</div><div style="font-size:10px;color:var(--t2)">Joined ${new Date(u.ts||0).toLocaleDateString()}</div>${hwidStr}</div><div class="sdot ${u.banned?'sd-ban':timed?'sd-to':u.muted?'sd-mute':'sd-ok'}"></div><span style="font-size:11px;color:var(--t2)">${u.banned?'Banned':timed?'Timed out':u.muted?'Muted':'Active'}</span></div></div>`; 
+}
+
+// Open Admin tools from Chat
+async function openAdminForUser(uid) {
+    if (!isStaffMember()) return;
+    showAdmin();
+    setTimeout(() => {
+        const sel = document.getElementById('a-sel');
+        if (sel) {
+            sel.value = uid;
+            loadAUser();
+        }
+    }, 300);
 }
 
 // Supreme Admin Additions
@@ -983,7 +1019,7 @@ async function adminUnban(){ const u=document.getElementById('a-sel').value; if(
 async function adminResetIndividualPFP() {
   const u=document.getElementById('a-sel').value; if(!u)return;
   await db.ref('users/'+u).update({pfp: ""});
-  logAdminAction('Reset Individual Profile Picture', u); toast('PFP Reset', 'ok'); loadAUser();
+  logAdminAction('Reset Individual Profile Picture', u); toast('PFP Reset', 'ok'); loadAdminUsers();
 }
 
 async function adminShadowban(isShadow) {
@@ -1041,6 +1077,25 @@ async function adminSetTitle() {
     toast('Custom title updated', 'ok');
     logAdminAction(`Set custom title to: ${title.trim()}`, u);
   }
+  loadAdminUsers();
+}
+
+async function adminForceReloadUser() {
+  const u = document.getElementById('a-sel').value; 
+  if(!u || u === me) return; 
+  await db.ref('users/' + u + '/force_reload').set(Date.now());
+  logAdminAction(`Forced specific user app reload`, u);
+  toast('Reload signal sent', 'ok');
+}
+
+async function adminWipeProfile() {
+  const u = document.getElementById('a-sel').value; 
+  if(!u) return; 
+  if(!confirm(`Are you sure you want to wipe @${u}'s profile entirely?`)) return;
+  const newName = "User_" + Math.floor(Math.random() * 10000);
+  await db.ref('users/' + u).update({ pfp: "", displayName: newName, customTitle: null });
+  logAdminAction(`Wiped user profile (PFP, Title, and Username)`, u);
+  toast('Profile Wiped', 'ok');
   loadAdminUsers();
 }
 
@@ -1336,7 +1391,7 @@ function switchRoom(id) {
         let v = c.val();
         
         if (typeof v === 'string') {
-          // GHOST BUSTER: This wipes the bugged string format (like GrandmaSweetCheeks) instantly
+          // GHOST BUSTER: This wipes the bugged string format instantly
           db.ref('typing/'+room+'/'+c.key).remove();
         } else if (v && v.name) {
           // GHOST BUSTER: If it's the new format, make sure they haven't been typing for over 4 seconds
@@ -1422,10 +1477,13 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
     rxnsHTML += '</div>';
   }
 
+  const pointerCss = isStaffMember() ? 'cursor:pointer;' : '';
+  const clickFn = isStaffMember() ? `onclick="openAdminForUser('${msg.user}')"` : '';
+
   const wrap=document.createElement('div'); wrap.className='msg-wrap' + (isMention ? ' mentioned' : ''); wrap.id = 'msg-' + key;
   wrap.innerHTML=`
-    <div class="msg-av" style="background:${uCol(msg.user)}">${msg.pfp?`<img src="${esc(msg.pfp)}" style="width:100%;height:100%;object-fit:cover;background:var(--s2);">`:dName[0]}</div>
-    <div class="msg-body"><div class="msg-meta"><span class="msg-name" style="color:${uCol(msg.user)}">${esc(dName)}${badgeHTML}${titleHTML}${shadowHTML}</span> <span class="msg-time">${fmt(msg.ts)}</span></div>${rpHTML}${content}${rxnsHTML}</div>
+    <div class="msg-av" style="background:${uCol(msg.user)}; ${pointerCss}" ${clickFn}>${msg.pfp?`<img src="${esc(msg.pfp)}" style="width:100%;height:100%;object-fit:cover;background:var(--s2);">`:dName[0]}</div>
+    <div class="msg-body"><div class="msg-meta"><span class="msg-name" style="color:${uCol(msg.user)}; ${pointerCss}" ${clickFn}>${esc(dName)}</span>${badgeHTML}${titleHTML}${shadowHTML} <span class="msg-time">${fmt(msg.ts)}</span></div>${rpHTML}${content}${rxnsHTML}</div>
     ${(!msg.deleted) ? `<div class="msg-acts">
       ${(!msg.gif && !msg.img) ? `<button class="ma" onclick="startReply('${key}','${msg.user}', decodeURIComponent('${safeStr(dName)}'), decodeURIComponent('${safeStr(ct)}'))">↩</button>` : ''}
       <button class="ma" onclick="openEmoMenu(event, '${key}')">😀</button>
