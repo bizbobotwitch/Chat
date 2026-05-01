@@ -131,9 +131,18 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .gif-item:hover{border-color:var(--ac);}
 .gif-fav-btn{position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.6);border:none;color:white;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
 
+/* COMMAND MENU */
+.cmd-menu { position:absolute; bottom:64px; left:20px; background:var(--s1); border:1px solid var(--b2); border-radius:12px; width:280px; box-shadow:0 10px 40px rgba(0,0,0,.5); display:none; flex-direction:column; z-index:40; overflow:hidden; }
+.cmd-menu.open { display:flex; animation:mIn .15s ease-out; }
+.cmd-item { padding:10px 14px; cursor:pointer; display:flex; flex-direction:column; border-bottom:1px solid var(--b1); transition:background .1s; }
+.cmd-item:last-child { border-bottom:none; }
+.cmd-item:hover { background:var(--s2); }
+.cmd-name { font-weight:600; color:var(--ac); font-size:13px; margin-bottom:2px;}
+.cmd-desc { font-size:11px; color:var(--t2); }
+
 /* INPUT */
 .typing-ind{font-size:11px;color:var(--t2);padding:0 20px 4px;height:18px;font-style:italic; display:block;}
-.input-zone{padding:0 18px 13px;background:var(--s1);flex-shrink:0; display:block;}
+.input-zone{padding:0 18px 13px;background:var(--s1);flex-shrink:0; display:block; position:relative;}
 .inp-row{display:flex;gap:8px;align-items:center}
 .gif-btn{width:44px;height:44px;border-radius:12px;background:var(--s3);border:1px solid var(--b2);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:700;transition:all .14s}
 .m-input{flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:12px;padding:11px 16px;font-size:13.5px;color:var(--t1);font-family:'Sora',sans-serif;outline:none;transition:border-color .14s;height:44px}
@@ -174,7 +183,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 @keyframes mIn{from{opacity:0;transform:scale(.94) translateY(8px)}}
 </style>
 </head>
-<body onclick="closeEmoMenu(event)">
+<body onclick="closeEmoMenu(event); document.getElementById('cmdMenu').classList.remove('open');">
 
 <div class="toasts" id="toasts"></div>
 <div class="mob-ov" id="mobOv" onclick="mobToggle()"></div>
@@ -422,12 +431,15 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     </div>
 
     <div class="typing-ind" id="typingInd"></div>
+    
     <div class="input-zone" id="inputZone">
+      <div class="cmd-menu" id="cmdMenu"></div>
+      
       <div class="inp-row">
         <button class="gif-btn" id="btn-gif-up" onclick="toggleGifMenu()">GIF</button>
         <button class="gif-btn" id="btn-img-up" onclick="document.getElementById('fileInp').click()">📷</button>
         <input type="file" id="fileInp" style="display:none" accept="image/*" onchange="uploadImage(event)">
-        <input class="m-input" id="msgInp" placeholder="Message..." onkeydown="onKey(event)" onkeyup="onType()">
+        <input class="m-input" id="msgInp" placeholder="Message..." onkeydown="onKey(event)" onkeyup="onType(); checkCommandMenu(event);">
         <button class="send-btn" onclick="doSend()">🚀</button>
       </div>
     </div>
@@ -444,8 +456,7 @@ let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinT
 let adminRole = null, isChatLocked = false, isMediaLocked = false, isGhostMode = false, isMaintenance = false, myBlockedUsers = {}, typeTimer = null, auditRef = null, updateInterval = null;
 let adminUserList = [];
 let serverSlowmode = 0, lastSendTime = 0, myCustomTitle = null;
-let loadedRooms = {}; // NEW: Keeps track of multiple servers at once
-let activeHangman = null; // NEW: Tracks active hangman game
+let loadedRooms = {}; 
 const ADMIN_PW = '32ad', H_MOD_PW = '2hmod', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
 
@@ -1261,7 +1272,7 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
     
     if(isLockMsg) { bColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.3)' : 'rgba(46,204,138,.3)'; bgColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.08)' : 'rgba(46,204,138,.08)'; tColor = msg.text.includes('🛑') ? 'var(--rd)' : 'var(--gr)'; }
     if(isSysDm) { bColor = 'rgba(255,79,79,.6)'; bgColor = 'rgba(255,79,79,.15)'; tColor = 'var(--rd)'; }
-    if(msg.text.includes('🎮') || msg.text.includes('🎲') || msg.text.includes('🪙')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
+    if(msg.text.includes('🎮') || msg.text.includes('🎲') || msg.text.includes('🪙') || msg.text.includes('🃏') || msg.text.includes('🧑') || msg.text.includes('🤖')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
     
     wrap.innerHTML=`<span style="border-color:${bColor};color:${tColor};background:${bgColor}; ${isSysDm ? 'text-align:left; max-width:85%; padding:14px; font-size:12.5px; font-weight:600;' : ''}">${esc(msg.text)}</span>`; 
     box.appendChild(wrap); if(!containerOverride && room === targetRoomId) box.scrollTop=box.scrollHeight; return;
@@ -1319,6 +1330,66 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
 
 function scrollToMsg(key) { const el = document.getElementById('msg-' + key); if(el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.outline = '2px solid var(--ac)'; setTimeout(() => el.style.outline = 'none', 2000); } }
 
+
+// ── COMMAND MENU AUTOCOMPLETE ─────────────────
+const COMMANDS = [
+  { cmd: '/roll', desc: 'Roll a dice (e.g. /roll 20)' },
+  { cmd: '/flip', desc: 'Flip a coin' },
+  { cmd: '/hangman start', desc: 'Start a new game of hangman' },
+  { cmd: '/guess ', desc: 'Guess a letter (e.g. /guess a)' },
+  { cmd: '/bj start', desc: 'Play Blackjack against the Dealer bot' },
+  { cmd: '/bj hit', desc: 'Draw another card in Blackjack' },
+  { cmd: '/bj stand', desc: 'End your turn in Blackjack' }
+];
+
+function checkCommandMenu(e) {
+  const inp = document.getElementById('msgInp');
+  const val = inp.value;
+  const menu = document.getElementById('cmdMenu');
+  
+  if (val.startsWith('/')) {
+    const query = val.toLowerCase();
+    const matches = COMMANDS.filter(c => c.cmd.startsWith(query));
+    
+    if (matches.length > 0) {
+      menu.innerHTML = '';
+      matches.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'cmd-item';
+        div.innerHTML = `<div class="cmd-name">${m.cmd}</div><div class="cmd-desc">${m.desc}</div>`;
+        div.onclick = () => { inp.value = m.cmd + (m.cmd.includes('start') ? '' : ' '); inp.focus(); menu.classList.remove('open'); };
+        menu.appendChild(div);
+      });
+      menu.classList.add('open');
+    } else {
+      menu.classList.remove('open');
+    }
+  } else {
+    menu.classList.remove('open');
+  }
+}
+
+// ── BLACKJACK CARD ENGINE ─────────────────────
+function drawCard() {
+  const suits = ['♠️','♣️','♥️','♦️'];
+  const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+  const v = values[Math.floor(Math.random()*values.length)];
+  const s = suits[Math.floor(Math.random()*suits.length)];
+  let points = parseInt(v);
+  if (['J','Q','K'].includes(v)) points = 10;
+  if (v === 'A') points = 11;
+  return { face: v+s, points };
+}
+
+function calcScore(hand) {
+  let score = 0, aces = 0;
+  hand.forEach(c => { score += c.points; if(c.points === 11) aces++; });
+  while(score > 21 && aces > 0) { score -= 10; aces--; }
+  return score;
+}
+
+
+// ── SEND MESSAGE & COMMAND INTERPRETER ────────
 async function doSend(){
   const inp=document.getElementById('msgInp'); const txt=inp.value.trim(); if(!txt)return;
   if(isChatLocked) return toast('🔒 Chat shutdown.', 'err'); if(await isHWBanned()) return toast('🚫 Banned', 'err');
@@ -1331,9 +1402,10 @@ async function doSend(){
     return toast(`🐢 Slowmode active. Please wait ${serverSlowmode} seconds.`, 'warn');
   }
 
-  // 🎮 GAME & COMMAND ENGINE
+  // 🎮 COMMAND & GAME ENGINE
   if (txt.startsWith('/')) {
     inp.value = ''; 
+    document.getElementById('cmdMenu').classList.remove('open');
     const args = txt.split(' ');
     const cmd = args[0].toLowerCase();
     
@@ -1394,16 +1466,91 @@ async function doSend(){
       return db.ref('chats/'+room).push({ sys: false, user: 'system', displayName: 'Hangman Bot', pfp: 'https://cdn-icons-png.flaticon.com/512/3004/3004382.png', text: resultMsg, ts: Date.now(), isGame: true });
     }
 
-    return toast("Unknown command. Try /roll, /flip, /hangman start", "err");
+    // NEW: BLACKJACK
+    if(cmd === '/bj') {
+      const action = args[1] ? args[1].toLowerCase() : '';
+      
+      if(action === 'start') {
+        const pHand = [drawCard(), drawCard()];
+        const dHand = [drawCard()]; // Only draw 1 for dealer to prevent cheating via Firebase
+        const pScore = calcScore(pHand);
+        
+        await db.ref('server_meta/bj_'+room).set({ pHand, dHand, player: myDisplayName, uid: me, active: true });
+        
+        let msg = `🃏 **BLACKJACK** started by ${myDisplayName}!\n\n`;
+        msg += `🧑 You: ${pHand.map(c=>c.face).join(' ')} (Score: ${pScore})\n`;
+        msg += `🤖 Dealer: ${dHand[0].face} 🎴 (?)\n\n`;
+        
+        if(pScore === 21) {
+          msg += `🎉 BLACKJACK! You win!`;
+          await db.ref('server_meta/bj_'+room).remove();
+        } else {
+          msg += `Type /bj hit or /bj stand`;
+        }
+        return db.ref('chats/'+room).push({ sys: true, text: msg, ts: Date.now() });
+      }
+      
+      const gameSnap = await db.ref('server_meta/bj_'+room).once('value');
+      const game = gameSnap.val();
+      if(!game || !game.active) return toast("No active Blackjack game. Type /bj start", "err");
+      if(game.uid !== me) return toast("Only " + game.player + " can play this hand!", "err");
+      
+      if(action === 'hit') {
+        if(!game.pHand) game.pHand = [];
+        game.pHand.push(drawCard());
+        const pScore = calcScore(game.pHand);
+        let msg = `🧑 You drew: ${game.pHand[game.pHand.length-1].face}\nYour hand: ${game.pHand.map(c=>c.face).join(' ')} (Score: ${pScore})\n`;
+        
+        if(pScore > 21) {
+          msg += `\n💥 BUST! You lose!`;
+          await db.ref('server_meta/bj_'+room).remove();
+        } else {
+          await db.ref('server_meta/bj_'+room).update({ pHand: game.pHand });
+          msg += `\nType /bj hit or /bj stand`;
+        }
+        return db.ref('chats/'+room).push({ sys: true, text: msg, ts: Date.now() });
+      }
+      
+      if(action === 'stand') {
+        let pScore = calcScore(game.pHand);
+        let dScore = calcScore(game.dHand);
+        let msg = `🧑 You stand at ${pScore}.\n\n`;
+        
+        // Dealer draws
+        msg += `🤖 Dealer reveals: ${game.dHand[0].face}\n`;
+        while(dScore < 17) {
+          const c = drawCard();
+          if(!game.dHand) game.dHand = [];
+          game.dHand.push(c);
+          dScore = calcScore(game.dHand);
+          msg += `🤖 Dealer draws: ${c.face}\n`;
+        }
+        
+        msg += `\nDealer hand: ${game.dHand.map(c=>c.face).join(' ')} (Score: ${dScore})\n\n`;
+        
+        if(dScore > 21) msg += `🎉 Dealer BUSTS! You win!`;
+        else if(dScore > pScore) msg += `💀 Dealer wins!`;
+        else if(dScore < pScore) msg += `🎉 You win!`;
+        else msg += `🤝 Push! It's a tie.`;
+        
+        await db.ref('server_meta/bj_'+room).remove();
+        return db.ref('chats/'+room).push({ sys: true, text: msg, ts: Date.now() });
+      }
+      
+      return toast("Unknown Blackjack action.", "err");
+    }
+
+    return toast("Unknown command. Type / to see list.", "err");
   }
 
   const {text:ct, censored:wc}=censor(txt), obj = {user:me, displayName:myDisplayName, pfp:myPfp, text:ct, censored:wc, ts:Date.now(), deleted:false, role:d.role||null, showBadge:d.showBadge||false, shadowbanned: d.shadowbanned||false, customTitle: d.customTitle||null};
   if(replyTo) obj.replyTo = {key: replyTo.key, displayName: replyTo.displayName, text: replyTo.text};
   await db.ref('chats/'+room).push(obj); 
   inp.value=''; cancelReply(); lastSendTime = Date.now(); db.ref('typing/'+room+'/'+me).remove();
+  document.getElementById('cmdMenu').classList.remove('open');
 }
 
-function onKey(e){ if(e.key==='Enter')doSend(); if(e.key==='Escape')cancelReply(); }
+function onKey(e){ if(e.key==='Enter')doSend(); if(e.key==='Escape'){ cancelReply(); document.getElementById('cmdMenu').classList.remove('open');} }
 function mobToggle(){ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobOv').classList.toggle('open'); }
 function showReg(){ document.getElementById('loginBox').style.display='none'; document.getElementById('regBox').style.display='block'; }
 function showLogin(){ document.getElementById('regBox').style.display='none'; document.getElementById('loginBox').style.display='block'; }
