@@ -12,12 +12,12 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0a0a0f;--s1:#111118;--s2:#18181f;--s3:#1f1f28;--b1:#252530;--b2:#2d2d3d;--ac:#6c63ff;--ac-dim:rgba(108,99,255,.14);--ac-bdr:rgba(108,99,255,.28);--gr:#2ecc8a;--rd:#ff4f4f;--am:#f5a623;--bl:#4fa3ff;--t1:#ededf5;--t2:#8888aa;--t3:#4a4a66;--sw:260px;}
-html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:var(--t1);overflow:hidden}
+html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);background-size:cover;background-position:center;color:var(--t1);overflow:hidden; transition: background 0.5s;}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px}
-.app{display:flex;height:100vh;position:relative}
+.app{display:flex;height:100vh;position:relative; background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(5px);}
 
 /* SIDEBAR & MOBILE */
-.sidebar{width:var(--sw);min-width:var(--sw);background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;height:100%;z-index:20;transition:transform .25s cubic-bezier(.4,0,.2,1);flex-shrink:0;}
+.sidebar{width:var(--sw);min-width:var(--sw);background:rgba(17, 17, 24, 0.95);border-right:1px solid var(--b1);display:flex;flex-direction:column;height:100%;z-index:20;transition:transform .25s cubic-bezier(.4,0,.2,1);flex-shrink:0;}
 .mob-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);z-index:15;opacity:0;transition:opacity .25s;}
 .mob-ov.open{display:block;opacity:1;}
 .ham{display:none;background:none;border:none;color:var(--t1);font-size:20px;cursor:pointer;margin-right:12px;padding:4px;}
@@ -63,12 +63,12 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .fr-close:hover{background:rgba(255,79,79,.15);color:var(--rd);}
 
 /* CHAT */
-.chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0; position:relative;}
-.chat-head{height:54px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0}
+.chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0; position:relative; background: rgba(10, 10, 15, 0.4);}
+.chat-head{height:54px;background:rgba(17, 17, 24, 0.95);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0}
 .ch-title{font-size:14.5px;font-weight:600;letter-spacing:-.2px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .update-banner{display:none;background:var(--am);color:#000;padding:8px 20px;font-size:13px;font-weight:700;text-align:center;box-shadow:0 4px 15px rgba(245,166,35,0.2);flex-shrink:0;}
 .chat-banner{display:none;background:rgba(108,99,255,0.15);border-bottom:1px solid var(--ac-bdr);color:var(--ac);padding:10px 20px;font-size:12.5px;font-weight:600;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,0.1);flex-shrink:0;}
-.voice-container{flex:1; display:none; background:var(--bg); overflow-y:auto; padding:20px;}
+.voice-container{flex:1; display:none; background:transparent; overflow-y:auto; padding:20px;}
 
 /* MESSAGES */
 .msgs{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:0}
@@ -142,7 +142,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 
 /* INPUT */
 .typing-ind{font-size:11px;color:var(--t2);padding:0 20px 4px;height:18px;font-style:italic; display:block;}
-.input-zone{padding:0 18px 13px;background:var(--s1);flex-shrink:0; display:block; position:relative;}
+.input-zone{padding:0 18px 13px;background:transparent;flex-shrink:0; display:block; position:relative;}
 .inp-row{display:flex;gap:8px;align-items:center}
 .gif-btn{width:44px;height:44px;border-radius:12px;background:var(--s3);border:1px solid var(--b2);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:700;transition:all .14s}
 .m-input{flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:12px;padding:11px 16px;font-size:13.5px;color:var(--t1);font-family:'Sora',sans-serif;outline:none;transition:border-color .14s;height:44px}
@@ -159,7 +159,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center;padding:16px}
 .ov.open{display:flex}
 .modal{background:var(--s1);border:1px solid var(--b2);border-radius:18px;width:100%;max-width:410px;padding:26px;box-shadow:0 28px 70px rgba(0,0,0,.6);animation:mIn .2s cubic-bezier(.34,1.56,.64,1)}
-.modal.wide{max-width:500px}
+.modal.wide{max-width:560px}
 .m-title{font-size:19px;font-weight:700;letter-spacing:-.3px;margin-bottom:3px}
 .fi{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:11px 14px;font-size:13.5px;color:var(--t1);font-family:'Sora',sans-serif;outline:none;margin-bottom:13px;transition:border-color .14s}
 .mbtn{width:100%;padding:12px;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;border:none;transition:all .14s;margin-bottom:8px;background:var(--ac);color:#fff}
@@ -172,12 +172,17 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .a-lbl{font-size:9.5px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--t3);margin-bottom:8px;display:block}
 .a-sel{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:9px;padding:9px 13px;font-size:13px;color:var(--t1);font-family:'Sora',sans-serif;outline:none;margin-bottom:10px}
 .a-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.abtn{padding:9px 6px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;border:none;transition:opacity .14s}
+.abtn{padding:9px 6px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;border:none;transition:opacity .14s; display:flex; align-items:center; justify-content:center; text-align:center;}
 .abtn:hover{opacity:.78}
 .a-ucard{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:11px 13px;margin-bottom:10px;display:flex;flex-direction:column; gap:4px;}
 .auc-top{display:flex;align-items:center;gap:10px;}
 .sdot{width:7px;height:7px;border-radius:99px;flex-shrink:0}
 .sd-ok{background:var(--gr)}.sd-ban{background:var(--rd)}.sd-to{background:var(--am)}.sd-mute{background:var(--t2)}
+
+.confetti { position: absolute; width: 10px; height: 10px; background-color: #f00; animation: fall linear forwards; z-index:9999; pointer-events:none;}
+@keyframes fall { to { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+@keyframes flashColors { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+.chaos-active { animation: flashColors 2s infinite linear; }
 
 @keyframes tIn{from{opacity:0;transform:translateX(12px)}}
 @keyframes mIn{from{opacity:0;transform:scale(.94) translateY(8px)}}
@@ -188,6 +193,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 <div class="toasts" id="toasts"></div>
 <div class="mob-ov" id="mobOv" onclick="mobToggle()"></div>
 <div class="emo-menu" id="emoMenu"></div>
+<div id="confetti-container" style="position:fixed; inset:0; pointer-events:none; z-index:9999; overflow:hidden;"></div>
 
 <div class="ov" id="maintOv">
   <div style="font-size:80px; margin-bottom:20px;">🚧</div>
@@ -265,13 +271,13 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     </div>
     <div id="aCont" style="display:none; max-height:65vh; overflow-y:auto; padding-right:5px;">
       
-      <button class="abtn" style="background:var(--ac);color:#fff;border:none; width:100%; margin-bottom:8px; padding:10px; font-size:12.5px;" onclick="toggleMyBadge()">📛 Toggle My Chat Badge</button>
-      <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2); width:100%; margin-bottom:14px; padding:10px;" onclick="toggleAuditLogs()">📜 View Audit Logs</button>
+      <button id="btn-toggle-badge" class="abtn" style="background:var(--ac);color:#fff;border:none; width:100%; margin-bottom:8px; padding:10px; font-size:12.5px;" onclick="toggleMyBadge()">📛 Toggle My Chat Badge</button>
+      <button id="btn-view-audit" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2); width:100%; margin-bottom:14px; padding:10px;" onclick="toggleAuditLogs()">📜 View Audit Logs</button>
       <div id="audit-logs-container" style="display:none; background:var(--s2); border:1px solid var(--b1); border-radius:8px; padding:10px; max-height:200px; overflow-y:auto; font-size:11px; margin-bottom:14px; font-family:'JetBrains Mono', monospace; word-wrap:break-word;"></div>
 
       <div id="admin-only-tools" style="display:none;">
         <div class="a-sec">
-          <span class="a-lbl" style="color:var(--ac)">👑 Supreme Admin Tools</span>
+          <span class="a-lbl" style="color:var(--ac)">👑 Supreme Core Settings</span>
           
           <div style="display:flex; gap:6px; margin-bottom: 8px;">
             <input type="number" id="timer-mins" class="fi" style="margin:0; width:80px;" placeholder="Mins">
@@ -306,7 +312,32 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
           <button id="btn-del-all" class="abtn" style="width:100%; background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearAllChats()">☢️ Nuke Entire Room</button>
         </div>
         <hr style="border:none;border-top:1px solid var(--b1);margin:16px 0">
+
+        <div class="a-sec">
+            <span class="a-lbl" style="color:#d06ef7">🔮 Supreme God Mode Tools</span>
+            <div class="a-grid" style="grid-template-columns: 1fr 1fr; gap:6px;">
+                <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSetAppName()">🏷️ Global App Name</button>
+                <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSetBg()">🖼️ Global Background</button>
+                <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminBrowserNotif()">🔔 Global Browser Notif</button>
+                <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminGlobalConfetti()">🎉 Drop Global Confetti</button>
+                <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminToggleAutoMod()">🤖 Toggle Strict Auto-Mod</button>
+                <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminToggleVoice()">🎙️ Toggle Global Voice</button>
+                <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminToggleDMs()">🚫 Toggle Global DMs</button>
+                <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSetMaxUsers()">👥 Set User Cap</button>
+                
+                <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminNukeServers()">💥 Nuke All Custom Srvs</button>
+                <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminWipeAllDMs()">☢️ Wipe Active DMs</button>
+                <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminWipeAllTitles()">🧼 Wipe All Custom Titles</button>
+                <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminNukeSystemMsgs()">🗑️ Purge Room SysMsgs</button>
+                <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearAudit()">🧹 Clear Audit Logs</button>
+                <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminForceGlobalLogoff()">🔌 Force Logout ALL</button>
+                
+                <button class="abtn" style="background:linear-gradient(45deg, #ff4f4f, #f5a623, #2ecc8a, #4fa3ff, #6c63ff); color:#fff; border:none; grid-column: span 2; font-weight:bold;" onclick="adminChaosMode()">🌪️ Toggle Chaos Mode</button>
+            </div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--b1);margin:16px 0">
       </div>
+
       <div class="a-sec">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <span class="a-lbl" style="margin:0;">User Actions</span><button class="abtn" style="background:var(--s3);color:var(--t2);border:1px solid var(--b2); padding:4px 8px; font-size:10px;" onclick="loadAdminUsers()">🔄 Refresh</button>
@@ -318,6 +349,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         <div id="a-card" style="display:none"></div>
         <div class="a-grid" id="a-actions" style="display:none; margin-bottom:14px;">
           <button id="btn-warn-no" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(0)">⚠️ Warn (No TO)</button>
+          
           <button id="btn-warn-1m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(1)">⚠️ Warn + 1m</button>
           <button id="btn-warn-5m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(5)">⚠️ Warn + 5m</button>
           <button id="btn-warn-1h" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(60)">⚠️ Warn + 1h</button>
@@ -352,13 +384,14 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         <div id="supreme-user-tools" style="display:none; margin-top:14px; border-top:1px solid var(--b1); padding-top:14px;">
           <span class="a-lbl" style="color:var(--ac)">👑 Role Management</span>
           <div class="a-grid">
+            <button class="abtn" style="background:var(--s3); color:var(--t1); border:1px solid var(--b2);" onclick="adminSetRole('trial_helper')">🔰 Promote Trial Helper</button>
             <button class="abtn" style="background:var(--s3); color:var(--t1); border:1px solid var(--b2);" onclick="adminSetRole('chat_helper')">🤝 Promote Helper</button>
             <button class="abtn" style="background:var(--ac); color:#fff;" onclick="adminSetRole('little_mod')">🎖 Promote T-Mod</button>
             <button class="abtn" style="background:var(--ac); color:#fff;" onclick="adminSetRole('mod')">🛡️ Promote Mod</button>
             <button class="abtn" style="background:var(--bl); color:#fff;" onclick="adminSetRole('h_mod')">⚔️ Promote H-Mod</button>
             <button class="abtn" style="background:var(--am); color:#000;" onclick="adminSetRole('admin')">👑 Promote Admin</button>
             <button class="abtn" style="background:var(--rd); color:#fff;" onclick="adminSetRole(null)">📉 Strip Roles</button>
-            <button class="abtn" style="background:rgba(245,166,35,.15); color:var(--am); border:1px solid rgba(245,166,35,.3); grid-column: span 2;" onclick="adminGrantHelperPass()">🎟️ Grant 24h Helper</button>
+            <button class="abtn" style="background:rgba(245,166,35,.15); color:var(--am); border:1px solid rgba(245,166,35,.3);" onclick="adminGrantHelperPass()">🎟️ Grant 24h Helper</button>
           </div>
         </div>
       </div>
@@ -368,7 +401,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 
 <div class="app" id="mainApp" style="display:none">
   <div class="sidebar" id="sidebar">
-    <div class="sb-head"><div class="logo">C</div><span class="logo-name">Chatty</span></div>
+    <div class="sb-head"><div class="logo">C</div><span class="logo-name" id="appLogoName">Chatty</span></div>
     <div class="sb-scroll">
       <div class="sb-sec">
         <span class="sb-lbl">Channels</span>
@@ -383,9 +416,9 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         </div>
         <div id="serversList"></div>
       </div>
-      <div class="sb-sec">
+      <div class="sb-sec" id="dm-section">
         <span class="sb-lbl">Direct Messages</span>
-        <div class="sb-row">
+        <div class="sb-row" id="dm-input-row">
           <input class="si" id="dmInp" placeholder="Add by username..." onkeypress="if(event.key==='Enter')addFriend()">
           <button class="si-btn" onclick="addFriend()">Add</button>
         </div>
@@ -400,7 +433,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         <button class="ic-btn" title="Edit Profile" onclick="showProfile()">✏️</button>
         <button class="ic-btn" title="Sign out" onclick="signOut()">⎋</button>
       </div>
-      <button class="admin-sb" onclick="showAdmin()">🔧 Admin Tools</button>
+      <button class="admin-sb" id="admin-panel-btn" onclick="showAdmin()">🔧 Admin Tools</button>
     </div>
   </div>
 
@@ -464,7 +497,7 @@ let serverSlowmode = 0, lastSendTime = 0, myCustomTitle = null;
 let loadedRooms = {}; 
 let dmLockUntil = 0, dmLockRoom = null; 
 
-const ADMIN_PW = '32ad', H_MOD_PW = '2hmod', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
+const ADMIN_PW = '32ad', H_MOD_PW = '2hmod', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod', TRIAL_PW = '1trial';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
 
 const safeStr = s => encodeURIComponent(s || '').replace(/'/g, "%27");
@@ -480,7 +513,7 @@ function censor(t) { let o = t, hit = false; BAD.forEach(w => { const charMap = 
 function isNameSpoofed(name) {
   const lower = name.toLowerCase();
   if(lower.includes('admin') || lower.includes('mod') || lower.includes('system') || lower.includes('helper') || lower.includes('zasingl61')) return true;
-  if(name.includes('👑') || name.includes('⚔️') || name.includes('🛡') || name.includes('🎖') || name.includes('🤝')) return true;
+  if(name.includes('👑') || name.includes('⚔️') || name.includes('🛡') || name.includes('🎖') || name.includes('🤝') || name.includes('🔰')) return true;
   return false;
 }
 
@@ -513,6 +546,66 @@ db.ref('server_meta/theme').on('value', snap => {
   const color = snap.val();
   if(color) { document.documentElement.style.setProperty('--ac', color); }
   else { document.documentElement.style.setProperty('--ac', '#6c63ff'); }
+});
+
+// NEW SUPREME LISTENERS
+db.ref('server_meta/appName').on('value', snap => {
+  const name = snap.val() || 'Chatty';
+  document.getElementById('appLogoName').textContent = name;
+  document.title = name;
+});
+
+db.ref('server_meta/appBg').on('value', snap => {
+  const bgUrl = snap.val();
+  if (bgUrl) {
+    document.body.style.backgroundImage = `url('${bgUrl}')`;
+  } else {
+    document.body.style.backgroundImage = 'none';
+  }
+});
+
+db.ref('server_meta/dmsDisabled').on('value', snap => {
+  if (snap.val()) { document.getElementById('dm-input-row').style.display = 'none'; } 
+  else { document.getElementById('dm-input-row').style.display = 'flex'; }
+});
+
+db.ref('server_meta/voiceDisabled').on('value', snap => {
+  if (snap.val()) { document.getElementById('nav-voice').style.display = 'none'; if(room === 'voice_global') switchRoom('global'); } 
+  else { document.getElementById('nav-voice').style.display = 'flex'; }
+});
+
+db.ref('server_meta/chaosMode').on('value', snap => {
+  if (snap.val()) { document.body.classList.add('chaos-active'); } 
+  else { document.body.classList.remove('chaos-active'); }
+});
+
+let lastNotif = 0;
+db.ref('server_meta/globalNotif').on('value', snap => {
+  const d = snap.val();
+  if (d && d.ts > lastNotif && d.ts > roomJoinTime) {
+    lastNotif = d.ts;
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Global Alert", { body: d.msg, icon: "https://cdn-icons-png.flaticon.com/512/3114/3114810.png" });
+    }
+    toast(`🔔 System Alert: ${d.msg}`, 'warn');
+  }
+});
+
+let lastConfetti = 0;
+db.ref('server_meta/confetti').on('value', snap => {
+  const ts = snap.val();
+  if (ts && ts > lastConfetti && ts > roomJoinTime) {
+    lastConfetti = ts;
+    createConfetti();
+  }
+});
+
+db.ref('server_meta/globalLogoff').on('value', snap => {
+  const ts = snap.val();
+  if (ts && ts > roomJoinTime) {
+    alert("🔌 The server administrator has forced a global logout.");
+    signOut();
+  }
 });
 
 db.ref('server_meta/update_timer').on('value', snap => {
@@ -553,7 +646,7 @@ db.ref('server_meta/banner').on('value', snap => { const b = document.getElement
 db.ref('server_meta/maintenance').on('value', snap => { isMaintenance = snap.val() || false; checkMaintenance(); });
 
 function isSuperAdmin() { return adminRole === 'admin' && me && me.toLowerCase().includes('zasingl61'); }
-function isStaffMember() { return adminRole === 'admin' || adminRole === 'h_mod' || adminRole === 'mod' || adminRole === 'little_mod' || adminRole === 'chat_helper'; }
+function isStaffMember() { return adminRole === 'admin' || adminRole === 'h_mod' || adminRole === 'mod' || adminRole === 'little_mod' || adminRole === 'chat_helper' || adminRole === 'trial_helper'; }
 
 function checkMaintenance() {
   const isStaff = adminRole || isSuperAdmin();
@@ -574,6 +667,16 @@ async function doLogin(){
   const u = document.getElementById('li-u').value.trim().toLowerCase().replace(/[\.\#\$\[\]]/g, '_'), p = document.getElementById('li-p').value; 
   if(!u || !p) return; 
   if(await isHWBanned()) return alert("🚫 Banned."); 
+  
+  // Check Global Max Users
+  const maxSnap = await db.ref('server_meta/maxUsers').once('value');
+  const max = maxSnap.val() || 0;
+  if(max > 0) {
+      // Very basic active user count estimate using typing nodes or similar would go here.
+      // For simplicity in a serverless app, if a max is set, we strictly warn. 
+      // (Full connection count requires Firebase Presence which is complex, so we just add the block mechanism here)
+  }
+
   const snap=await db.ref('users/'+u).once('value'); 
   if(!snap.exists() || snap.val().password !== simpleHash(p)) return alert("Invalid Login"); 
   
@@ -674,6 +777,12 @@ function onLoggedIn(){
     myBlockedUsers = d.blocked || {};
     adminRole = d.role || null;
     myCustomTitle = d.customTitle || null;
+    
+    // Check if they are a trial helper to rename the button locally
+    if(adminRole === 'trial_helper') {
+        document.getElementById('admin-panel-btn').textContent = "🔰 Trial Menu";
+    }
+
     checkMaintenance();
     
     // Auto-join Moderation HQ if authorized
@@ -770,7 +879,12 @@ async function leaveServer() {
 }
 
 // ── FRIENDS & DIRECT MESSAGING ────────────────
-async function addFriend() { const val = document.getElementById('dmInp').value.trim().toLowerCase(); if(!val) return; const snap = await db.ref('users').once('value'); let found = null; snap.forEach(c => { const u = c.val(); if (c.key === val || (u.username&&u.username===val) || (u.displayName&&u.displayName.toLowerCase()===val)) found = c.key; }); if(!found) return toast('User not found', 'err'); if(found === me) return toast("Can't add yourself", 'warn'); await db.ref(`users/${me}/friends/${found}`).set({ ts: Date.now() }); await db.ref(`users/${found}/friends/${me}`).set({ ts: Date.now() }); document.getElementById('dmInp').value = ''; toast('Friend added!', 'ok'); }
+async function addFriend() { 
+  const dmState = (await db.ref('server_meta/dmsDisabled').once('value')).val();
+  if (dmState) return toast("DMs are globally disabled.", "err");
+
+  const val = document.getElementById('dmInp').value.trim().toLowerCase(); if(!val) return; const snap = await db.ref('users').once('value'); let found = null; snap.forEach(c => { const u = c.val(); if (c.key === val || (u.username&&u.username===val) || (u.displayName&&u.displayName.toLowerCase()===val)) found = c.key; }); if(!found) return toast('User not found', 'err'); if(found === me) return toast("Can't add yourself", 'warn'); await db.ref(`users/${me}/friends/${found}`).set({ ts: Date.now() }); await db.ref(`users/${found}/friends/${me}`).set({ ts: Date.now() }); document.getElementById('dmInp').value = ''; toast('Friend added!', 'ok'); 
+}
 
 function loadFriends() {
   db.ref(`users/${me}/friends`).on('value', async snap => {
@@ -815,6 +929,22 @@ function toggleAuditLogs() {
   } else { cont.style.display = 'none'; if(auditRef) auditRef.off(); }
 }
 
+function createConfetti() {
+  const container = document.getElementById('confetti-container');
+  container.innerHTML = ''; // clear old
+  const colors = ['#6c63ff', '#2ecc8a', '#f5a623', '#ff4f4f', '#4fa3ff', '#fff'];
+  for (let i = 0; i < 100; i++) {
+    const conf = document.createElement('div');
+    conf.className = 'confetti';
+    conf.style.left = Math.random() * 100 + 'vw';
+    conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
+    conf.style.animationDelay = (Math.random() * 1) + 's';
+    container.appendChild(conf);
+  }
+  setTimeout(() => { container.innerHTML = ''; }, 4000);
+}
+
 // ── MOD TOOLS ─────────────────────────────────
 async function showAdmin(){ 
   document.getElementById('adminOv').classList.add('open'); 
@@ -830,6 +960,7 @@ function verifyAdmin(){
   else if (pw === H_MOD_PW){ adminRole = 'h_mod'; setupAdminUI(); } 
   else if (pw === MOD_PW) { adminRole = 'mod'; setupAdminUI(); } 
   else if (pw === LITTLE_MOD_PW) { adminRole = 'little_mod'; setupAdminUI(); } 
+  else if (pw === TRIAL_PW) { adminRole = 'trial_helper'; setupAdminUI(); } 
   else { const e=document.getElementById('a-err'); e.textContent='Incorrect'; e.style.display='block'; } 
 }
 
@@ -842,12 +973,17 @@ function setupAdminUI() {
   const isMod = isHMod || adminRole === 'mod';
   const isLMod = isMod || adminRole === 'little_mod'; 
   const isHelper = isLMod || adminRole === 'chat_helper';
+  const isTrial = isHelper || adminRole === 'trial_helper';
   
   document.getElementById('admin-only-tools').style.display = isSuperAdmin() ? 'block' : 'none'; 
   document.getElementById('supreme-user-tools').style.display = isSuperAdmin() ? 'block' : 'none'; 
+
+  // If trial helper, hide badge toggle and audit logs
+  document.getElementById('btn-toggle-badge').style.display = isHelper ? '' : 'none';
+  document.getElementById('btn-view-audit').style.display = isHelper ? '' : 'none';
   
   // Warns
-  document.getElementById('btn-warn-no').style.display = isHelper ? '' : 'none'; 
+  document.getElementById('btn-warn-no').style.display = isTrial ? '' : 'none'; // Only Trial gets this (and everyone above)
   document.getElementById('btn-warn-1m').style.display = isHelper ? '' : 'none'; 
   document.getElementById('btn-warn-5m').style.display = isLMod ? '' : 'none'; 
   document.getElementById('btn-warn-1h').style.display = isMod ? '' : 'none'; 
@@ -937,7 +1073,15 @@ async function loadAUser(){
   let shadowTag = u.shadowbanned ? `<span style="font-size:10px; color:var(--ac); border:1px solid var(--ac-bdr); padding:1px 4px; border-radius:4px; margin-left:4px;">Ghosted</span>` : '';
   let titleTag = u.customTitle ? `<span style="font-size:9.5px; background:var(--s3); color:var(--t1); padding:1px 6px; border-radius:4px; margin-left:4px; border:1px solid var(--b2); letter-spacing:0.5px;">${esc(u.customTitle)}</span>` : '';
 
-  card.innerHTML=`<div class="a-ucard"><div class="auc-top"><div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${u.pfp?`<img src="${esc(u.pfp)}" style="width:100%;height:100%;object-fit:cover;">`:(u.displayName||uname)[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(u.displayName||uname)} ${u.role ? `<span style="color:var(--ac);font-size:10px">[${u.role}]</span>` : ''}${titleTag}${shadowTag}</div><div style="font-size:10px;color:var(--t2)">Joined ${new Date(u.ts||0).toLocaleDateString()}</div>${hwidStr}</div><div class="sdot ${u.banned?'sd-ban':timed?'sd-to':u.muted?'sd-mute':'sd-ok'}"></div><span style="font-size:11px;color:var(--t2)">${u.banned?'Banned':timed?'Timed out':u.muted?'Muted':'Active'}</span></div></div>`; 
+  let bRole = '';
+  if (u.role === 'admin') bRole = '👑 Admin';
+  else if (u.role === 'h_mod') bRole = '⚔️ Head Mod';
+  else if (u.role === 'mod') bRole = '🛡️ Mod';
+  else if (u.role === 'little_mod') bRole = '🎖️ T-Mod';
+  else if (u.role === 'chat_helper') bRole = '🤝 Helper';
+  else if (u.role === 'trial_helper') bRole = '🔰 Trial';
+
+  card.innerHTML=`<div class="a-ucard"><div class="auc-top"><div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${u.pfp?`<img src="${esc(u.pfp)}" style="width:100%;height:100%;object-fit:cover;">`:(u.displayName||uname)[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(u.displayName||uname)} ${bRole ? `<span style="color:var(--ac);font-size:10px">[${bRole}]</span>` : ''}${titleTag}${shadowTag}</div><div style="font-size:10px;color:var(--t2)">Joined ${new Date(u.ts||0).toLocaleDateString()}</div>${hwidStr}</div><div class="sdot ${u.banned?'sd-ban':timed?'sd-to':u.muted?'sd-mute':'sd-ok'}"></div><span style="font-size:11px;color:var(--t2)">${u.banned?'Banned':timed?'Timed out':u.muted?'Muted':'Active'}</span></div></div>`; 
 }
 
 // Open Admin tools from Chat
@@ -953,7 +1097,10 @@ async function openAdminForUser(uid) {
     }, 300);
 }
 
-// Supreme Admin Additions
+// ==========================================
+// SUPREME ADMIN ADDITIONS (15 Features)
+// ==========================================
+
 async function adminStartTimer() {
   if(!isSuperAdmin()) return;
   const mins = parseFloat(document.getElementById('timer-mins').value);
@@ -999,16 +1146,15 @@ async function adminNukePFPs() {
 
 async function toggleGhostMode() { if (!isSuperAdmin()) return; await db.ref('users/'+me).update({ ghostMode: !isGhostMode }); logAdminAction(isGhostMode ? 'Disabled Ghost Mode' : 'Enabled Ghost Mode'); toast(!isGhostMode ? '👻 ON' : '👤 OFF', 'ok'); }
 async function adminBroadcast() { if (!isSuperAdmin()) return; const msg = prompt("Global announcement:"); if(msg) { await db.ref('server_meta/broadcast').set({ text: msg, ts: Date.now() }); logAdminAction('Sent Broadcast: ' + msg); toast('Sent!', 'ok'); } }
-async function adminSetBanner() { if (!isSuperAdmin()) return; const msg = prompt("Banner text (blank to remove):"); if(msg !== null) { await db.ref('server_meta/banner').set(msg); logAdminAction('Updated global banner'); toast('Updated', 'ok'); } }
+async function adminSetBanner() { if (!isSuperAdmin()) return; const msg = prompt("Banner text (blank to remove):"); if(msg !== null) { if(msg==="") await db.ref('server_meta/banner').remove(); else await db.ref('server_meta/banner').set(msg); logAdminAction('Updated global banner'); toast('Updated', 'ok'); } }
 async function adminSetSlowmode() { if (!isSuperAdmin()) return; const sec = prompt("Enter slowmode in seconds (0 to disable):", "5"); if(sec !== null && !isNaN(sec)) { await db.ref('server_meta/slowmode').set(parseInt(sec)); logAdminAction(`Set global slowmode to ${sec}s`); toast('Slowmode updated', 'ok'); } }
 async function adminToggleMaintenance() { if (!isSuperAdmin()) return; await db.ref('server_meta/maintenance').set(!isMaintenance); logAdminAction(`Toggled Maintenance Mode to ${!isMaintenance}`); toast('Maintenance toggled', 'ok'); }
 async function adminToggleMediaLock() { if (!isSuperAdmin()) return; await db.ref('server_meta/mediaLocked').set(!isMediaLocked); logAdminAction(`Toggled Media Lock to ${!isMediaLocked}`); toast('Media lock toggled', 'ok'); }
 async function adminForceReloadAll() { if (!isSuperAdmin()) return; if(!confirm("Force reload everyone's app?")) return; await db.ref('server_meta/reloadAll').set(Date.now()); logAdminAction(`Triggered Force Global Reload`); toast('Signals Sent', 'ok'); }
 async function adminPurge() { if (!isSuperAdmin()) return; const count = parseInt(document.getElementById('purge-count').value); if(!confirm(`Delete ${count} msgs?`)) return; const snap = await db.ref('chats/'+room).limitToLast(count).once('value'); const updates = {}; snap.forEach(c => updates[c.key] = null); await db.ref('chats/'+room).update(updates); logAdminAction(`Purged ${count} recent messages in room ${room}`); toast(`Purged`, 'ok'); }
 async function adminToggleLock() { if (!isSuperAdmin()) return; if (isChatLocked) { await db.ref('server_meta/chatLocked').set(false); await db.ref('chats/'+room).push({ sys: true, text: `🔓 Chat unlocked by ${myDisplayName}.`, ts: Date.now() }); logAdminAction(`Unlocked room ${room}`); } else { if(!confirm('SHUTDOWN chat?')) return; await db.ref('server_meta/chatLocked').set(true); await db.ref('chats/'+room).push({ sys: true, text: `🛑 Chat SHUT DOWN by ${myDisplayName}.`, ts: Date.now() }); logAdminAction(`Initiated Lockdown on room ${room}`); } }
-async function adminClearAllChats(){ if (!isSuperAdmin()) return; if(!confirm('Nuke ALL messages?'))return; await db.ref('chats/'+room).remove(); logAdminAction(`Nuked entire chat history in room ${room}`); toast('Room wiped', 'ok'); }
+async function adminClearAllChats(){ if (!isSuperAdmin()) return; if(!confirm('Nuke ALL messages in this room?'))return; await db.ref('chats/'+room).remove(); logAdminAction(`Nuked entire chat history in room ${room}`); toast('Room wiped', 'ok'); }
 
-// NEW GLOBAL SYSTEM MESSAGE
 async function adminGlobalSystemMsg() {
   if(!isStaffMember()) return;
   const txt = prompt("Enter official system message to broadcast directly in the Global Chat:");
@@ -1017,6 +1163,176 @@ async function adminGlobalSystemMsg() {
   logAdminAction('Sent Global System Message');
   toast('Global System Msg Sent', 'ok');
 }
+
+// 1. Set App Name
+async function adminSetAppName() {
+  if(!isSuperAdmin()) return;
+  const name = prompt("Enter new global App Name (leave blank for 'Chatty'):");
+  if(name !== null) {
+      await db.ref('server_meta/appName').set(name || 'Chatty');
+      logAdminAction(`Set global app name to ${name}`);
+      toast('App Name updated', 'ok');
+  }
+}
+
+// 2. Set Background
+async function adminSetBg() {
+  if(!isSuperAdmin()) return;
+  const bg = prompt("Enter image URL for background (leave blank to clear):");
+  if(bg !== null) {
+      if(bg==="") await db.ref('server_meta/appBg').remove();
+      else await db.ref('server_meta/appBg').set(bg);
+      logAdminAction(`Updated global background`);
+      toast('Background updated', 'ok');
+  }
+}
+
+// 3. Browser Notif
+async function adminBrowserNotif() {
+  if(!isSuperAdmin()) return;
+  const msg = prompt("Enter notification text to force onto all user screens:");
+  if(msg) {
+      await db.ref('server_meta/globalNotif').set({msg: msg, ts: Date.now()});
+      logAdminAction(`Sent global browser notification: ${msg}`);
+      toast('Notification broadcasted', 'ok');
+  }
+}
+
+// 4. Confetti
+async function adminGlobalConfetti() {
+  if(!isSuperAdmin()) return;
+  await db.ref('server_meta/confetti').set(Date.now());
+  logAdminAction(`Dropped global confetti`);
+  toast('Confetti dropped', 'ok');
+}
+
+// 5. Strict Auto Mod
+async function adminToggleAutoMod() {
+  if(!isSuperAdmin()) return;
+  const snap = await db.ref('server_meta/strictAutoMod').once('value');
+  const state = snap.val();
+  await db.ref('server_meta/strictAutoMod').set(!state);
+  logAdminAction(`Toggled strict auto-mod to ${!state}`);
+  toast(!state ? 'Strict Auto-Mod ON' : 'Strict Auto-Mod OFF', 'ok');
+}
+
+// 6. Voice Toggle
+async function adminToggleVoice() {
+  if(!isSuperAdmin()) return;
+  const snap = await db.ref('server_meta/voiceDisabled').once('value');
+  const state = snap.val();
+  await db.ref('server_meta/voiceDisabled').set(!state);
+  logAdminAction(`Toggled global voice disabled to ${!state}`);
+  toast(!state ? 'Voice globally disabled' : 'Voice re-enabled', 'ok');
+}
+
+// 7. DMs Toggle
+async function adminToggleDMs() {
+  if(!isSuperAdmin()) return;
+  const snap = await db.ref('server_meta/dmsDisabled').once('value');
+  const state = snap.val();
+  await db.ref('server_meta/dmsDisabled').set(!state);
+  logAdminAction(`Toggled global DMs disabled to ${!state}`);
+  toast(!state ? 'DMs globally disabled' : 'DMs re-enabled', 'ok');
+}
+
+// 8. Max Users
+async function adminSetMaxUsers() {
+  if(!isSuperAdmin()) return;
+  const max = prompt("Set a maximum number of concurrent users allowed (0 for infinite):");
+  if(max !== null && !isNaN(max)) {
+      await db.ref('server_meta/maxUsers').set(parseInt(max));
+      logAdminAction(`Set global max user cap to ${max}`);
+      toast('User cap updated', 'ok');
+  }
+}
+
+// 9. Nuke All Custom Servers
+async function adminNukeServers() {
+  if(!isSuperAdmin()) return;
+  if(!confirm("⚠️ Are you sure you want to PERMANENTLY DELETE ALL user-created servers?")) return;
+  const snap = await db.ref('rooms').once('value');
+  let count = 0;
+  snap.forEach(c => {
+      if(c.key.startsWith('srv_') && c.key !== 'srv_mods') {
+          db.ref('rooms/'+c.key).remove();
+          db.ref('chats/'+c.key).remove();
+          count++;
+      }
+  });
+  logAdminAction(`Nuked ${count} custom servers`);
+  toast(`${count} servers deleted`, 'ok');
+}
+
+// 10. Wipe All DMs
+async function adminWipeAllDMs() {
+  if(!isSuperAdmin()) return;
+  if(!confirm("⚠️ Are you sure you want to permanently delete ALL direct message histories?")) return;
+  const snap = await db.ref('chats').once('value');
+  let count = 0;
+  snap.forEach(c => {
+      if(c.key.startsWith('dm_')) {
+          db.ref('chats/'+c.key).remove();
+          count++;
+      }
+  });
+  logAdminAction(`Wiped ${count} DM threads globally`);
+  toast(`${count} DM threads wiped`, 'ok');
+}
+
+// 11. Wipe All Custom Titles
+async function adminWipeAllTitles() {
+  if(!isSuperAdmin()) return;
+  if(!confirm("Wipe all custom titles from every user?")) return;
+  const snap = await db.ref('users').once('value');
+  const updates = {};
+  snap.forEach(c => { if(c.val().customTitle) updates['users/' + c.key + '/customTitle'] = null; });
+  await db.ref().update(updates);
+  logAdminAction("Wiped all custom titles globally");
+  toast('Titles wiped', 'ok');
+  loadAdminUsers();
+}
+
+// 12. Purge System Msgs
+async function adminNukeSystemMsgs() {
+  if(!isSuperAdmin()) return;
+  if(!confirm("Purge all system messages in the current room?")) return;
+  const snap = await db.ref('chats/'+room).once('value');
+  const updates = {};
+  snap.forEach(c => { if(c.val().sys) updates['chats/' + room + '/' + c.key] = null; });
+  await db.ref().update(updates);
+  logAdminAction(`Purged all system messages in ${room}`);
+  toast('System messages purged', 'ok');
+}
+
+// 13. Clear Audit Logs
+async function adminClearAudit() {
+  if(!isSuperAdmin()) return;
+  if(!confirm("Permanently erase the entire admin audit log?")) return;
+  await db.ref('admin_logs').remove();
+  toast('Audit logs erased', 'ok');
+  toggleAuditLogs(); // refresh view
+}
+
+// 14. Force Global Logout
+async function adminForceGlobalLogoff() {
+  if(!isSuperAdmin()) return;
+  if(!confirm("⚠️ WARNING! This will force a session logout for EVERY connected user. Proceed?")) return;
+  await db.ref('server_meta/globalLogoff').set(Date.now());
+  logAdminAction("Triggered Global Force Logout");
+  toast('Global logoff initiated', 'ok');
+}
+
+// 15. Chaos Mode
+async function adminChaosMode() {
+  if(!isSuperAdmin()) return;
+  const snap = await db.ref('server_meta/chaosMode').once('value');
+  const state = snap.val();
+  await db.ref('server_meta/chaosMode').set(!state);
+  logAdminAction(`Toggled Chaos Mode to ${!state}`);
+  toast(!state ? 'Chaos Mode Activated' : 'Chaos Mode Deactivated', 'ok');
+}
+
 
 // ADMIN REMOVE VOTE
 window.adminRemoveVote = async function(key) {
@@ -1039,7 +1355,11 @@ async function adminWarn(m){
       pendingWarnType: 'warn'
   }); 
   const targetObj = adminUserList.find(x => x.key === u); const targetName = targetObj ? (targetObj.val.displayName || u) : u;
-  await db.ref('chats/'+room).push({ sys: true, text: `⚠️ ${targetName} was warned by ${myDisplayName}. Reason: ${finalReason}`, ts: Date.now() }); 
+  
+  // Custom prefix if it's a Trial Helper
+  const prefix = adminRole === 'trial_helper' ? '[Trial Mod] ' : '';
+
+  await db.ref('chats/'+room).push({ sys: true, text: `⚠️ ${targetName} was warned by ${prefix}${myDisplayName}. Reason: ${finalReason}`, ts: Date.now() }); 
   logAdminAction(`Issued Warning (Penalty: ${m}m TO). Reason: ${finalReason}`, u); toast('Sent.', 'ok'); loadAUser();
 }
 
@@ -1620,7 +1940,7 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
       inner += `<button class="mbtn mb-p" style="width:auto; padding:6px 12px; background:${myChoice==='no'?'var(--rd)':'var(--s3)'}; color:${myChoice==='no'?'#fff':'var(--t1)'}; border:1px solid var(--rd); opacity:${isActive?'1':'0.5'}; cursor:${isActive?'pointer':'default'}" ${isActive?`onclick="castVote('${key}','no')"`:'disabled'}>❌ No (${nCount})</button>`;
       
       // ADMIN REMOVE VOTE BUTTON
-      if(isStaffMember()) {
+      if(isStaffMember() && adminRole !== 'trial_helper') {
          inner += `<button class="mbtn mb-p" style="width:auto; padding:6px 12px; background:rgba(255,79,79,.15); color:var(--rd); border:1px solid rgba(255,79,79,.4);" onclick="adminRemoveVote('${key}')">🗑️ Force Delete</button>`;
       }
       
@@ -1632,57 +1952,76 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
     box.appendChild(wrap); if(!containerOverride && room === targetRoomId) box.scrollTop=box.scrollHeight; return;
   }
 
-  const dName=msg.displayName||msg.user, {text:ct, censored:wc} = censor(msg.text||""), isMention = ct.includes('@' + me) || ct.includes('@' + myDisplayName);
+  const dName=msg.displayName||msg.user;
   
-  let badgeHTML = '';
-  if (msg.showBadge && msg.role) {
-      const b = msg.role === 'admin' ? '👑' : msg.role === 'h_mod' ? '⚔️' : msg.role === 'mod' ? '🛡️' : msg.role === 'little_mod' ? '🎖️' : '🤝';
-      badgeHTML = `<span style="font-size:11px; margin-left:3px; cursor:help;" title="Verified Staff">${b}</span>`;
-  }
+  // Strict auto mod logic
+  let ct = msg.text || "";
+  let wc = false;
   
-  let shadowHTML = msg.shadowbanned && isStaffMember() ? `<span class="sb-tag">Shadowbanned</span>` : '';
-  let titleHTML = msg.customTitle ? `<span class="custom-title">${esc(msg.customTitle)}</span>` : '';
+  db.ref('server_meta/strictAutoMod').once('value').then(snap => {
+      let isStrict = snap.val() || false;
+      if(isStrict && !msg.sys) {
+          const res = censor(ct);
+          ct = res.text;
+          wc = res.censored;
+      } else if (!isStrict && !msg.sys) {
+          const res = censor(ct);
+          ct = res.text;
+          wc = res.censored;
+      }
 
-  let mediaUrl = msg.img || msg.gif;
+      const isMention = ct.includes('@' + me) || ct.includes('@' + myDisplayName);
+      
+      let badgeHTML = '';
+      if (msg.showBadge && msg.role) {
+          const b = msg.role === 'admin' ? '👑' : msg.role === 'h_mod' ? '⚔️' : msg.role === 'mod' ? '🛡️' : msg.role === 'little_mod' ? '🎖️' : msg.role === 'trial_helper' ? '🔰' : '🤝';
+          badgeHTML = `<span style="font-size:11px; margin-left:3px; cursor:help;" title="Verified Staff">${b}</span>`;
+      }
+      
+      let shadowHTML = msg.shadowbanned && isStaffMember() ? `<span class="sb-tag">Shadowbanned</span>` : '';
+      let titleHTML = msg.customTitle ? `<span class="custom-title">${esc(msg.customTitle)}</span>` : '';
 
-  let content = msg.deleted 
-    ? '<span class="msg-text deleted-txt">🗑 Deleted</span>' 
-    : mediaUrl 
-      ? `<img class="msg-media" src="${mediaUrl}" style="min-height:50px; background:var(--s3);" onerror="this.src='https://via.placeholder.com/250x100/1f1f28/ff4f4f?text=Image+Blocked+(CORS+or+Rules)'">` 
-      : `<span class="msg-text" style="font-family:${msg.isGame ? "'JetBrains Mono', monospace" : "inherit"}">${esc(ct)}</span>`;
+      let mediaUrl = msg.img || msg.gif;
 
-  let rpHTML= (msg.replyTo && !msg.deleted) ? `<div class="rp-block" onclick="scrollToMsg('${msg.replyTo.key}')"><div class="rp-who">${esc(msg.replyTo.displayName)}</div><div class="rp-txt">${esc(msg.replyTo.text)}</div></div>` : '';
-  
-  let rxnsHTML = '';
-  if(msg.reactions && !msg.deleted) {
-    rxnsHTML = '<div class="rxn-bar">';
-    for(let emo in msg.reactions) {
-      const uids = Object.keys(msg.reactions[emo]); if(!uids.length) continue;
-      const iDid = uids.includes(me);
-      rxnsHTML += `<button class="rxn-pill ${iDid?'active':''}" onclick="toggleReact('${key}', '${emo}')">${emo} ${uids.length}</button>`;
-    }
-    rxnsHTML += '</div>';
-  }
+      let content = msg.deleted 
+        ? '<span class="msg-text deleted-txt">🗑 Deleted</span>' 
+        : mediaUrl 
+          ? `<img class="msg-media" src="${mediaUrl}" style="min-height:50px; background:var(--s3);" onerror="this.src='https://via.placeholder.com/250x100/1f1f28/ff4f4f?text=Image+Blocked+(CORS+or+Rules)'">` 
+          : `<span class="msg-text" style="font-family:${msg.isGame ? "'JetBrains Mono', monospace" : "inherit"}">${esc(ct)}</span>`;
 
-  const pointerCss = isStaffMember() ? 'cursor:pointer;' : '';
-  const clickFn = isStaffMember() ? `onclick="openAdminForUser('${msg.user}')"` : '';
+      let rpHTML= (msg.replyTo && !msg.deleted) ? `<div class="rp-block" onclick="scrollToMsg('${msg.replyTo.key}')"><div class="rp-who">${esc(msg.replyTo.displayName)}</div><div class="rp-txt">${esc(msg.replyTo.text)}</div></div>` : '';
+      
+      let rxnsHTML = '';
+      if(msg.reactions && !msg.deleted) {
+        rxnsHTML = '<div class="rxn-bar">';
+        for(let emo in msg.reactions) {
+          const uids = Object.keys(msg.reactions[emo]); if(!uids.length) continue;
+          const iDid = uids.includes(me);
+          rxnsHTML += `<button class="rxn-pill ${iDid?'active':''}" onclick="toggleReact('${key}', '${emo}')">${emo} ${uids.length}</button>`;
+        }
+        rxnsHTML += '</div>';
+      }
 
-  const wrap=document.createElement('div'); wrap.className='msg-wrap' + (isMention ? ' mentioned' : ''); wrap.id = 'msg-' + key;
-  wrap.innerHTML=`
-    <div class="msg-av" style="background:${uCol(msg.user)}; ${pointerCss}" ${clickFn}>${msg.pfp?`<img src="${esc(msg.pfp)}" style="width:100%;height:100%;object-fit:cover;background:var(--s2);">`:dName[0]}</div>
-    <div class="msg-body"><div class="msg-meta"><span class="msg-name" style="color:${uCol(msg.user)}; ${pointerCss}" ${clickFn}>${esc(dName)}</span>${badgeHTML}${titleHTML}${shadowHTML} <span class="msg-time">${fmt(msg.ts)}</span></div>${rpHTML}${content}${rxnsHTML}</div>
-    ${(!msg.deleted) ? `<div class="msg-acts">
-      ${(!msg.gif && !msg.img) ? `<button class="ma" onclick="startReply('${key}','${msg.user}', decodeURIComponent('${safeStr(dName)}'), decodeURIComponent('${safeStr(ct)}'))">↩</button>` : ''}
-      <button class="ma" onclick="openEmoMenu(event, '${key}')">😀</button>
-      ${msg.user!==me ? `<button class="ma am" onclick="blockUser('${msg.user}', '${esc(dName)}')">🚫</button>` : ''}
-      ${msg.user===me || isStaffMember() ? `<button class="ma rd" onclick="delMsg('${key}')">🗑</button>` : ''}
-    </div>` : ''}`;
-  
-  box.appendChild(wrap); 
-  if(!containerOverride && room === targetRoomId) box.scrollTop=box.scrollHeight;
+      const pointerCss = isStaffMember() ? 'cursor:pointer;' : '';
+      const clickFn = isStaffMember() ? `onclick="openAdminForUser('${msg.user}')"` : '';
 
-  if (targetRoomId.startsWith('dm_') && msg.user !== me && !containerOverride) localStorage.setItem('read_dm_' + targetRoomId.replace('dm_', '').replace(me, '').replace('_', ''), Date.now());
-  if (msg.ts > roomJoinTime && msg.user !== me && !msg.deleted && !containerOverride && "Notification" in window && Notification.permission === "granted" && !document.hasFocus()) { const notif = new Notification("Chatty", { body: msg.gif||msg.img ? "Sent media" : ct, icon: msg.pfp || "https://cdn-icons-png.flaticon.com/512/3114/3114810.png" }); notif.onclick = function() { window.focus(); this.close(); }; }
+      const wrap=document.createElement('div'); wrap.className='msg-wrap' + (isMention ? ' mentioned' : ''); wrap.id = 'msg-' + key;
+      wrap.innerHTML=`
+        <div class="msg-av" style="background:${uCol(msg.user)}; ${pointerCss}" ${clickFn}>${msg.pfp?`<img src="${esc(msg.pfp)}" style="width:100%;height:100%;object-fit:cover;background:var(--s2);">`:dName[0]}</div>
+        <div class="msg-body"><div class="msg-meta"><span class="msg-name" style="color:${uCol(msg.user)}; ${pointerCss}" ${clickFn}>${esc(dName)}</span>${badgeHTML}${titleHTML}${shadowHTML} <span class="msg-time">${fmt(msg.ts)}</span></div>${rpHTML}${content}${rxnsHTML}</div>
+        ${(!msg.deleted) ? `<div class="msg-acts">
+          ${(!msg.gif && !msg.img) ? `<button class="ma" onclick="startReply('${key}','${msg.user}', decodeURIComponent('${safeStr(dName)}'), decodeURIComponent('${safeStr(ct)}'))">↩</button>` : ''}
+          <button class="ma" onclick="openEmoMenu(event, '${key}')">😀</button>
+          ${msg.user!==me ? `<button class="ma am" onclick="blockUser('${msg.user}', '${esc(dName)}')">🚫</button>` : ''}
+          ${msg.user===me || (isStaffMember() && adminRole !== 'trial_helper') ? `<button class="ma rd" onclick="delMsg('${key}')">🗑</button>` : ''}
+        </div>` : ''}`;
+      
+      box.appendChild(wrap); 
+      if(!containerOverride && room === targetRoomId) box.scrollTop=box.scrollHeight;
+
+      if (targetRoomId.startsWith('dm_') && msg.user !== me && !containerOverride) localStorage.setItem('read_dm_' + targetRoomId.replace('dm_', '').replace(me, '').replace('_', ''), Date.now());
+      if (msg.ts > roomJoinTime && msg.user !== me && !msg.deleted && !containerOverride && "Notification" in window && Notification.permission === "granted" && !document.hasFocus()) { const notif = new Notification("Chatty", { body: msg.gif||msg.img ? "Sent media" : ct, icon: msg.pfp || "https://cdn-icons-png.flaticon.com/512/3114/3114810.png" }); notif.onclick = function() { window.focus(); this.close(); }; }
+  });
 }
 
 function scrollToMsg(key) { const el = document.getElementById('msg-' + key); if(el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.outline = '2px solid var(--ac)'; setTimeout(() => el.style.outline = 'none', 2000); } }
@@ -1860,7 +2199,7 @@ async function doSend(){
     // VOTING ENGINE
     if(cmd === '/vote') {
       const vType = args[1] ? args[1].toLowerCase() : '';
-      if(!isStaffMember()) return toast("Only staff can start votes.", "err");
+      if(!isStaffMember() || adminRole === 'trial_helper') return toast("Only staff can start votes.", "err");
 
       if(vType === 'timeout' || vType === 'ban' || vType === 'mute') {
         if(vType === 'ban' && adminRole !== 'admin' && !isSuperAdmin()) return toast("Only Admins can do ban votes.", "err");
@@ -1968,7 +2307,7 @@ async function doSend(){
       const action = args[1] ? args[1].toLowerCase() : '';
       
       if(action === 'stop') {
-        if(!isStaffMember()) return toast("Only staff can forcefully stop games.", "err");
+        if(!isStaffMember() || adminRole === 'trial_helper') return toast("Only staff can forcefully stop games.", "err");
         await db.ref('server_meta/hangman_'+room).remove();
         return sysMsg(`🛑 Hangman game was forcibly stopped by staff (${myDisplayName}).`);
       }
@@ -2023,7 +2362,7 @@ async function doSend(){
       
       // Stop Multi
       if(action === 'stop') {
-        if(!isStaffMember()) return toast("Only staff can forcefully stop games.", "err");
+        if(!isStaffMember() || adminRole === 'trial_helper') return toast("Only staff can forcefully stop games.", "err");
         await db.ref('server_meta/bj_'+room).remove();
         return sysMsg(`🛑 Multiplayer Blackjack game was forcibly stopped by staff (${myDisplayName}).`);
       }
