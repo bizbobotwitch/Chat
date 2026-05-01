@@ -1075,7 +1075,16 @@ async function joinVoiceRoom() {
     
     // Unique peer ID for this session
     const peerId = me + '_' + Math.random().toString(36).substr(2,6);
-    myPeer = new Peer(peerId);
+    
+    // UPDATED: Added Google STUN servers to punch through firewalls
+    myPeer = new Peer(peerId, {
+      config: {
+        'iceServers': [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
+    });
     
     myPeer.on('open', id => {
       db.ref('voice_lounge/'+id).set({ uid: me, name: myDisplayName, ts: Date.now() });
@@ -1101,9 +1110,10 @@ async function joinVoiceRoom() {
     });
 
   } catch(err) {
+    console.error("Mic error:", err);
     document.getElementById('muteMicBtn').textContent = 'Microphone Blocked';
     document.getElementById('muteMicBtn').style.background = 'var(--rd)';
-    toast('Mic permission denied', 'err');
+    toast('Mic permission denied. Ensure you are on HTTPS or localhost.', 'err');
   }
 }
 
