@@ -88,6 +88,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .msg-text.censored-txt{color:var(--am)}
 .msg-media{max-width:250px; border-radius:8px; margin-top:6px; display:block; border:1px solid var(--b2); cursor:pointer;}
 .sb-tag{font-size:10px; color:var(--am); border:1px solid var(--am); padding:1px 4px; border-radius:4px; margin-left:4px;}
+.custom-title{font-size:9.5px; background:var(--s3); color:var(--t1); padding:1px 6px; border-radius:4px; margin-left:4px; border:1px solid var(--b2); letter-spacing:0.5px;}
 
 /* REACTIONS */
 .rxn-bar{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
@@ -211,7 +212,15 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     <input class="fi" id="ep-d" type="text" placeholder="Your display name">
     <input class="fi" id="ep-pfp" type="url" placeholder="PFP Image URL">
     <button class="mbtn mb-p" onclick="saveProfile()">Save Changes</button>
-    <button class="mbtn mb-s" onclick="hideProfile()">Cancel</button>
+    
+    <hr style="border:none; border-top:1px solid var(--b2); margin:18px 0 15px;">
+    <div class="m-title" style="font-size:16px;">🔐 Change Password</div>
+    <p style="font-size:11px; color:var(--t2); margin-bottom:10px;">Update your password while logged in.</p>
+    <input class="fi" id="ep-old-p" type="password" placeholder="Current Password" style="margin-bottom:8px;">
+    <input class="fi" id="ep-new-p" type="password" placeholder="New Password (Min 6 chars)">
+    <button class="mbtn mb-p" style="background:var(--s3); color:var(--t1); border:1px solid var(--b2);" onclick="changeMyPassword()">Update Password</button>
+    
+    <button class="mbtn mb-s" style="margin-top:10px;" onclick="hideProfile()">Cancel</button>
   </div>
 </div>
 
@@ -315,8 +324,11 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
           <button id="btn-clear-msgs" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminClearUser()">🗑 Clear Msgs</button>
           <button id="btn-reset-pfp" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminResetIndividualPFP()">🖼️ Reset PFP</button>
           <button id="btn-rename" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForceRename()">✏️ Force Rename</button>
+          <button id="btn-set-title" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSetTitle()">🏷️ Set Custom Title</button>
+          
           <button id="btn-sys-dm" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSystemDM()">📥 Send System DM</button>
-          <button id="btn-reset-pass" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForcePasswordReset()">🔑 Reset Password</button>
+          <button id="btn-force-logout" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminForceLogout()">🔌 Force Logout</button>
+          <button id="btn-reset-pass" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2); grid-column: span 2;" onclick="adminForcePasswordReset()">🔑 Reset Password</button>
 
           <button id="btn-ban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminBan()">🚫 Ban Account</button>
           <button id="btn-hwban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminHWBan()">🔨 HW-ID Ban</button>
@@ -429,7 +441,7 @@ firebase.initializeApp(FC); const db=firebase.database(); const storage=firebase
 let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=Date.now(), replyTo=null, currentGifTab='search';
 let adminRole = null, isChatLocked = false, isMediaLocked = false, isGhostMode = false, isMaintenance = false, myBlockedUsers = {}, typeTimer = null, auditRef = null, updateInterval = null;
 let adminUserList = [];
-let serverSlowmode = 0, lastSendTime = 0;
+let serverSlowmode = 0, lastSendTime = 0, myCustomTitle = null;
 const ADMIN_PW = '32ad', H_MOD_PW = '2hmod', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
 
@@ -575,6 +587,14 @@ function onLoggedIn(){
   db.ref('users/' + me).on('value', async snap => {
     const d = snap.val(); if(!d) return;
     
+    // Check if forced logout by admin
+    if(d.force_logout) { 
+      await db.ref('users/'+me+'/force_logout').remove(); 
+      toast("You have been forcibly logged out by an admin.", "err");
+      setTimeout(() => signOut(), 1500);
+      return;
+    }
+
     // Check if 24h Helper Pass expired
     if(d.helperExpiration && Date.now() > d.helperExpiration) {
       await db.ref('users/'+me).update({ role: null, helperExpiration: null });
@@ -591,6 +611,7 @@ function onLoggedIn(){
     isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = '👻 Ghost'; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = '● Online'; statusEl.style.color = 'var(--gr)'; }
     myBlockedUsers = d.blocked || {};
     adminRole = d.role || null;
+    myCustomTitle = d.customTitle || null;
     checkMaintenance();
     
     // Auto-join Moderation HQ if authorized
@@ -625,6 +646,26 @@ async function saveProfile(){
   const d = (await db.ref('users/'+me).once('value')).val();
   if(!d.role && isNameSpoofed(n)) return alert("⚠️ Name contains reserved words or staff badges.");
   await db.ref('users/'+me).update({displayName:n, pfp:p}); myDisplayName=n; myPfp=p; updateSidebarProfile(); hideProfile(); toast('Saved', 'ok'); 
+}
+
+async function changeMyPassword() { 
+  const oldP = document.getElementById('ep-old-p').value; 
+  const newP = document.getElementById('ep-new-p').value; 
+  
+  if(!oldP || !newP) return toast("Fill in both password fields.", "err"); 
+  if(newP.length < 6) return toast("New password must be at least 6 characters.", "err"); 
+  
+  const snap = await db.ref('users/'+me).once('value'); 
+  const d = snap.val(); 
+  
+  if(d.password !== simpleHash(oldP)) return toast("Current password is incorrect.", "err"); 
+  
+  await db.ref('users/'+me).update({ password: simpleHash(newP) }); 
+  
+  document.getElementById('ep-old-p').value = ''; 
+  document.getElementById('ep-new-p').value = ''; 
+  hideProfile();
+  toast("Password updated successfully!", "ok"); 
 }
 
 // ── CUSTOM SERVERS ────────────────────────────
@@ -671,7 +712,6 @@ function loadFriends() {
       const fData = (await db.ref(`users/${f}`).once('value')).val(); if(!fData) continue;
       const dName = fData.displayName || f, pfp = fData.pfp || '', dmId = [me, f].sort().join('_'), btn = document.createElement('button'); btn.className = 'fr-item nav-item'; btn.id = 'nav-dm-' + f; btn.onclick = () => openDM(f, dName);
       
-      // Added Close DM Button
       btn.innerHTML = `<div class="fr-av" style="background:${uCol(f)}">${pfp ? `<img src="${esc(pfp)}" style="width:100%;height:100%;object-fit:cover;border-radius:7px;">` : esc(dName[0].toUpperCase())}</div><div class="fr-name">${esc(dName)}</div><div class="unread-badge" id="badge-${f}">1</div><button class="fr-close" onclick="removeFriend(event, '${f}')" title="Close DM">✕</button>`;
       
       flist.appendChild(btn);
@@ -680,7 +720,6 @@ function loadFriends() {
   });
 }
 
-// Added Close DM Function
 async function removeFriend(e, fId) {
   e.stopPropagation();
   if(!confirm("Are you sure you want to close this direct message?")) return;
@@ -760,8 +799,10 @@ function setupAdminUI() {
   // Chat / Profile
   document.getElementById('btn-clear-msgs').style.display = isHMod ? '' : 'none'; 
   document.getElementById('btn-rename').style.display = isAdm ? '' : 'none'; 
+  document.getElementById('btn-set-title').style.display = isHMod ? '' : 'none';
   document.getElementById('btn-reset-pfp').style.display = isMod ? '' : 'none';
   document.getElementById('btn-sys-dm').style.display = isMod ? '' : 'none';
+  document.getElementById('btn-force-logout').style.display = isMod ? '' : 'none';
   document.getElementById('btn-reset-pass').style.display = isAdm ? '' : 'none';
 
   // Bans
@@ -815,8 +856,9 @@ async function loadAUser(){
   
   let hwidStr = isSuperAdmin() && u.hwid ? `<div style="font-size:9px; color:var(--am); margin-top:4px; font-family:monospace;">HWID: ${u.hwid}</div>` : '';
   let shadowTag = u.shadowbanned ? `<span style="font-size:10px; color:var(--ac); border:1px solid var(--ac-bdr); padding:1px 4px; border-radius:4px; margin-left:4px;">Ghosted</span>` : '';
-  
-  card.innerHTML=`<div class="a-ucard"><div class="auc-top"><div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${u.pfp?`<img src="${esc(u.pfp)}" style="width:100%;height:100%;object-fit:cover;">`:(u.displayName||uname)[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(u.displayName||uname)} ${u.role ? `<span style="color:var(--ac);font-size:10px">[${u.role}]</span>` : ''}${shadowTag}</div><div style="font-size:10px;color:var(--t2)">Joined ${new Date(u.ts||0).toLocaleDateString()}</div>${hwidStr}</div><div class="sdot ${u.banned?'sd-ban':timed?'sd-to':u.muted?'sd-mute':'sd-ok'}"></div><span style="font-size:11px;color:var(--t2)">${u.banned?'Banned':timed?'Timed out':u.muted?'Muted':'Active'}</span></div></div>`; 
+  let titleTag = u.customTitle ? `<span style="font-size:9.5px; background:var(--s3); color:var(--t1); padding:1px 6px; border-radius:4px; margin-left:4px; border:1px solid var(--b2); letter-spacing:0.5px;">${esc(u.customTitle)}</span>` : '';
+
+  card.innerHTML=`<div class="a-ucard"><div class="auc-top"><div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${u.pfp?`<img src="${esc(u.pfp)}" style="width:100%;height:100%;object-fit:cover;">`:(u.displayName||uname)[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(u.displayName||uname)} ${u.role ? `<span style="color:var(--ac);font-size:10px">[${u.role}]</span>` : ''}${titleTag}${shadowTag}</div><div style="font-size:10px;color:var(--t2)">Joined ${new Date(u.ts||0).toLocaleDateString()}</div>${hwidStr}</div><div class="sdot ${u.banned?'sd-ban':timed?'sd-to':u.muted?'sd-mute':'sd-ok'}"></div><span style="font-size:11px;color:var(--t2)">${u.banned?'Banned':timed?'Timed out':u.muted?'Muted':'Active'}</span></div></div>`; 
 }
 
 // Supreme Admin Additions
@@ -890,7 +932,17 @@ async function adminTO(min){ const u=document.getElementById('a-sel').value; if(
 async function adminVoiceKick(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u+'/force_voice_leave').set(true); logAdminAction(`Kicked from Voice Room`, u); toast('User booted from voice', 'ok'); }
 async function adminMute(isMute){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u).update({muted: isMute}); logAdminAction(isMute ? 'Muted User' : 'Unmuted User', u); toast(isMute ? 'Muted' : 'Unmuted', 'ok'); loadAUser(); }
 async function adminForceRename(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const nn=prompt("Enter new display name:"); if(!nn)return; await db.ref('users/'+u).update({displayName: nn.trim()}); logAdminAction(`Force renamed to ${nn.trim()}`, u); toast('Renamed', 'ok'); loadAdminUsers(); }
-async function adminClearUser(){ const u=document.getElementById('a-sel').value; if(!u)return; const snap=await db.ref('chats/'+room).once('value'); const updates={}; snap.forEach(c=>{if(c.val().user===u){updates['chats/'+room+'/'+c.key+'/text']='';updates['chats/'+room+'/'+c.key+'/deleted']=true;}}); await db.ref().update(updates); logAdminAction(`Scrubbed user history in room ${room}`, u); toast('Cleared', 'ok'); }
+
+async function adminClearUser(){ 
+  const u=document.getElementById('a-sel').value; if(!u)return; 
+  if(!confirm("Clear all visible messages from this user in this room?")) return;
+  const snap=await db.ref('chats/'+room).once('value'); 
+  const updates={}; 
+  snap.forEach(c=>{if(c.val().user===u){updates['chats/'+room+'/'+c.key+'/text']='';updates['chats/'+room+'/'+c.key+'/deleted']=true;}}); 
+  await db.ref().update(updates); 
+  logAdminAction(`Scrubbed user history in room ${room}`, u); toast('Cleared', 'ok'); 
+}
+
 async function adminBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u).update({banned:true}); logAdminAction('Account Banned', u); toast('Banned', 'ok'); loadAUser(); }
 async function adminHWBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(!ud.hwid)return; await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).set({hwid:ud.hwid}); await db.ref('users/'+u).update({banned:true}); logAdminAction('Hardware Device Banned', u); toast('HW-Banned', 'ok'); loadAUser(); }
 async function adminUnban(){ const u=document.getElementById('a-sel').value; if(!u)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(ud.hwid) await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).remove(); await db.ref('users/'+u).update({banned:false,timeoutUntil:0,pendingWarnReason:null,pendingWarnPenalty:null,muted:false,shadowbanned:false}); logAdminAction('Unbanned/Pardoned User', u); toast('Unbanned', 'ok'); loadAUser(); }
@@ -932,6 +984,33 @@ async function adminForcePasswordReset() {
   toast('Password updated successfully', 'ok');
 }
 
+async function adminForceLogout() {
+  const u = document.getElementById('a-sel').value; 
+  if(!u || u === me) return; 
+  if(!confirm(`Are you sure you want to forcibly disconnect @${u}?`)) return;
+  await db.ref('users/' + u + '/force_logout').set(true);
+  logAdminAction(`Forced logout`, u);
+  toast('User disconnected', 'ok');
+}
+
+async function adminSetTitle() {
+  const u = document.getElementById('a-sel').value; 
+  if(!u) return; 
+  const title = prompt(`Enter a custom title/tag for @${u} (leave blank to remove):`);
+  if(title === null) return; 
+  
+  if(title.trim() === "") {
+    await db.ref('users/' + u + '/customTitle').remove();
+    toast('Custom title removed', 'ok');
+    logAdminAction(`Removed custom title`, u);
+  } else {
+    await db.ref('users/' + u + '/customTitle').set(title.trim());
+    toast('Custom title updated', 'ok');
+    logAdminAction(`Set custom title to: ${title.trim()}`, u);
+  }
+  loadAdminUsers();
+}
+
 // ── MEDIA (GIF & IMAGE UPLOAD) ────────────────
 function toggleGifMenu(){ if(isMediaLocked)return toast("Media disabled", "err"); document.getElementById('gifMenu').classList.toggle('open'); if(document.getElementById('gifMenu').classList.contains('open')) { if(currentGifTab === 'search') searchGifs(); else renderFavGifs(); } }
 function setGifTab(t) { currentGifTab = t; document.getElementById('tab-search').classList.toggle('active', t === 'search'); document.getElementById('tab-favs').classList.toggle('active', t === 'favs'); document.getElementById('gifSearchInp').style.display = t === 'search' ? 'block' : 'none'; if(t === 'search') searchGifs(); else renderFavGifs(); }
@@ -958,7 +1037,7 @@ async function sendMedia(url, isGif){
   if(isChatLocked || await isHWBanned()) return; 
   const d=(await db.ref('users/'+me).once('value')).val()||{}; 
   if(d.banned || d.pendingWarnReason || d.muted || (d.timeoutUntil&&d.timeoutUntil>Date.now())) return; 
-  const p={user:me, displayName:myDisplayName, pfp:myPfp, ts:Date.now(), role:d.role||null, showBadge:d.showBadge||false, shadowbanned: d.shadowbanned||false}; 
+  const p={user:me, displayName:myDisplayName, pfp:myPfp, ts:Date.now(), role:d.role||null, showBadge:d.showBadge||false, shadowbanned: d.shadowbanned||false, customTitle: d.customTitle||null}; 
   if(isGif) p.gif = url; else p.img = url; 
   await db.ref('chats/'+room).push(p); 
   if(isGif) document.getElementById('gifMenu').classList.remove('open'); 
@@ -1160,6 +1239,7 @@ function addMsg(key,msg, containerOverride = null){
   }
   
   let shadowHTML = msg.shadowbanned && isStaffMember() ? `<span class="sb-tag">Shadowbanned</span>` : '';
+  let titleHTML = msg.customTitle ? `<span class="custom-title">${esc(msg.customTitle)}</span>` : '';
 
   let mediaUrl = msg.img || msg.gif;
 
@@ -1186,7 +1266,7 @@ function addMsg(key,msg, containerOverride = null){
   const wrap=document.createElement('div'); wrap.className='msg-wrap' + (isMention ? ' mentioned' : ''); wrap.id = 'msg-' + key;
   wrap.innerHTML=`
     <div class="msg-av" style="background:${uCol(msg.user)}">${msg.pfp?`<img src="${esc(msg.pfp)}" style="width:100%;height:100%;object-fit:cover;background:var(--s2);">`:dName[0]}</div>
-    <div class="msg-body"><div class="msg-meta"><span class="msg-name" style="color:${uCol(msg.user)}">${esc(dName)}${badgeHTML}${shadowHTML}</span> <span class="msg-time">${fmt(msg.ts)}</span></div>${rpHTML}${content}${rxnsHTML}</div>
+    <div class="msg-body"><div class="msg-meta"><span class="msg-name" style="color:${uCol(msg.user)}">${esc(dName)}${badgeHTML}${titleHTML}${shadowHTML}</span> <span class="msg-time">${fmt(msg.ts)}</span></div>${rpHTML}${content}${rxnsHTML}</div>
     ${(!msg.deleted) ? `<div class="msg-acts">
       ${(!msg.gif && !msg.img) ? `<button class="ma" onclick="startReply('${key}','${msg.user}', decodeURIComponent('${safeStr(dName)}'), decodeURIComponent('${safeStr(ct)}'))">↩</button>` : ''}
       <button class="ma" onclick="openEmoMenu(event, '${key}')">😀</button>
@@ -1213,7 +1293,7 @@ async function doSend(){
     return toast(`🐢 Slowmode active. Please wait ${serverSlowmode} seconds.`, 'warn');
   }
 
-  const {text:ct, censored:wc}=censor(txt), obj = {user:me, displayName:myDisplayName, pfp:myPfp, text:ct, censored:wc, ts:Date.now(), deleted:false, role:d.role||null, showBadge:d.showBadge||false, shadowbanned: d.shadowbanned||false};
+  const {text:ct, censored:wc}=censor(txt), obj = {user:me, displayName:myDisplayName, pfp:myPfp, text:ct, censored:wc, ts:Date.now(), deleted:false, role:d.role||null, showBadge:d.showBadge||false, shadowbanned: d.shadowbanned||false, customTitle: d.customTitle||null};
   if(replyTo) obj.replyTo = {key: replyTo.key, displayName: replyTo.displayName, text: replyTo.text};
   await db.ref('chats/'+room).push(obj); 
   inp.value=''; cancelReply(); lastSendTime = Date.now(); db.ref('typing/'+room+'/'+me).remove();
