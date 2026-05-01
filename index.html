@@ -1337,9 +1337,11 @@ const COMMANDS = [
   { cmd: '/flip', desc: 'Flip a coin' },
   { cmd: '/hangman start', desc: 'Start a new game of hangman' },
   { cmd: '/guess ', desc: 'Guess a letter (e.g. /guess a)' },
+  { cmd: '/hangman stop', desc: '[Admin] Stop an active hangman game' },
   { cmd: '/bj start', desc: 'Play Blackjack against the Dealer bot' },
   { cmd: '/bj hit', desc: 'Draw another card in Blackjack' },
-  { cmd: '/bj stand', desc: 'End your turn in Blackjack' }
+  { cmd: '/bj stand', desc: 'End your turn in Blackjack' },
+  { cmd: '/bj stop', desc: '[Admin] Stop an active blackjack game' }
 ];
 
 function checkCommandMenu(e) {
@@ -1357,7 +1359,7 @@ function checkCommandMenu(e) {
         const div = document.createElement('div');
         div.className = 'cmd-item';
         div.innerHTML = `<div class="cmd-name">${m.cmd}</div><div class="cmd-desc">${m.desc}</div>`;
-        div.onclick = () => { inp.value = m.cmd + (m.cmd.includes('start') ? '' : ' '); inp.focus(); menu.classList.remove('open'); };
+        div.onclick = () => { inp.value = m.cmd + (m.cmd.includes('start') || m.cmd.includes('stop') ? '' : ' '); inp.focus(); menu.classList.remove('open'); };
         menu.appendChild(div);
       });
       menu.classList.add('open');
@@ -1422,12 +1424,20 @@ async function doSend(){
 
     if(cmd === '/hangman') {
       const action = args[1] ? args[1].toLowerCase() : '';
+      
+      // ADMIN: Stop game
+      if(action === 'stop') {
+        if(!isStaffMember()) return toast("Only staff can forcefully stop games.", "err");
+        await db.ref('server_meta/hangman_'+room).remove();
+        return db.ref('chats/'+room).push({ sys: true, text: `🛑 Hangman game was forcibly stopped by staff (${myDisplayName}).`, ts: Date.now() });
+      }
+
       if(action === 'start') {
         const word = args[2] ? args[2].toLowerCase() : ['javascript', 'firebase', 'hacker', 'programming', 'network'][Math.floor(Math.random()*5)];
         await db.ref('server_meta/hangman_'+room).set({ word: word, guessed: '', strikes: 0, starter: myDisplayName });
         return db.ref('chats/'+room).push({ sys: true, text: `🎮 ${myDisplayName} started a game of Hangman! Type /guess [letter] to play.\n\n${word.replace(/[a-z]/g, '⬜ ')}`, ts: Date.now() });
       }
-      return toast("Usage: /hangman start [word]", "info");
+      return toast("Usage: /hangman start [word] OR /hangman stop", "info");
     }
 
     if(cmd === '/guess') {
@@ -1466,10 +1476,17 @@ async function doSend(){
       return db.ref('chats/'+room).push({ sys: false, user: 'system', displayName: 'Hangman Bot', pfp: 'https://cdn-icons-png.flaticon.com/512/3004/3004382.png', text: resultMsg, ts: Date.now(), isGame: true });
     }
 
-    // NEW: BLACKJACK
+    // BLACKJACK
     if(cmd === '/bj') {
       const action = args[1] ? args[1].toLowerCase() : '';
       
+      // ADMIN: Stop game
+      if(action === 'stop') {
+        if(!isStaffMember()) return toast("Only staff can forcefully stop games.", "err");
+        await db.ref('server_meta/bj_'+room).remove();
+        return db.ref('chats/'+room).push({ sys: true, text: `🛑 Blackjack game was forcibly stopped by staff (${myDisplayName}).`, ts: Date.now() });
+      }
+
       if(action === 'start') {
         const pHand = [drawCard(), drawCard()];
         const dHand = [drawCard()]; // Only draw 1 for dealer to prevent cheating via Firebase
@@ -1493,9 +1510,10 @@ async function doSend(){
       const gameSnap = await db.ref('server_meta/bj_'+room).once('value');
       const game = gameSnap.val();
       if(!game || !game.active) return toast("No active Blackjack game. Type /bj start", "err");
-      if(game.uid !== me) return toast("Only " + game.player + " can play this hand!", "err");
+      if(game.uid !== me && !isStaffMember()) return toast("Only " + game.player + " can play this hand!", "err");
       
       if(action === 'hit') {
+        if(game.uid !== me) return toast("Only the player can hit.", "err");
         if(!game.pHand) game.pHand = [];
         game.pHand.push(drawCard());
         const pScore = calcScore(game.pHand);
@@ -1512,6 +1530,7 @@ async function doSend(){
       }
       
       if(action === 'stand') {
+        if(game.uid !== me) return toast("Only the player can stand.", "err");
         let pScore = calcScore(game.pHand);
         let dScore = calcScore(game.dHand);
         let msg = `🧑 You stand at ${pScore}.\n\n`;
