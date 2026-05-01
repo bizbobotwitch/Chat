@@ -1318,7 +1318,7 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
       ${(!msg.gif && !msg.img) ? `<button class="ma" onclick="startReply('${key}','${msg.user}', decodeURIComponent('${safeStr(dName)}'), decodeURIComponent('${safeStr(ct)}'))">↩</button>` : ''}
       <button class="ma" onclick="openEmoMenu(event, '${key}')">😀</button>
       ${msg.user!==me ? `<button class="ma am" onclick="blockUser('${msg.user}', '${esc(dName)}')">🚫</button>` : ''}
-      ${msg.user===me || adminRole==='admin' || adminRole==='h_mod' || adminRole==='mod' ? `<button class="ma rd" onclick="delMsg('${key}')">🗑</button>` : ''}
+      ${msg.user===me || isStaffMember() ? `<button class="ma rd" onclick="delMsg('${key}')">🗑</button>` : ''}
     </div>` : ''}`;
   
   box.appendChild(wrap); 
