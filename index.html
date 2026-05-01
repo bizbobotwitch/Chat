@@ -287,14 +287,15 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 
           <div class="a-grid" style="margin-bottom: 8px;">
             <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminBroadcast()">📢 Announcement</button>
-            <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSetBanner()">📌 Sticky Banner</button>
+            <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminGlobalSystemMsg()">🌐 Global Sys Msg</button>
             <button id="btn-ghost-mode" class="abtn" style="background:var(--s3);color:var(--t2);border:1px solid var(--b2)" onclick="toggleGhostMode()">👻 Ghost Mode</button>
             <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSetSlowmode()">🐢 Set Slowmode</button>
             <button id="btn-maint" class="abtn" style="background:rgba(245,166,35,.15);color:var(--am);border:1px solid rgba(245,166,35,.3); grid-column: span 2;" onclick="adminToggleMaintenance()">🚧 Toggle Maintenance Mode</button>
+            <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSetBanner()">📌 Sticky Banner</button>
             <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminToggleMediaLock()">🖼️ Toggle Media Uploads</button>
-            <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminForceReloadAll()">🔄 Force Reload All Users</button>
           </div>
           
+          <button class="abtn" style="width:100%; margin-bottom:8px; background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminForceReloadAll()">🔄 Force Reload All Users</button>
           <button class="abtn" style="width:100%; margin-bottom:8px; background:var(--s3); color:var(--am); border:1px solid var(--b2)" onclick="adminNukePFPs()">💥 Wipe All User Avatars (Raid Mode)</button>
 
           <div style="display:flex; gap:6px; margin-bottom: 8px;">
@@ -461,6 +462,8 @@ let adminRole = null, isChatLocked = false, isMediaLocked = false, isGhostMode =
 let adminUserList = [];
 let serverSlowmode = 0, lastSendTime = 0, myCustomTitle = null;
 let loadedRooms = {}; 
+let dmLockUntil = 0, dmLockRoom = null; // System DM Page Lock feature
+
 const ADMIN_PW = '32ad', H_MOD_PW = '2hmod', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
 
@@ -608,6 +611,26 @@ function onLoggedIn(){
   db.ref('users/' + me).on('value', async snap => {
     const d = snap.val(); if(!d) return;
     
+    // Forced System DM Lock logic
+    if(d.force_dm && d.force_dm.until > Date.now()) {
+        dmLockUntil = d.force_dm.until;
+        dmLockRoom = d.force_dm.dmId;
+        
+        if(room !== dmLockRoom) {
+            switchRoom(dmLockRoom);
+            toast("⚠️ MODERATION INTERVENTION. Please read carefully.", "warn");
+        }
+        
+        setTimeout(() => {
+            if(Date.now() >= dmLockUntil) {
+                dmLockUntil = 0;
+                dmLockRoom = null;
+                db.ref('users/'+me+'/force_dm').remove();
+                toast("You may now change rooms again.", "ok");
+            }
+        }, d.force_dm.until - Date.now());
+    }
+
     // Check if forced logout by admin
     if(d.force_logout) { 
       if(me && room) db.ref('typing/'+room+'/'+me).remove();
@@ -984,6 +1007,16 @@ async function adminPurge() { if (!isSuperAdmin()) return; const count = parseIn
 async function adminToggleLock() { if (!isSuperAdmin()) return; if (isChatLocked) { await db.ref('server_meta/chatLocked').set(false); await db.ref('chats/'+room).push({ sys: true, text: `🔓 Chat unlocked by ${myDisplayName}.`, ts: Date.now() }); logAdminAction(`Unlocked room ${room}`); } else { if(!confirm('SHUTDOWN chat?')) return; await db.ref('server_meta/chatLocked').set(true); await db.ref('chats/'+room).push({ sys: true, text: `🛑 Chat SHUT DOWN by ${myDisplayName}.`, ts: Date.now() }); logAdminAction(`Initiated Lockdown on room ${room}`); } }
 async function adminClearAllChats(){ if (!isSuperAdmin()) return; if(!confirm('Nuke ALL messages?'))return; await db.ref('chats/'+room).remove(); logAdminAction(`Nuked entire chat history in room ${room}`); toast('Room wiped', 'ok'); }
 
+// NEW GLOBAL SYSTEM MESSAGE
+async function adminGlobalSystemMsg() {
+  if(!isStaffMember()) return;
+  const txt = prompt("Enter official system message to broadcast directly in the Global Chat:");
+  if(!txt) return;
+  await db.ref('chats/global').push({ sys: true, text: `🛡️ SYSTEM MESSAGE:\n\n${txt}`, ts: Date.now() });
+  logAdminAction('Sent Global System Message');
+  toast('Global System Msg Sent', 'ok');
+}
+
 // --- Advanced Moderation Functions --- //
 async function adminWarn(m){ 
   const u=document.getElementById('a-sel').value; if(!u||u===me) return; 
@@ -1032,10 +1065,16 @@ async function adminSystemDM() {
   const u=document.getElementById('a-sel').value; if(!u||u===me)return;
   const txt = prompt("Enter official warning/message to send directly to their DMs:"); if(!txt)return;
   const dmId = [me, u].sort().join('_');
+  
   await db.ref(`users/${me}/friends/${u}`).set({ ts: Date.now() });
   await db.ref(`users/${u}/friends/${me}`).set({ ts: Date.now() });
+  
   await db.ref('chats/dm_'+dmId).push({ sys: true, text: `🛡️ SYSTEM MESSAGE FROM MODERATION:\n\n${txt}`, ts: Date.now() });
-  logAdminAction('Sent System DM to user', u); toast('System DM Sent', 'ok');
+  
+  // Apply the 10-second Lock directly to their account
+  await db.ref('users/'+u+'/force_dm').set({ dmId: 'dm_'+dmId, until: Date.now() + 10000 });
+  
+  logAdminAction('Sent System DM to user', u); toast('System DM Sent & User Locked', 'ok');
 }
 
 async function adminForcePasswordReset() {
@@ -1342,6 +1381,12 @@ function cancelReply(){ replyTo=null; document.getElementById('replyBar').style.
 async function delMsg(key){ if(confirm('Delete?')) await db.ref('chats/'+room+'/'+key).update({text:'',deleted:true}); }
 
 function switchRoom(id) {
+  // NEW: Block users from navigating away if they are locked into a System DM
+  if(dmLockUntil > Date.now() && id !== dmLockRoom) {
+      toast("You must acknowledge the system message for " + Math.ceil((dmLockUntil - Date.now())/1000) + " more seconds.", "err");
+      return; 
+  }
+
   if(me && room && room !== id) db.ref('typing/'+room+'/'+me).remove();
   room = id; roomJoinTime = Date.now();
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
