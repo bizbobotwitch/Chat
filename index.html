@@ -59,6 +59,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .fr-av{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;background:var(--s3);}
 .fr-name{font-size:12.5px;font-weight:500;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .unread-badge{background:var(--rd);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:99px;margin-left:auto;display:none;}
+.fr-close{width:20px;height:20px;font-size:10px;margin-left:auto;background:transparent;border:none;color:var(--t3);cursor:pointer;border-radius:4px;}
+.fr-close:hover{background:rgba(255,79,79,.15);color:var(--rd);}
 
 /* CHAT */
 .chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0; position:relative;}
@@ -155,6 +157,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 
 #maintOv{background:var(--bg); z-index:100000; flex-direction:column; text-align:center;}
 
+#alertOv{background:rgba(255,0,0,0.8); z-index:999999; flex-direction:column; text-align:center; display:none;}
+
 /* ADMIN CSS */
 .a-sec{margin-bottom:14px}
 .a-lbl{font-size:9.5px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--t3);margin-bottom:8px;display:block}
@@ -181,6 +185,13 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
   <div style="font-size:80px; margin-bottom:20px;">🚧</div>
   <h1 style="color:var(--am); font-size:28px; margin-bottom:10px;">Under Maintenance</h1>
   <p style="color:var(--t2); max-width:400px; line-height:1.6;">The server is currently undergoing upgrades. Only authorized staff members can bypass this screen right now. We'll be back shortly!</p>
+</div>
+
+<div class="ov" id="alertOv">
+  <div style="font-size:80px; margin-bottom:20px;">🚨</div>
+  <h1 style="color:#fff; font-size:28px; margin-bottom:10px; text-transform:uppercase;">Emergency Alert</h1>
+  <p id="alertTxt" style="color:#fff; font-weight:600; font-size:18px; max-width:500px; line-height:1.6; margin-bottom:30px;"></p>
+  <button class="mbtn" style="width:auto; padding:12px 30px; background:#fff; color:var(--rd);" onclick="document.getElementById('alertOv').style.display='none'">I Understand</button>
 </div>
 
 <div class="ov open" id="authOv">
@@ -245,13 +256,17 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     </div>
     <div id="aCont" style="display:none; max-height:65vh; overflow-y:auto; padding-right:5px;">
       
-      <button class="abtn" style="background:var(--ac);color:#fff;border:none; width:100%; margin-bottom:8px; padding:10px; font-size:12.5px;" onclick="toggleMyBadge()">📛 Toggle My Chat Badge</button>
-      <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2); width:100%; margin-bottom:14px; padding:10px;" onclick="toggleAuditLogs()">📜 View Audit Logs</button>
+      <div style="display:flex; gap:6px; margin-bottom:14px;">
+        <button class="abtn" style="flex:1; background:var(--ac);color:#fff;border:none; padding:10px;" onclick="toggleMyBadge()">📛 Toggle My Chat Badge</button>
+        <button class="abtn" style="flex:1; background:var(--s3);color:var(--t1);border:1px solid var(--b2); padding:10px;" onclick="toggleAuditLogs()">📜 View Logs</button>
+      </div>
       <div id="audit-logs-container" style="display:none; background:var(--s2); border:1px solid var(--b1); border-radius:8px; padding:10px; max-height:200px; overflow-y:auto; font-size:11px; margin-bottom:14px; font-family:'JetBrains Mono', monospace; word-wrap:break-word;"></div>
 
       <div id="admin-only-tools" style="display:none;">
         <div class="a-sec">
           <span class="a-lbl" style="color:var(--ac)">👑 Supreme Admin Tools</span>
+          
+          <button class="abtn" style="width:100%; margin-bottom:8px; padding:10px; background:rgba(255,79,79,.15);color:var(--rd);border:1px solid var(--rd);font-size:13px;" onclick="adminEmergencyAlert()">🚨 Trigger Emergency Alert</button>
           
           <div style="display:flex; gap:6px; margin-bottom: 8px;">
             <input type="number" id="timer-mins" class="fi" style="margin:0; width:80px;" placeholder="Mins">
@@ -288,9 +303,15 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       </div>
       <div class="a-sec">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span class="a-lbl" style="margin:0;">User Actions</span><button class="abtn" style="background:var(--s3);color:var(--t2);border:1px solid var(--b2); padding:4px 8px; font-size:10px;" onclick="loadAdminUsers()">🔄 Refresh</button>
+          <span class="a-lbl" style="margin:0;">User Actions</span>
+          <div style="display:flex; gap:4px;">
+            <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.3); padding:4px 8px; font-size:10px;" onclick="viewRestrictedUsers()">📋 View Restricted Users</button>
+            <button class="abtn" style="background:var(--s3);color:var(--t2);border:1px solid var(--b2); padding:4px 8px; font-size:10px;" onclick="loadAdminUsers()">🔄 Refresh</button>
+          </div>
         </div>
         
+        <div id="restricted-users-container" style="display:none; background:var(--s2); border:1px solid var(--b1); border-radius:8px; padding:10px; max-height:200px; overflow-y:auto; font-size:11.5px; margin-bottom:10px;"></div>
+
         <input class="fi si" style="width:100%; margin-bottom:6px;" id="a-search" placeholder="Search by name or UID..." oninput="filterAdminUsers()">
         <select class="a-sel" id="a-sel" onchange="loadAUser()"><option value="">— select user —</option></select>
         
@@ -509,6 +530,18 @@ db.ref('server_meta/reloadAll').on('value', snap => {
   }
 });
 
+let lastEmergency = localStorage.getItem('last_emergency') || 0;
+db.ref('server_meta/emergency_alert').on('value', snap => {
+  const d = snap.val();
+  if (d && d.ts > lastEmergency && d.ts > roomJoinTime) {
+    document.getElementById('alertTxt').textContent = d.text;
+    document.getElementById('alertOv').style.display = 'flex';
+    localStorage.setItem('last_emergency', d.ts);
+    lastEmergency = d.ts;
+    try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e){}
+  }
+});
+
 db.ref('server_meta/slowmode').on('value', snap => { serverSlowmode = snap.val() || 0; });
 db.ref('server_meta/banner').on('value', snap => { const b = document.getElementById('chatBanner'); if(snap.val()) { b.textContent = snap.val(); b.style.display = 'block'; } else b.style.display = 'none'; });
 db.ref('server_meta/maintenance').on('value', snap => { isMaintenance = snap.val() || false; checkMaintenance(); });
@@ -637,11 +670,17 @@ function loadFriends() {
     for(let f of Object.keys(snap.val())) {
       const fData = (await db.ref(`users/${f}`).once('value')).val(); if(!fData) continue;
       const dName = fData.displayName || f, pfp = fData.pfp || '', dmId = [me, f].sort().join('_'), btn = document.createElement('button'); btn.className = 'fr-item nav-item'; btn.id = 'nav-dm-' + f; btn.onclick = () => openDM(f, dName);
-      btn.innerHTML = `<div class="fr-av" style="background:${uCol(f)}">${pfp ? `<img src="${esc(pfp)}" style="width:100%;height:100%;object-fit:cover;border-radius:7px;">` : esc(dName[0].toUpperCase())}</div><div class="fr-name">${esc(dName)}</div><div class="unread-badge" id="badge-${f}">1</div>`;
+      btn.innerHTML = `<div class="fr-av" style="background:${uCol(f)}">${pfp ? `<img src="${esc(pfp)}" style="width:100%;height:100%;object-fit:cover;border-radius:7px;">` : esc(dName[0].toUpperCase())}</div><div class="fr-name">${esc(dName)}</div><div class="unread-badge" id="badge-${f}">1</div><button class="fr-close" onclick="removeFriend(event, '${f}')" title="Close DM">✕</button>`;
       flist.appendChild(btn);
       db.ref(`chats/dm_${dmId}`).limitToLast(1).on('value', mSnap => { if(!mSnap.exists()) return; let lm = null; mSnap.forEach(c => { lm = c.val(); }); if(lm && lm.user !== me) { const badge = document.getElementById('badge-' + f); if(badge) badge.style.display = (lm.ts > (localStorage.getItem('read_dm_' + f) || 0) && room !== 'dm_' + dmId) ? 'inline-block' : 'none'; } });
     }
   });
+}
+async function removeFriend(e, fId) {
+  e.stopPropagation();
+  if(!confirm("Are you sure you want to close this direct message?")) return;
+  await db.ref(`users/${me}/friends/${fId}`).remove();
+  if(room === 'dm_' + [me, fId].sort().join('_')) switchRoom('global');
 }
 function openDM(fId, fName) { document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active')); const nav = document.getElementById('nav-dm-' + fId); if(nav) nav.classList.add('active'); localStorage.setItem('read_dm_' + fId, Date.now()); const badge = document.getElementById('badge-' + fId); if(badge) badge.style.display = 'none'; document.getElementById('chTitle').textContent = '💬 ' + fName; switchRoom('dm_' + [me, fId].sort().join('_')); if(window.innerWidth <= 768) mobToggle(); }
 
@@ -650,7 +689,7 @@ function logAdminAction(act, targetUID = null) { try { db.ref('admin_logs').push
 function toggleAuditLogs() {
   const cont = document.getElementById('audit-logs-container');
   if(cont.style.display === 'none' || !cont.style.display) {
-    cont.style.display = 'block'; cont.innerHTML = 'Loading records...';
+    cont.style.display = 'block'; cont.innerHTML = 'Loading records...'; document.getElementById('restricted-users-container').style.display = 'none';
     auditRef = db.ref('admin_logs').limitToLast(50);
     auditRef.on('value', snap => {
       cont.innerHTML = ''; if(!snap.exists()) { cont.innerHTML = 'No logs found.'; return; }
@@ -773,7 +812,31 @@ async function loadAUser(){
   card.innerHTML=`<div class="a-ucard"><div class="auc-top"><div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${u.pfp?`<img src="${esc(u.pfp)}" style="width:100%;height:100%;object-fit:cover;">`:(u.displayName||uname)[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(u.displayName||uname)} ${u.role ? `<span style="color:var(--ac);font-size:10px">[${u.role}]</span>` : ''}${shadowTag}</div><div style="font-size:10px;color:var(--t2)">Joined ${new Date(u.ts||0).toLocaleDateString()}</div>${hwidStr}</div><div class="sdot ${u.banned?'sd-ban':timed?'sd-to':u.muted?'sd-mute':'sd-ok'}"></div><span style="font-size:11px;color:var(--t2)">${u.banned?'Banned':timed?'Timed out':u.muted?'Muted':'Active'}</span></div></div>`; 
 }
 
+function viewRestrictedUsers() {
+  const cont = document.getElementById('restricted-users-container');
+  document.getElementById('audit-logs-container').style.display = 'none';
+  if(cont.style.display === 'none' || !cont.style.display) {
+    cont.style.display = 'block'; cont.innerHTML = '<div style="color:var(--ac);font-weight:600;margin-bottom:8px;">Restricted Users Registry</div>';
+    const restricted = adminUserList.filter(u => u.val.banned || u.val.shadowbanned);
+    if(!restricted.length) { cont.innerHTML += '<div style="color:var(--t2);">No users are currently restricted.</div>'; return; }
+    restricted.forEach(u => {
+      const div = document.createElement('div'); div.style.marginBottom = '6px'; div.style.borderBottom = '1px solid var(--b2)'; div.style.paddingBottom = '4px'; div.style.display = 'flex'; div.style.justifyContent = 'space-between';
+      div.innerHTML = `<span>${esc(u.val.displayName)} (@${u.key})</span> <span style="color:${u.val.banned?'var(--rd)':'var(--ac)'}; font-weight:600;">${u.val.banned?'BANNED':'SHADOWBANNED'}</span>`;
+      cont.appendChild(div);
+    });
+  } else { cont.style.display = 'none'; }
+}
+
 // Supreme Admin Additions
+async function adminEmergencyAlert() {
+  if(!isSuperAdmin()) return;
+  const txt = prompt("Enter Emergency Broadcast Message:\n(This will flash a red overlay on everyone's screen immediately)");
+  if(!txt) return;
+  await db.ref('server_meta/emergency_alert').set({ text: txt, ts: Date.now() });
+  logAdminAction(`TRIGGERED EMERGENCY ALERT: ${txt}`);
+  toast('Alert Sent Globally', 'ok');
+}
+
 async function adminStartTimer() {
   if(!isSuperAdmin()) return;
   const mins = parseFloat(document.getElementById('timer-mins').value);
@@ -1085,7 +1148,7 @@ function addMsg(key,msg, containerOverride = null){
     const isLockMsg = msg.text.includes('🛑') || msg.text.includes('🔓');
     const isSysDm = msg.text.includes('🛡️ SYSTEM MESSAGE');
     let bColor = 'rgba(245,166,35,.3)', bgColor = 'rgba(245,166,35,.08)', tColor = 'var(--am)';
-    if(isLockMsg) { bColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.3)' : 'rgba(46,204,138,.3)'; bgColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.08)' : 'rgba(46,204,138,.08)'; tColor = msg.text.includes('🛑') ? 'var(--rd)' : 'var(--gr)'; }
+    if(isLockMsg) { bColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.3)'; bgColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.08)' : 'rgba(46,204,138,.08)'; tColor = msg.text.includes('🛑') ? 'var(--rd)' : 'var(--gr)'; }
     if(isSysDm) { bColor = 'rgba(255,79,79,.6)'; bgColor = 'rgba(255,79,79,.15)'; tColor = 'var(--rd)'; }
     
     wrap.innerHTML=`<span style="border-color:${bColor};color:${tColor};background:${bgColor}; ${isSysDm ? 'text-align:left; max-width:85%; padding:14px; font-size:12.5px; font-weight:600;' : ''}">${esc(msg.text)}</span>`; box.appendChild(wrap); if(!containerOverride) box.scrollTop=box.scrollHeight; return;
