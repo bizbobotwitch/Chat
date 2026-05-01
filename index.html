@@ -484,6 +484,8 @@ function fmt(ts){return new Date(ts).toLocaleTimeString([],{hour:'2-digit',minut
 function toast(msg,type='info'){ const el=document.createElement('div');el.className='toast '+type; el.innerHTML=`<span>${{ok:'✅',err:'❌',warn:'⚠️',info:'💬'}[type]||'💬'}</span><span>${msg}</span>`; document.getElementById('toasts').appendChild(el); setTimeout(()=>{el.style.opacity=0;el.style.transform='translateX(12px)';setTimeout(()=>el.remove(),320);},3000); }
 function reqNotif() { if (!("Notification" in window)) return toast("Not supported", "err"); if (Notification.permission === "granted") toast("Enabled!", "ok"); else if (Notification.permission === "denied") alert("Blocked in browser settings."); else Notification.requestPermission().then(p => { if (p === "granted") toast("Enabled!", "ok"); }); }
 
+function sysMsg(txt) { return db.ref('chats/'+room).push({ sys: true, text: txt, ts: Date.now() }); }
+
 // ── SERVER META LISTENERS ─────────────────────
 db.ref('server_meta/chatLocked').on('value', snap => {
   isChatLocked = snap.val() || false;
@@ -1272,7 +1274,7 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
     
     if(isLockMsg) { bColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.3)' : 'rgba(46,204,138,.3)'; bgColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.08)' : 'rgba(46,204,138,.08)'; tColor = msg.text.includes('🛑') ? 'var(--rd)' : 'var(--gr)'; }
     if(isSysDm) { bColor = 'rgba(255,79,79,.6)'; bgColor = 'rgba(255,79,79,.15)'; tColor = 'var(--rd)'; }
-    if(msg.text.includes('🎮') || msg.text.includes('🎲') || msg.text.includes('🪙') || msg.text.includes('🃏') || msg.text.includes('🧑') || msg.text.includes('🤖')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
+    if(msg.text.includes('🎮') || msg.text.includes('🎰') || msg.text.includes('🎱') || msg.text.includes('🎲') || msg.text.includes('🪙') || msg.text.includes('🃏') || msg.text.includes('🧑') || msg.text.includes('🤖')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
     
     wrap.innerHTML=`<span style="border-color:${bColor};color:${tColor};background:${bgColor}; ${isSysDm ? 'text-align:left; max-width:85%; padding:14px; font-size:12.5px; font-weight:600;' : ''}">${esc(msg.text)}</span>`; 
     box.appendChild(wrap); if(!containerOverride && room === targetRoomId) box.scrollTop=box.scrollHeight; return;
@@ -1335,13 +1337,17 @@ function scrollToMsg(key) { const el = document.getElementById('msg-' + key); if
 const COMMANDS = [
   { cmd: '/roll', desc: 'Roll a dice (e.g. /roll 20)' },
   { cmd: '/flip', desc: 'Flip a coin' },
+  { cmd: '/slots', desc: 'Spin the slot machine!' },
+  { cmd: '/8ball ', desc: 'Ask the Magic 8-Ball a question' },
   { cmd: '/hangman start', desc: 'Start a new game of hangman' },
   { cmd: '/guess ', desc: 'Guess a letter (e.g. /guess a)' },
   { cmd: '/hangman stop', desc: '[Admin] Stop an active hangman game' },
-  { cmd: '/bj start', desc: 'Play Blackjack against the Dealer bot' },
+  { cmd: '/bj create', desc: 'Open a Multiplayer Blackjack lobby' },
+  { cmd: '/bj join', desc: 'Join an open Blackjack lobby' },
+  { cmd: '/bj start', desc: 'Start the Multiplayer Blackjack game' },
   { cmd: '/bj hit', desc: 'Draw another card in Blackjack' },
   { cmd: '/bj stand', desc: 'End your turn in Blackjack' },
-  { cmd: '/bj stop', desc: '[Admin] Stop an active blackjack game' }
+  { cmd: '/bj stop', desc: '[Admin] Force stop Blackjack game' }
 ];
 
 function checkCommandMenu(e) {
@@ -1359,7 +1365,7 @@ function checkCommandMenu(e) {
         const div = document.createElement('div');
         div.className = 'cmd-item';
         div.innerHTML = `<div class="cmd-name">${m.cmd}</div><div class="cmd-desc">${m.desc}</div>`;
-        div.onclick = () => { inp.value = m.cmd + (m.cmd.includes('start') || m.cmd.includes('stop') ? '' : ' '); inp.focus(); menu.classList.remove('open'); };
+        div.onclick = () => { inp.value = m.cmd + (['start','stop','join','create','hit','stand','slots','flip','roll'].some(w => m.cmd.includes(w)) ? '' : ' '); inp.focus(); menu.classList.remove('open'); };
         menu.appendChild(div);
       });
       menu.classList.add('open');
@@ -1371,7 +1377,7 @@ function checkCommandMenu(e) {
   }
 }
 
-// ── BLACKJACK CARD ENGINE ─────────────────────
+// ── BLACKJACK CARD ENGINE & RESOLUTION ────────
 function drawCard() {
   const suits = ['♠️','♣️','♥️','♦️'];
   const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
@@ -1384,12 +1390,54 @@ function drawCard() {
 }
 
 function calcScore(hand) {
+  if(!hand) return 0;
   let score = 0, aces = 0;
   hand.forEach(c => { score += c.points; if(c.points === 11) aces++; });
   while(score > 21 && aces > 0) { score -= 10; aces--; }
   return score;
 }
 
+async function checkBjResolution(roomId) {
+  const snap = await db.ref('server_meta/bj_'+roomId).once('value');
+  const game = snap.val();
+  if(!game || game.phase !== 'playing') return;
+
+  let allDone = true;
+  for(let uid in game.players) {
+    if(game.players[uid].status === 'playing') allDone = false;
+  }
+
+  if(allDone) {
+    let dHand = game.dHand || [];
+    let dScore = calcScore(dHand);
+    let msg = `🃏 **MULTIPLAYER BLACKJACK RESULTS** 🃏\n\n`;
+    
+    msg += `🤖 Dealer reveals: ${dHand[0].face}\n`;
+    while(dScore < 17) {
+      let c = drawCard();
+      dHand.push(c);
+      dScore = calcScore(dHand);
+      msg += `🤖 Dealer draws: ${c.face}\n`;
+    }
+    msg += `\n**Dealer Final Hand:** ${dHand.map(c=>c.face).join(' ')} (Score: ${dScore} ${dScore>21?'💥 BUST!':''})\n\n`;
+
+    for(let uid in game.players) {
+      let p = game.players[uid];
+      let pScore = calcScore(p.hand);
+      let res = '';
+      if(p.status === 'bust') res = '💀 BUST';
+      else if(dScore > 21) res = '🎉 WIN';
+      else if(pScore > dScore) res = '🎉 WIN';
+      else if(pScore < dScore) res = '💀 LOSE';
+      else res = '🤝 PUSH';
+      
+      msg += `🧑 ${p.name}: ${pScore} -> ${res}\n`;
+    }
+
+    await db.ref('server_meta/bj_'+roomId).remove();
+    db.ref('chats/'+roomId).push({ sys: true, text: msg, ts: Date.now() });
+  }
+}
 
 // ── SEND MESSAGE & COMMAND INTERPRETER ────────
 async function doSend(){
@@ -1411,31 +1459,54 @@ async function doSend(){
     const args = txt.split(' ');
     const cmd = args[0].toLowerCase();
     
+    // CASUAL GAMES
     if(cmd === '/roll') {
       const max = parseInt(args[1]) || 6;
       const result = Math.floor(Math.random() * max) + 1;
-      return db.ref('chats/'+room).push({ sys: true, text: `🎲 ${myDisplayName} rolled a d${max} and got: ${result}`, ts: Date.now() });
+      return sysMsg(`🎲 ${myDisplayName} rolled a d${max} and got: ${result}`);
     }
     
     if(cmd === '/flip') {
       const result = Math.random() > 0.5 ? 'Heads' : 'Tails';
-      return db.ref('chats/'+room).push({ sys: true, text: `🪙 ${myDisplayName} flipped a coin and got: ${result}`, ts: Date.now() });
+      return sysMsg(`🪙 ${myDisplayName} flipped a coin and got: ${result}`);
     }
 
+    if(cmd === '/slots') {
+      const symbols = ['🍒','🍋','🍊','🍉','🍇','🔔','💎','🎰'];
+      const r1 = symbols[Math.floor(Math.random()*symbols.length)];
+      const r2 = symbols[Math.floor(Math.random()*symbols.length)];
+      const r3 = symbols[Math.floor(Math.random()*symbols.length)];
+      
+      let msg = `🎰 **SLOTS** 🎰\n\n[ ${r1} | ${r2} | ${r3} ]\n\n`;
+      if(r1 === r2 && r2 === r3) msg += `🎉 **JACKPOT!** ${myDisplayName} wins BIG! 🎉`;
+      else if(r1 === r2 || r2 === r3 || r1 === r3) msg += `✨ Mini win for ${myDisplayName}!`;
+      else msg += `Better luck next time, ${myDisplayName}.`;
+      
+      return sysMsg(msg);
+    }
+
+    if(cmd === '/8ball') {
+      const question = args.slice(1).join(' ');
+      if(!question) return toast("Ask a question! /8ball [question]", "warn");
+      const answers = ["It is certain.", "Without a doubt.", "You may rely on it.", "Yes, definitely.", "As I see it, yes.", "Most likely.", "Outlook good.", "Yes.", "Signs point to yes.", "Reply hazy, try again.", "Ask again later.", "Better not tell you now.", "Cannot predict now.", "Concentrate and ask again.", "Don't count on it.", "My reply is no.", "My sources say no.", "Outlook not so good.", "Very doubtful."];
+      const ans = answers[Math.floor(Math.random()*answers.length)];
+      return sysMsg(`🎱 **Magic 8-Ball**\n\n**Question:** ${question}\n**Answer:** ${ans}`);
+    }
+
+    // HANGMAN
     if(cmd === '/hangman') {
       const action = args[1] ? args[1].toLowerCase() : '';
       
-      // ADMIN: Stop game
       if(action === 'stop') {
         if(!isStaffMember()) return toast("Only staff can forcefully stop games.", "err");
         await db.ref('server_meta/hangman_'+room).remove();
-        return db.ref('chats/'+room).push({ sys: true, text: `🛑 Hangman game was forcibly stopped by staff (${myDisplayName}).`, ts: Date.now() });
+        return sysMsg(`🛑 Hangman game was forcibly stopped by staff (${myDisplayName}).`);
       }
 
       if(action === 'start') {
         const word = args[2] ? args[2].toLowerCase() : ['javascript', 'firebase', 'hacker', 'programming', 'network'][Math.floor(Math.random()*5)];
         await db.ref('server_meta/hangman_'+room).set({ word: word, guessed: '', strikes: 0, starter: myDisplayName });
-        return db.ref('chats/'+room).push({ sys: true, text: `🎮 ${myDisplayName} started a game of Hangman! Type /guess [letter] to play.\n\n${word.replace(/[a-z]/g, '⬜ ')}`, ts: Date.now() });
+        return sysMsg(`🎮 ${myDisplayName} started a game of Hangman! Type /guess [letter] to play.\n\n${word.replace(/[a-z]/g, '⬜ ')}`);
       }
       return toast("Usage: /hangman start [word] OR /hangman stop", "info");
     }
@@ -1476,84 +1547,81 @@ async function doSend(){
       return db.ref('chats/'+room).push({ sys: false, user: 'system', displayName: 'Hangman Bot', pfp: 'https://cdn-icons-png.flaticon.com/512/3004/3004382.png', text: resultMsg, ts: Date.now(), isGame: true });
     }
 
-    // BLACKJACK
+    // MULTIPLAYER BLACKJACK
     if(cmd === '/bj') {
       const action = args[1] ? args[1].toLowerCase() : '';
       
-      // ADMIN: Stop game
       if(action === 'stop') {
         if(!isStaffMember()) return toast("Only staff can forcefully stop games.", "err");
         await db.ref('server_meta/bj_'+room).remove();
-        return db.ref('chats/'+room).push({ sys: true, text: `🛑 Blackjack game was forcibly stopped by staff (${myDisplayName}).`, ts: Date.now() });
+        return sysMsg(`🛑 Blackjack game was forcibly stopped by staff (${myDisplayName}).`);
+      }
+
+      if(action === 'create') {
+        const gameSnap = await db.ref('server_meta/bj_'+room).once('value');
+        if(gameSnap.exists()) return toast("A Blackjack game is already active or forming in this room.", "err");
+
+        await db.ref('server_meta/bj_'+room).set({
+          phase: 'lobby', host: me, players: { [me]: { name: myDisplayName, hand: [], status: 'waiting' } }
+        });
+        return sysMsg(`🃏 **BLACKJACK LOBBY** created by ${myDisplayName}!\n\nOthers: Type /bj join to enter!\nHost: Type /bj start when ready.`);
+      }
+
+      const gameSnap = await db.ref('server_meta/bj_'+room).once('value');
+      const game = gameSnap.val();
+      if(!game) return toast("No active Blackjack game. Type /bj create", "err");
+
+      if(action === 'join') {
+        if(game.phase !== 'lobby') return toast("Game has already started!", "err");
+        if(game.players && game.players[me]) return toast("You already joined!", "warn");
+        await db.ref('server_meta/bj_'+room+'/players/'+me).set({ name: myDisplayName, hand: [], status: 'waiting' });
+        return sysMsg(`🃏 ${myDisplayName} joined the Blackjack lobby!`);
       }
 
       if(action === 'start') {
-        const pHand = [drawCard(), drawCard()];
-        const dHand = [drawCard()]; // Only draw 1 for dealer to prevent cheating via Firebase
-        const pScore = calcScore(pHand);
-        
-        await db.ref('server_meta/bj_'+room).set({ pHand, dHand, player: myDisplayName, uid: me, active: true });
-        
-        let msg = `🃏 **BLACKJACK** started by ${myDisplayName}!\n\n`;
-        msg += `🧑 You: ${pHand.map(c=>c.face).join(' ')} (Score: ${pScore})\n`;
-        msg += `🤖 Dealer: ${dHand[0].face} 🎴 (?)\n\n`;
-        
-        if(pScore === 21) {
-          msg += `🎉 BLACKJACK! You win!`;
-          await db.ref('server_meta/bj_'+room).remove();
-        } else {
-          msg += `Type /bj hit or /bj stand`;
+        if(game.phase !== 'lobby') return toast("Already started!", "err");
+        if(game.host !== me && !isStaffMember()) return toast("Only the host can start the game.", "err");
+
+        const dHand = [drawCard()];
+        let updates = { phase: 'playing', dHand };
+        let msg = `🃏 **MULTIPLAYER BLACKJACK HAS STARTED!**\n\n🤖 Dealer shows: ${dHand[0].face} 🎴\n\n`;
+
+        for(let uid in game.players) {
+          let hand = [drawCard(), drawCard()];
+          let score = calcScore(hand);
+          let status = score === 21 ? 'stood' : 'playing'; // auto-stand on 21
+          updates[`players/${uid}/hand`] = hand;
+          updates[`players/${uid}/status`] = status;
+          msg += `🧑 ${game.players[uid].name}: ${hand.map(c=>c.face).join(' ')} (Score: ${score})${score===21?' - BLACKJACK!':''}\n`;
         }
-        return db.ref('chats/'+room).push({ sys: true, text: msg, ts: Date.now() });
+        msg += `\nType /bj hit or /bj stand! Game resolves when everyone finishes.`;
+
+        await db.ref('server_meta/bj_'+room).update(updates);
+        checkBjResolution(room); // Just in case everyone gets Blackjack instantly
+        return sysMsg(msg);
       }
       
-      const gameSnap = await db.ref('server_meta/bj_'+room).once('value');
-      const game = gameSnap.val();
-      if(!game || !game.active) return toast("No active Blackjack game. Type /bj start", "err");
-      if(game.uid !== me && !isStaffMember()) return toast("Only " + game.player + " can play this hand!", "err");
-      
-      if(action === 'hit') {
-        if(game.uid !== me) return toast("Only the player can hit.", "err");
-        if(!game.pHand) game.pHand = [];
-        game.pHand.push(drawCard());
-        const pScore = calcScore(game.pHand);
-        let msg = `🧑 You drew: ${game.pHand[game.pHand.length-1].face}\nYour hand: ${game.pHand.map(c=>c.face).join(' ')} (Score: ${pScore})\n`;
-        
-        if(pScore > 21) {
-          msg += `\n💥 BUST! You lose!`;
-          await db.ref('server_meta/bj_'+room).remove();
-        } else {
-          await db.ref('server_meta/bj_'+room).update({ pHand: game.pHand });
-          msg += `\nType /bj hit or /bj stand`;
+      if(action === 'hit' || action === 'stand') {
+        if(game.phase !== 'playing') return toast("Game is not in the playing phase.", "err");
+        if(!game.players[me]) return toast("You are not in this game.", "err");
+        if(game.players[me].status !== 'playing') return toast("You have already finished your turn.", "err");
+
+        if(action === 'hit') {
+          let hand = game.players[me].hand || [];
+          hand.push(drawCard());
+          let score = calcScore(hand);
+          let status = score > 21 ? 'bust' : 'playing';
+          
+          await db.ref(`server_meta/bj_${room}/players/${me}`).update({ hand, status });
+          sysMsg(`🧑 ${myDisplayName} hits: ${hand[hand.length-1].face}\nHand: ${hand.map(c=>c.face).join(' ')} (Score: ${score}) ${status==='bust'?'💥 BUST!':''}`);
+        } 
+        else if (action === 'stand') {
+          await db.ref(`server_meta/bj_${room}/players/${me}`).update({ status: 'stood' });
+          sysMsg(`🧑 ${myDisplayName} stands at ${calcScore(game.players[me].hand)}.`);
         }
-        return db.ref('chats/'+room).push({ sys: true, text: msg, ts: Date.now() });
-      }
-      
-      if(action === 'stand') {
-        if(game.uid !== me) return toast("Only the player can stand.", "err");
-        let pScore = calcScore(game.pHand);
-        let dScore = calcScore(game.dHand);
-        let msg = `🧑 You stand at ${pScore}.\n\n`;
-        
-        // Dealer draws
-        msg += `🤖 Dealer reveals: ${game.dHand[0].face}\n`;
-        while(dScore < 17) {
-          const c = drawCard();
-          if(!game.dHand) game.dHand = [];
-          game.dHand.push(c);
-          dScore = calcScore(game.dHand);
-          msg += `🤖 Dealer draws: ${c.face}\n`;
-        }
-        
-        msg += `\nDealer hand: ${game.dHand.map(c=>c.face).join(' ')} (Score: ${dScore})\n\n`;
-        
-        if(dScore > 21) msg += `🎉 Dealer BUSTS! You win!`;
-        else if(dScore > pScore) msg += `💀 Dealer wins!`;
-        else if(dScore < pScore) msg += `🎉 You win!`;
-        else msg += `🤝 Push! It's a tie.`;
-        
-        await db.ref('server_meta/bj_'+room).remove();
-        return db.ref('chats/'+room).push({ sys: true, text: msg, ts: Date.now() });
+
+        checkBjResolution(room);
+        return;
       }
       
       return toast("Unknown Blackjack action.", "err");
