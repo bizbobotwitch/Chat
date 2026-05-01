@@ -1677,7 +1677,10 @@ async function doSend(){
 
       if(vType === 'timeout' || vType === 'ban' || vType === 'mute') {
         if(vType === 'ban' && adminRole !== 'admin' && !isSuperAdmin()) return toast("Only Admins can do ban votes.", "err");
-        const targetStr = args[2];
+        
+        // BUG FIX: Join the rest of the arguments to properly target names with spaces!
+        const targetStr = args.slice(2).join(' ');
+        
         if(!targetStr) return toast(`Usage: /vote ${vType} [username]`, "warn");
 
         const snap = await db.ref('users').once('value');
