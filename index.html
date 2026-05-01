@@ -945,7 +945,7 @@ async function adminWarn(m){
 }
 
 async function acceptWarn() { const p = (await db.ref('users/'+me).once('value')).val().pendingWarnPenalty || 0; let u = { pendingWarnReason: null, pendingWarnPenalty: null }; if (p > 0) u.timeoutUntil = Date.now() + (p * 60000); await db.ref('users/'+me).update(u); document.getElementById('warnOv').classList.remove('open'); }
-async function adminTO(min){ const u=document.getElementById('a-sel').value; if(!u)return; await db.ref('users/'+u).update({timeoutUntil:Date.now()+min*60000}); logAdminAction(`Applied ${min}m Timeout`, u); toast('Timed out', 'ok'); loadAUser(); }
+async function adminTO(min){ const u=document.getElementById('a-sel').value; if(!u)return; await db.ref('users/'+u).update({timeoutUntil:Date.now()+min*60000}); await db.ref('typing/'+room+'/'+u).remove(); logAdminAction(`Applied ${min}m Timeout`, u); toast('Timed out', 'ok'); loadAUser(); }
 async function adminVoiceKick(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u+'/force_voice_leave').set(true); logAdminAction(`Kicked from Voice Room`, u); toast('User booted from voice', 'ok'); }
 async function adminMute(isMute){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u).update({muted: isMute}); logAdminAction(isMute ? 'Muted User' : 'Unmuted User', u); toast(isMute ? 'Muted' : 'Unmuted', 'ok'); loadAUser(); }
 async function adminForceRename(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const nn=prompt("Enter new display name:"); if(!nn)return; await db.ref('users/'+u).update({displayName: nn.trim()}); logAdminAction(`Force renamed to ${nn.trim()}`, u); toast('Renamed', 'ok'); loadAdminUsers(); }
@@ -960,8 +960,8 @@ async function adminClearUser(){
   logAdminAction(`Scrubbed user history in room ${room}`, u); toast('Cleared', 'ok'); 
 }
 
-async function adminBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u).update({banned:true}); logAdminAction('Account Banned', u); toast('Banned', 'ok'); loadAUser(); }
-async function adminHWBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(!ud.hwid)return; await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).set({hwid:ud.hwid}); await db.ref('users/'+u).update({banned:true}); logAdminAction('Hardware Device Banned', u); toast('HW-Banned', 'ok'); loadAUser(); }
+async function adminBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; await db.ref('users/'+u).update({banned:true}); await db.ref('typing/'+room+'/'+u).remove(); logAdminAction('Account Banned', u); toast('Banned', 'ok'); loadAUser(); }
+async function adminHWBan(){ const u=document.getElementById('a-sel').value; if(!u||u===me)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(!ud.hwid)return; await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).set({hwid:ud.hwid}); await db.ref('users/'+u).update({banned:true}); await db.ref('typing/'+room+'/'+u).remove(); logAdminAction('Hardware Device Banned', u); toast('HW-Banned', 'ok'); loadAUser(); }
 async function adminUnban(){ const u=document.getElementById('a-sel').value; if(!u)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(ud.hwid) await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).remove(); await db.ref('users/'+u).update({banned:false,timeoutUntil:0,pendingWarnReason:null,pendingWarnPenalty:null,muted:false,shadowbanned:false}); logAdminAction('Unbanned/Pardoned User', u); toast('Unbanned', 'ok'); loadAUser(); }
 
 // New Admin Tools
@@ -1006,6 +1006,7 @@ async function adminForceLogout() {
   if(!u || u === me) return; 
   if(!confirm(`Are you sure you want to forcibly disconnect @${u}?`)) return;
   await db.ref('users/' + u + '/force_logout').set(true);
+  await db.ref('typing/'+room+'/'+u).remove();
   logAdminAction(`Forced logout`, u);
   toast('User disconnected', 'ok');
 }
@@ -1205,6 +1206,43 @@ function leaveVoiceRoom() {
 window.addEventListener('beforeunload', () => { if(myPeer) db.ref('voice_lounge/'+myPeer.id).remove(); });
 
 
+// ── COMMUNITY VOTING SYSTEM ───────────────────
+window.castVote = async function(msgKey, choice) {
+  const snap = await db.ref(`chats/${room}/${msgKey}`).once('value');
+  const msg = snap.val();
+  if(!msg || !msg.isVote || !msg.active) return toast("Vote is closed or invalid.", "err");
+  
+  if(msg.voteType !== 'custom' && msg.targetUid === me) return toast("You cannot vote on your own punishment!", "err");
+
+  let updates = {};
+  if (choice === 'yes') { updates[`chats/${room}/${msgKey}/yes/${me}`] = true; updates[`chats/${room}/${msgKey}/no/${me}`] = null; } 
+  else { updates[`chats/${room}/${msgKey}/no/${me}`] = true; updates[`chats/${room}/${msgKey}/yes/${me}`] = null; }
+
+  await db.ref().update(updates);
+
+  const uSnap = await db.ref(`chats/${room}/${msgKey}`).once('value');
+  const uMsg = uSnap.val();
+  let yCount = uMsg.yes ? Object.keys(uMsg.yes).length : 0;
+  let nCount = uMsg.no ? Object.keys(uMsg.no).length : 0;
+  const THRESHOLD = 3;
+
+  if (yCount >= THRESHOLD && uMsg.active) {
+    await db.ref(`chats/${room}/${msgKey}`).update({ active: false, text: uMsg.text.replace(/\*\(.*\)\*/, '') + `\n\n✅ **PASSED!**` });
+    if(uMsg.voteType === 'timeout') {
+      await db.ref(`users/${uMsg.targetUid}`).update({ timeoutUntil: Date.now() + 15*60000 });
+      await db.ref('typing/'+room+'/'+uMsg.targetUid).remove();
+      sysMsg(`⏱ The community voted to timeout ${uMsg.targetName} for 15 minutes.`);
+    } else if(uMsg.voteType === 'ban') {
+      await db.ref(`users/${uMsg.targetUid}`).update({ banned: true });
+      await db.ref('typing/'+room+'/'+uMsg.targetUid).remove();
+      sysMsg(`🚫 The community voted to permanently BAN ${uMsg.targetName}.`);
+    }
+  } else if (nCount >= THRESHOLD && uMsg.active) {
+    await db.ref(`chats/${room}/${msgKey}`).update({ active: false, text: uMsg.text.replace(/\*\(.*\)\*/, '') + `\n\n❌ **FAILED.**` });
+    if(uMsg.voteType !== 'custom') sysMsg(`🛡️ The community voted NOT to punish ${uMsg.targetName}.`);
+  }
+}
+
 // ── MESSAGES, TYPING, AND MULTI-SERVER ────────
 function onType() { if(isChatLocked) return; db.ref('typing/'+room+'/'+me).set(myDisplayName); clearTimeout(typeTimer); typeTimer = setTimeout(() => db.ref('typing/'+room+'/'+me).remove(), 2000); }
 function startReply(key, user, dName, text){ replyTo={key, user, displayName: dName, text}; document.getElementById('replyBar').style.display='flex'; document.getElementById('rbWho').textContent='Replying to ' + dName; document.getElementById('rbPrev').textContent=text.slice(0,60); document.getElementById('msgInp').focus(); }
@@ -1244,7 +1282,6 @@ function switchRoom(id) {
     msgRef.on('child_changed', s => { const old = document.getElementById('msg-'+s.key); if(old){ const tmp = document.createElement('div'); addMsg(s.key, s.val(), id, tmp); if(tmp.firstChild) old.replaceWith(tmp.firstChild); }});
     msgRef.on('child_removed', s => { const el = document.getElementById('msg-' + s.key); if (el) el.remove(); });
   } else {
-    // If it's already loaded, just show it and scroll to bottom
     const activeDiv = document.getElementById('room-log-' + id);
     activeDiv.style.display = 'flex';
     activeDiv.scrollTop = activeDiv.scrollHeight;
@@ -1262,7 +1299,6 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
   if(myBlockedUsers[msg.user] && !containerOverride) return; 
   if(msg.shadowbanned && msg.user !== me && !isStaffMember() && !containerOverride) return;
 
-  // Append to the specific room's div
   const box = containerOverride || document.getElementById('room-log-' + targetRoomId); 
   if(!box) return;
 
@@ -1275,8 +1311,25 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
     if(isLockMsg) { bColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.3)' : 'rgba(46,204,138,.3)'; bgColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.08)' : 'rgba(46,204,138,.08)'; tColor = msg.text.includes('🛑') ? 'var(--rd)' : 'var(--gr)'; }
     if(isSysDm) { bColor = 'rgba(255,79,79,.6)'; bgColor = 'rgba(255,79,79,.15)'; tColor = 'var(--rd)'; }
     if(msg.text.includes('🎮') || msg.text.includes('🎰') || msg.text.includes('🎱') || msg.text.includes('🎲') || msg.text.includes('🪙') || msg.text.includes('🃏') || msg.text.includes('🧑') || msg.text.includes('🤖')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
+    if(msg.isVote) { bColor = 'rgba(108,99,255,.6)'; bgColor = 'rgba(108,99,255,.15)'; tColor = 'var(--t1)'; }
     
-    wrap.innerHTML=`<span style="border-color:${bColor};color:${tColor};background:${bgColor}; ${isSysDm ? 'text-align:left; max-width:85%; padding:14px; font-size:12.5px; font-weight:600;' : ''}">${esc(msg.text)}</span>`; 
+    let inner = `<span style="border-color:${bColor};color:${tColor};background:${bgColor}; ${(isSysDm || msg.isVote) ? 'text-align:left; max-width:85%; padding:14px; font-size:13px; font-weight:600;' : ''}">${esc(msg.text)}`;
+    
+    // RENDER VOTE BUTTONS
+    if(msg.isVote) {
+      let yCount = msg.yes ? Object.keys(msg.yes).length : 0;
+      let nCount = msg.no ? Object.keys(msg.no).length : 0;
+      let isActive = msg.active;
+      let myChoice = (msg.yes && msg.yes[me]) ? 'yes' : (msg.no && msg.no[me]) ? 'no' : null;
+
+      inner += `<div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">`;
+      inner += `<button class="mbtn mb-p" style="width:auto; padding:6px 12px; background:${myChoice==='yes'?'var(--gr)':'var(--s3)'}; color:${myChoice==='yes'?'#000':'var(--t1)'}; border:1px solid var(--gr); opacity:${isActive?'1':'0.5'}; cursor:${isActive?'pointer':'default'}" ${isActive?`onclick="castVote('${key}','yes')"`:'disabled'}>✅ Yes (${yCount})</button>`;
+      inner += `<button class="mbtn mb-p" style="width:auto; padding:6px 12px; background:${myChoice==='no'?'var(--rd)':'var(--s3)'}; color:${myChoice==='no'?'#fff':'var(--t1)'}; border:1px solid var(--rd); opacity:${isActive?'1':'0.5'}; cursor:${isActive?'pointer':'default'}" ${isActive?`onclick="castVote('${key}','no')"`:'disabled'}>❌ No (${nCount})</button>`;
+      inner += `</div>`;
+    }
+    inner += `</span>`;
+    wrap.innerHTML = inner;
+
     box.appendChild(wrap); if(!containerOverride && room === targetRoomId) box.scrollTop=box.scrollHeight; return;
   }
 
@@ -1335,6 +1388,9 @@ function scrollToMsg(key) { const el = document.getElementById('msg-' + key); if
 
 // ── COMMAND MENU AUTOCOMPLETE ─────────────────
 const COMMANDS = [
+  { cmd: '/vote timeout', desc: '[Staff] Start a 15m timeout vote on a user' },
+  { cmd: '/vote ban', desc: '[Admin] Start a ban vote on a user' },
+  { cmd: '/vote custom', desc: '[Admin] Start a custom poll' },
   { cmd: '/roll', desc: 'Roll a dice (e.g. /roll 20)' },
   { cmd: '/flip', desc: 'Flip a coin' },
   { cmd: '/slots', desc: 'Spin the slot machine!' },
@@ -1459,6 +1515,48 @@ async function doSend(){
     const args = txt.split(' ');
     const cmd = args[0].toLowerCase();
     
+    // VOTING ENGINE
+    if(cmd === '/vote') {
+      const vType = args[1] ? args[1].toLowerCase() : '';
+      if(!isStaffMember()) return toast("Only staff can start votes.", "err");
+
+      if(vType === 'timeout' || vType === 'ban') {
+        if(vType === 'ban' && adminRole !== 'admin' && !isSuperAdmin()) return toast("Only Admins can do ban votes.", "err");
+        const targetStr = args[2];
+        if(!targetStr) return toast(`Usage: /vote ${vType} [username]`, "warn");
+
+        const snap = await db.ref('users').once('value');
+        let tUid = null, tName = null;
+        snap.forEach(c => {
+          let u = c.val();
+          if(c.key.toLowerCase() === targetStr.toLowerCase() || (u.displayName && u.displayName.toLowerCase() === targetStr.toLowerCase())) {
+            tUid = c.key; tName = u.displayName || c.key;
+          }
+        });
+
+        if(!tUid) return toast("User not found.", "err");
+        if(tUid === me) return toast("You can't start a vote against yourself.", "err");
+        
+        const tSnap = await db.ref('users/'+tUid).once('value');
+        if(tSnap.val() && (tSnap.val().role === 'admin' || tUid.includes('zasingl61'))) return toast("Cannot initiate votes against Admins.", "err");
+
+        const q = vType === 'timeout' ? `Timeout ${tName} for 15 minutes?` : `Permanently BAN ${tName}?`;
+        const vTxt = `🗳️ **VOTE INITIATED by ${myDisplayName}**\n${q}\n*(Requires 3 Yes votes to pass)*`;
+
+        return db.ref('chats/'+room).push({ sys: true, isVote: true, voteType: vType, targetUid: tUid, targetName: tName, text: vTxt, yes: {[me]: true}, no: {}, active: true, ts: Date.now() });
+      }
+
+      if(vType === 'custom') {
+        if(adminRole !== 'admin' && !isSuperAdmin()) return toast("Only Admins can do custom polls.", "err");
+        const question = args.slice(2).join(' ');
+        if(!question) return toast("Usage: /vote custom [question]", "warn");
+        const vTxt = `📊 **CUSTOM POLL by ${myDisplayName}**\n${question}\n*(3 votes to close)*`;
+        return db.ref('chats/'+room).push({ sys: true, isVote: true, voteType: 'custom', targetUid: null, targetName: null, text: vTxt, yes: {[me]: true}, no: {}, active: true, ts: Date.now() });
+      }
+
+      return toast("Usage: /vote [timeout|ban|custom]", "err");
+    }
+
     // CASUAL GAMES
     if(cmd === '/roll') {
       const max = parseInt(args[1]) || 6;
