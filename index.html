@@ -64,6 +64,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0; position:relative;}
 .chat-head{height:54px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0}
 .ch-title{font-size:14.5px;font-weight:600;letter-spacing:-.2px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.update-banner{display:none;background:var(--am);color:#000;padding:8px 20px;font-size:13px;font-weight:700;text-align:center;box-shadow:0 4px 15px rgba(245,166,35,0.2);flex-shrink:0;}
 .chat-banner{display:none;background:rgba(108,99,255,0.15);border-bottom:1px solid var(--ac-bdr);color:var(--ac);padding:10px 20px;font-size:12.5px;font-weight:600;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,0.1);flex-shrink:0;}
 .voice-container{flex:1; display:none; background:var(--bg); overflow-y:auto; padding:20px;}
 
@@ -250,6 +251,19 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <div id="admin-only-tools" style="display:none;">
         <div class="a-sec">
           <span class="a-lbl" style="color:var(--ac)">👑 Supreme Admin Tools</span>
+          
+          <div style="display:flex; gap:6px; margin-bottom: 8px;">
+            <input type="number" id="timer-mins" class="fi" style="margin:0; width:80px;" placeholder="Mins">
+            <button class="abtn" style="flex:1; background:var(--am); color:#000;" onclick="adminStartTimer()">⏱ Start Update Timer</button>
+            <button class="abtn" style="background:var(--s3); color:var(--t1); border:1px solid var(--b2); font-size:14px;" onclick="adminCancelTimer()" title="Cancel Timer">🛑</button>
+          </div>
+
+          <div style="display:flex; gap:6px; margin-bottom: 8px;">
+            <input type="color" id="theme-color" class="fi" style="margin:0; width:60px; padding:0; height:34px; cursor:pointer;" value="#6c63ff">
+            <button class="abtn" style="flex:1; background:var(--s3); color:var(--t1); border:1px solid var(--b2);" onclick="adminSetTheme()">🎨 Set Global Accent</button>
+            <button class="abtn" style="background:var(--s3); color:var(--t1); border:1px solid var(--b2); font-size:14px;" onclick="adminResetTheme()" title="Reset Theme">↺</button>
+          </div>
+
           <div class="a-grid" style="margin-bottom: 8px;">
             <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminBroadcast()">📢 Announcement</button>
             <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSetBanner()">📌 Sticky Banner</button>
@@ -260,6 +274,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
             <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminForceReloadAll()">🔄 Force Reload All Users</button>
           </div>
           
+          <button class="abtn" style="width:100%; margin-bottom:8px; background:var(--s3); color:var(--am); border:1px solid var(--b2)" onclick="adminNukePFPs()">💥 Wipe All User Avatars (Raid Mode)</button>
+
           <div style="display:flex; gap:6px; margin-bottom: 8px;">
             <select id="purge-count" class="a-sel" style="margin:0; width:120px;"><option value="10">Last 10 msgs</option><option value="50">Last 50 msgs</option><option value="100">Last 100 msgs</option></select>
             <button class="abtn" style="flex:1; background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminPurge()">🗑 Purge Recent</button>
@@ -361,6 +377,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <button id="inviteBtn" class="si-btn" style="display:none; width:auto; font-size:11px;" onclick="copyInvite()">Copy</button>
       <button id="leaveBtn" class="si-btn" style="display:none; width:auto; font-size:11px; background:rgba(255,79,79,.1); color:var(--rd); border-color:rgba(255,79,79,.22);" onclick="leaveServer()">Leave</button>
     </div>
+    
+    <div class="update-banner" id="updateBanner">⏳ Server Update Imminent: <span id="updateTimerTxt">00:00</span></div>
     <div class="chat-banner" id="chatBanner"></div>
     
     <div class="voice-container" id="voiceContainer"></div>
@@ -400,7 +418,7 @@ firebase.initializeApp(FC); const db=firebase.database(); const storage=firebase
 
 // ── STATE & HELPERS ───────────────────────────
 let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=Date.now(), replyTo=null, currentGifTab='search';
-let adminRole = null, isChatLocked = false, isMediaLocked = false, isGhostMode = false, isMaintenance = false, myBlockedUsers = {}, typeTimer = null, auditRef = null;
+let adminRole = null, isChatLocked = false, isMediaLocked = false, isGhostMode = false, isMaintenance = false, myBlockedUsers = {}, typeTimer = null, auditRef = null, updateInterval = null;
 let adminUserList = [];
 let serverSlowmode = 0, lastSendTime = 0;
 const ADMIN_PW = '32ad', H_MOD_PW = '2hmod', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
@@ -444,6 +462,40 @@ db.ref('server_meta/mediaLocked').on('value', snap => {
   if(imgBtn) { imgBtn.style.opacity = isMediaLocked ? '0.5' : '1'; imgBtn.style.pointerEvents = isMediaLocked ? 'none' : 'auto'; }
   if(gifBtn) { gifBtn.style.opacity = isMediaLocked ? '0.5' : '1'; gifBtn.style.pointerEvents = isMediaLocked ? 'none' : 'auto'; }
   if(isMediaLocked) document.getElementById('gifMenu').classList.remove('open');
+});
+
+// Theme Listener
+db.ref('server_meta/theme').on('value', snap => {
+  const color = snap.val();
+  if(color) { document.documentElement.style.setProperty('--ac', color); }
+  else { document.documentElement.style.setProperty('--ac', '#6c63ff'); }
+});
+
+// Update Timer Listener
+db.ref('server_meta/update_timer').on('value', snap => {
+  const target = snap.val();
+  const banner = document.getElementById('updateBanner');
+  clearInterval(updateInterval);
+  if(!target) { banner.style.display = 'none'; return; }
+  
+  banner.style.display = 'block';
+  updateInterval = setInterval(() => {
+    const left = target - Date.now();
+    if(left <= 0) {
+      clearInterval(updateInterval);
+      if(localStorage.getItem('last_update_time') != target) {
+        localStorage.setItem('last_update_time', target);
+        document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;background:#000;color:#fff;font-family:sans-serif;font-size:24px;font-weight:700;">Applying server updates...</div>';
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        banner.style.display = 'none'; // Already refreshed for this specific update
+      }
+    } else {
+      const m = Math.floor(left / 60000);
+      const s = Math.floor((left % 60000) / 1000);
+      document.getElementById('updateTimerTxt').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    }
+  }, 1000);
 });
 
 db.ref('server_meta/reloadAll').on('value', snap => {
@@ -706,6 +758,50 @@ async function loadAUser(){
   card.innerHTML=`<div class="a-ucard"><div class="auc-top"><div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${(u.displayName||uname)[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(u.displayName||uname)} ${u.role ? `<span style="color:var(--ac);font-size:10px">[${u.role}]</span>` : ''}</div><div style="font-size:10px;color:var(--t2)">Joined ${new Date(u.ts||0).toLocaleDateString()}</div>${hwidStr}</div><div class="sdot ${u.banned?'sd-ban':timed?'sd-to':u.muted?'sd-mute':'sd-ok'}"></div><span style="font-size:11px;color:var(--t2)">${u.banned?'Banned':timed?'Timed out':u.muted?'Muted':'Active'}</span></div></div>`; 
 }
 
+// Supreme Admin Additions
+async function adminStartTimer() {
+  if(!isSuperAdmin()) return;
+  const mins = parseFloat(document.getElementById('timer-mins').value);
+  if(!mins || mins <= 0) return toast('Enter valid minutes', 'err');
+  await db.ref('server_meta/update_timer').set(Date.now() + (mins * 60000));
+  logAdminAction(`Started ${mins}m update timer`);
+  toast('Timer started', 'ok');
+}
+
+async function adminCancelTimer() {
+  if(!isSuperAdmin()) return;
+  await db.ref('server_meta/update_timer').remove();
+  logAdminAction(`Canceled update timer`);
+  toast('Canceled', 'ok');
+}
+
+async function adminSetTheme() {
+  if(!isSuperAdmin()) return;
+  const col = document.getElementById('theme-color').value;
+  await db.ref('server_meta/theme').set(col);
+  logAdminAction('Changed global accent color to ' + col);
+  toast('Theme updated globally', 'ok');
+}
+
+async function adminResetTheme() {
+  if(!isSuperAdmin()) return;
+  await db.ref('server_meta/theme').remove();
+  logAdminAction('Reset global accent color');
+  toast('Theme reset', 'ok');
+}
+
+async function adminNukePFPs() {
+  if(!isSuperAdmin()) return;
+  if(!confirm("⚠️ EXTREME ACTION ⚠️\n\nAre you sure you want to completely wipe EVERY single user's profile picture across the entire app? This is meant for dealing with coordinated raids.")) return;
+  const snap = await db.ref('users').once('value');
+  const updates = {};
+  snap.forEach(c => { updates['users/' + c.key + '/pfp'] = ""; });
+  await db.ref().update(updates);
+  logAdminAction("Wiped all user profile pictures globally");
+  toast('PFPs successfully wiped', 'ok');
+  loadAdminUsers();
+}
+
 async function toggleGhostMode() { if (!isSuperAdmin()) return; await db.ref('users/'+me).update({ ghostMode: !isGhostMode }); logAdminAction(isGhostMode ? 'Disabled Ghost Mode' : 'Enabled Ghost Mode'); toast(!isGhostMode ? '👻 ON' : '👤 OFF', 'ok'); }
 async function adminBroadcast() { if (!isSuperAdmin()) return; const msg = prompt("Global announcement:"); if(msg) { await db.ref('server_meta/broadcast').set({ text: msg, ts: Date.now() }); logAdminAction('Sent Broadcast: ' + msg); toast('Sent!', 'ok'); } }
 async function adminSetBanner() { if (!isSuperAdmin()) return; const msg = prompt("Banner text (blank to remove):"); if(msg !== null) { await db.ref('server_meta/banner').set(msg); logAdminAction('Updated global banner'); toast('Updated', 'ok'); } }
@@ -805,13 +901,9 @@ async function joinVoiceRoom() {
     myPeer = new Peer(peerId);
     
     myPeer.on('open', id => {
-      // Announce presence
       db.ref('voice_lounge/'+id).set({ uid: me, name: myDisplayName, ts: Date.now() });
-      
-      // Add self to screen
       renderSpeaker(id, myDisplayName, me);
 
-      // Listen for others in the room
       db.ref('voice_lounge').on('child_added', s => {
         if(s.key !== id) {
           const call = myPeer.call(s.key, myStream);
