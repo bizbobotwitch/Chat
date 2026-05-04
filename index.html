@@ -670,7 +670,8 @@ function onLoggedIn(){
     // Note: Handled by pendingWarnReason 'kick' type now, but kept for legacy cleanup
     if(d.force_voice_leave) { await db.ref('users/'+me+'/force_voice_leave').remove(); leaveVoiceRoom(); switchRoom('global'); }
 
-    isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = '👻 Ghost'; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = '● Online'; statusEl.style.color = 'var(--gr)'; }
+  myBalance = d.balance || 0; // Track money live
+    isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = `👻 Ghost | 💵 $${myBalance}`; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = `● Online | 💵 $${myBalance}`; statusEl.style.color = 'var(--gr)'; }
     myBlockedUsers = d.blocked || {};
     adminRole = d.role || null;
     myCustomTitle = d.customTitle || null;
@@ -1919,6 +1920,21 @@ async function doSend(){
     }
 
     // CASUAL GAMES & ARCADE
+    // ITEM SHOP
+    if(cmd === '/shop') {
+      const action = args[1] ? args[1].toLowerCase() : '';
+      if (action === 'buy' && args[2] === 'helper') {
+          if (myBalance < 100000000) return toast("You need $100,000,000 to buy this!", "err");
+          
+          await db.ref('users/'+me).update({ 
+              balance: myBalance - 100000000,
+              role: 'chat_helper',
+              helperExpiration: Date.now() + (10 * 60 * 1000) // 10 minutes in milliseconds
+          });
+          return sysMsg(`🛍️ **SHOP:** ${myDisplayName} just purchased the 10-Minute Chat Helper rank for $100,000,000!`);
+      }
+      return sysMsg(`🛒 **ITEM SHOP** 🛒\n\n1. **Chat Helper (10 Mins)** - $100,000,000\nType: \`/shop buy helper\` to purchase.`);
+    }
     if(cmd === '/roll') {
       const max = parseInt(args[1]) || 6;
       const result = Math.floor(Math.random() * max) + 1;
