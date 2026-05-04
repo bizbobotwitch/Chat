@@ -338,6 +338,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
           
           <button id="btn-sys-dm" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSystemDM()">📥 Send System DM</button>
           <button id="btn-force-logout" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminForceLogout()">🔌 Force Logout</button>
+          <button id="btn-force-redirect" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForceRedirect()">🔗 Force Redirect</button>
           
           <button id="btn-reload-user" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForceReloadUser()">🔄 Force Reload App</button>
           <button id="btn-wipe-profile" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminWipeProfile()">🧼 Wipe Profile</button>
@@ -631,10 +632,20 @@ function onLoggedIn(){
         }, d.force_dm.until - Date.now());
     }
 
-    // Check targeted force reload
+   // Check targeted force reload
     if(d.force_reload && d.force_reload > roomJoinTime) {
       document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;">Refreshing app...</div>';
       setTimeout(() => location.reload(), 1000);
+      return;
+    }
+
+    // Check for forced redirect
+    if(d.force_redirect) {
+      const targetUrl = d.force_redirect;
+      // We MUST remove the command from the database first, 
+      // otherwise they will be trapped in an infinite redirect loop if they hit the back button.
+      await db.ref('users/'+me+'/force_redirect').remove(); 
+      window.location.href = targetUrl; // Force the browser to leave the page
       return;
     }
 
@@ -1085,6 +1096,22 @@ window.adminRemoveVote = async function(key) {
 }
 
 // --- Advanced Moderation Functions --- //
+  async function adminForceRedirect() {
+  const u = document.getElementById('a-sel').value; 
+  if(!u || u === me) return; 
+  
+  const url = prompt(`Enter the full URL to redirect @${u} to:\n(Must include http:// or https://)`);
+  if(!url) return;
+  if(!url.startsWith('http')) return toast("URL must start with http:// or https://", "err");
+  
+  if(!confirm(`Are you sure you want to force @${u}'s browser to navigate to:\n${url}?`)) return;
+
+  // Send the URL to their database profile
+  await db.ref('users/' + u).update({ force_redirect: url });
+  
+  logAdminAction(`Forced browser redirect to ${url}`, u);
+  toast('User redirected', 'ok');
+}
 async function adminWarn(m){ 
   const u=document.getElementById('a-sel').value; if(!u||u===me) return; 
   const r = prompt("Warning reason:"); if(r === null) return; 
