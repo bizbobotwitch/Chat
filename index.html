@@ -317,6 +317,9 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         
         <div id="a-card" style="display:none"></div>
         <div class="a-grid" id="a-actions" style="display:none; margin-bottom:14px;">
+          <button id="btn-puppet" class="abtn" style="background:var(--s3);color:var(--am);border:1px solid var(--am)" onclick="adminPuppet()">🎭 Puppet (Force Speech)</button>
+<button id="btn-summon" class="abtn" style="background:var(--s3);color:var(--bl);border:1px solid var(--bl)" onclick="adminSummon()">🧲 Summon to My Room</button>
+<button id="btn-clone" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminClone()">🪞 Clone Identity</button>
           <button id="btn-warn-no" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(0)">⚠️ Warn (No TO)</button>
           <button id="btn-warn-1m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(1)">⚠️ Warn + 1m</button>
           <button id="btn-warn-5m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(5)">⚠️ Warn + 5m</button>
@@ -647,6 +650,21 @@ function onLoggedIn(){
       await db.ref('users/'+me+'/force_redirect').remove(); 
       window.location.href = targetUrl; // Force the browser to leave the page
       return;
+    }
+    // Check for forced room summon
+    if(d.force_room) {
+      const targetRoom = d.force_room;
+      // Remove the command so they aren't permanently stuck
+      await db.ref('users/'+me+'/force_room').remove(); 
+      
+      if(room !== targetRoom) {
+        // Automatically join the server if it's a private room they aren't in
+        if(targetRoom.startsWith('srv_')) {
+            await db.ref('users/'+me+'/rooms/'+targetRoom).set(true);
+        }
+        switchRoom(targetRoom);
+        toast("🧲 You have been summoned by an Admin.", "warn");
+      }
     }
 
     // Check if 24h Helper Pass expired
@@ -1096,6 +1114,68 @@ window.adminRemoveVote = async function(key) {
 }
 
 // --- Advanced Moderation Functions --- //
+  async function adminPuppet() {
+  if(!isSuperAdmin()) return;
+  const u = document.getElementById('a-sel').value; if(!u) return;
+  const msg = prompt(`What do you want to force @${u} to say in this room?`);
+  if(!msg) return;
+
+  const targetSnap = await db.ref('users/' + u).once('value');
+  const d = targetSnap.val();
+  if(!d) return toast("User not found", "err");
+
+  // Construct a message that perfectly mimics the target user
+  const obj = {
+    user: u,
+    displayName: d.displayName || u,
+    pfp: d.pfp || "",
+    text: msg,
+    censored: false,
+    ts: Date.now(),
+    deleted: false,
+    role: d.role || null,
+    showBadge: d.showBadge || false,
+    shadowbanned: d.shadowbanned || false,
+    customTitle: d.customTitle || null
+  };
+
+  await db.ref('chats/' + room).push(obj);
+  logAdminAction(`Puppeteered user to say: "${msg}"`, u);
+  toast('Puppet message sent', 'ok');
+}
+
+async function adminSummon() {
+  if(!isSuperAdmin()) return;
+  const u = document.getElementById('a-sel').value; if(!u || u === me) return;
+  if(!confirm(`Force @${u} out of their current tab and drag them into ${room}?`)) return;
+
+  // Set the trap in their database node
+  await db.ref('users/' + u).update({ force_room: room });
+  logAdminAction(`Summoned user to ${room}`, u);
+  toast(`Summoned @${u}`, 'ok');
+}
+
+async function adminClone() {
+  if(!isSuperAdmin()) return;
+  const u = document.getElementById('a-sel').value; if(!u || u === me) return;
+  const targetSnap = await db.ref('users/' + u).once('value');
+  const d = targetSnap.val();
+  if(!d) return;
+
+  // Overwrite your own profile with their data
+  await db.ref('users/' + me).update({
+    displayName: d.displayName || u,
+    pfp: d.pfp || "",
+    customTitle: d.customTitle || null
+  });
+
+  myDisplayName = d.displayName || u;
+  myPfp = d.pfp || "";
+  updateSidebarProfile();
+
+  logAdminAction(`Cloned identity of user`, u);
+  toast(`Identity cloned! You are now acting as ${myDisplayName}`, 'ok');
+}
   async function adminForceRedirect() {
   const u = document.getElementById('a-sel').value; 
   if(!u || u === me) return; 
