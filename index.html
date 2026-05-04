@@ -608,7 +608,8 @@ async function doLogin(){
   const u = document.getElementById('li-u').value.trim().toLowerCase().replace(/[\.\#\$\[\]]/g, '_'), p = document.getElementById('li-p').value; 
   if(!u || !p) return; 
   if(await isHWBanned()) return alert("🚫 Banned."); 
- const snap=await db.ref('users/'+u).once('value'); 
+  
+  const snap=await db.ref('users/'+u).once('value'); 
   if(!snap.exists() || snap.val().password !== simpleHash(p)) return alert("Invalid Login"); 
   
   const userData = snap.val();
@@ -622,7 +623,13 @@ async function doLogin(){
 
   await db.ref('users/'+u).update(updates); 
   
-  me = u;
+  me = u; 
+  myDisplayName = userData.displayName || u; 
+  myPfp = userData.pfp || ""; 
+  
+  localStorage.setItem('chatty_user', u); 
+  onLoggedIn(); // <-- This is the crucial line that was missing!
+}
   
   await db.ref('users/'+u).update({hwid: HWID}); 
   
