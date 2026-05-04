@@ -783,6 +783,12 @@ async function changeMyPassword() {
   document.getElementById('ep-new-p').value = ''; 
   hideProfile();
   toast("Password updated successfully!", "ok"); 
+} // <--- THIS BRACKET IS CRITICAL
+
+// --- ITEM SHOP LOGIC ---
+function showShop() {
+    document.getElementById('shopBalDisplay').textContent = myBalance.toLocaleString();
+    document.getElementById('shopOv').classList.add('open');
 }
 
 // --- ITEM SHOP LOGIC ---
