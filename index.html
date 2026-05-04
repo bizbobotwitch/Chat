@@ -457,7 +457,7 @@ const FC={apiKey:"AIzaSyB-dwq2yjLEUSNZ0UT5oq4-u_KXghysXfw",authDomain:"discord2-
 firebase.initializeApp(FC); const db=firebase.database(); const storage=firebase.storage();
 
 // ── STATE & HELPERS ───────────────────────────
-let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=Date.now(), replyTo=null, currentGifTab='search';
+let me=null, let me=null, myDisplayName=null, myPfp="", room='global', msgRef=null, roomJoinTime=Date.now(), replyTo=null, currentGifTab='search', myBalance=0;
 let adminRole = null, isChatLocked = false, isMediaLocked = false, isGhostMode = false, isMaintenance = false, myBlockedUsers = {}, typeTimer = null, auditRef = null, updateInterval = null;
 let adminUserList = [];
 let serverSlowmode = 0, lastSendTime = 0, myCustomTitle = null;
