@@ -216,6 +216,32 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 </div>
 
 <div class="ov" id="profileOv">
+  <div class="ov" id="shopOv" style="z-index: 1001;">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px">
+      <div class="m-title">🛒 Item Shop</div><button class="ic-btn" onclick="document.getElementById('shopOv').classList.remove('open')" style="font-size:16px">✕</button>
+    </div>
+    <p style="font-size:12px; color:var(--gr); margin-bottom:15px; font-weight:bold;">Your Balance: $<span id="shopBalDisplay">0</span></p>
+
+    <div style="background:var(--s2); border:1px solid var(--b2); border-radius:10px; padding:12px; margin-bottom:10px;">
+        <div style="font-weight:bold; color:var(--ac); font-size:13px; margin-bottom:4px;">🎖️ 2-Hour T-Mod Pass</div>
+        <div style="font-size:11px; color:var(--t2); margin-bottom:8px;">Gain temporary Little Mod powers!</div>
+        <button class="mbtn mb-p" style="padding:8px; font-size:12px;" onclick="buyItem('tmod')">Buy for $1,000,000</button>
+    </div>
+
+    <div style="background:var(--s2); border:1px solid var(--b2); border-radius:10px; padding:12px; margin-bottom:10px;">
+        <div style="font-weight:bold; color:var(--am); font-size:13px; margin-bottom:4px;">✨ VIP Chat Badge</div>
+        <div style="font-size:11px; color:var(--t2); margin-bottom:8px;">Show off a permanent VIP icon next to your name.</div>
+        <button class="mbtn mb-p" style="padding:8px; font-size:12px;" onclick="buyItem('vip')">Buy for $100,000</button>
+    </div>
+
+    <div style="background:var(--s2); border:1px solid var(--b2); border-radius:10px; padding:12px; margin-bottom:10px;">
+        <div style="font-weight:bold; color:var(--bl); font-size:13px; margin-bottom:4px;">🏷️ Premium Title Color</div>
+        <div style="font-size:11px; color:var(--t2); margin-bottom:8px;">Make your custom title text glowing neon!</div>
+        <button class="mbtn mb-p" style="padding:8px; font-size:12px;" onclick="buyItem('titlecolor')">Buy for $50,000</button>
+    </div>
+  </div>
+</div>
   <div class="modal">
     <div class="m-title">👤 Edit Profile</div>
     <input class="fi" id="ep-d" type="text" placeholder="Your display name">
@@ -317,6 +343,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         
         <div id="a-card" style="display:none"></div>
         <div class="a-grid" id="a-actions" style="display:none; margin-bottom:14px;">
+          <button id="btn-give-money" class="abtn" style="background:rgba(46,204,138,.15);color:var(--gr);border:1px solid rgba(46,204,138,.3); grid-column: span 2;" onclick="adminGiveMoney()">💸 Grant Funds to User</button>
           <button id="btn-puppet" class="abtn" style="background:var(--s3);color:var(--am);border:1px solid var(--am)" onclick="adminPuppet()">🎭 Puppet (Force Speech)</button>
 <button id="btn-summon" class="abtn" style="background:var(--s3);color:var(--bl);border:1px solid var(--bl)" onclick="adminSummon()">🧲 Summon to My Room</button>
 <button id="btn-clone" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminClone()">🪞 Clone Identity</button>
@@ -403,6 +430,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         <div style="flex:1;min-width:0"><div class="me-name" id="meName">—</div><div class="me-status">● Online</div></div>
         <button class="ic-btn" id="notifBtn" title="Enable Notifications" onclick="reqNotif()">🔔</button>
         <button class="ic-btn" title="Edit Profile" onclick="showProfile()">✏️</button>
+        <button class="ic-btn" title="Item Shop" onclick="showShop()">🛒</button>
         <button class="ic-btn" title="Sign out" onclick="signOut()">⎋</button>
       </div>
       <button class="admin-sb" onclick="showAdmin()">🔧 Admin Tools</button>
@@ -468,6 +496,8 @@ let adminUserList = [];
 let serverSlowmode = 0, lastSendTime = 0, myCustomTitle = null;
 let loadedRooms = {}; 
 let dmLockUntil = 0, dmLockRoom = null; 
+let isGodMode = false;
+let myBalance = 0;
 
 const ADMIN_PW = '32ad', H_MOD_PW = '2hmod', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
@@ -668,9 +698,10 @@ function onLoggedIn(){
     }
 
     // Check if 24h Helper Pass expired
+   // Check if Temporary Pass expired
     if(d.helperExpiration && Date.now() > d.helperExpiration) {
       await db.ref('users/'+me).update({ role: null, helperExpiration: null });
-      toast('Your 24h Chat Helper pass has expired.', 'warn');
+      toast('Your temporary staff pass has expired.', 'warn');
       setTimeout(() => location.reload(), 2000);
       return;
     }
@@ -700,7 +731,9 @@ function onLoggedIn(){
     // Note: Handled by pendingWarnReason 'kick' type now, but kept for legacy cleanup
     if(d.force_voice_leave) { await db.ref('users/'+me+'/force_voice_leave').remove(); leaveVoiceRoom(); switchRoom('global'); }
 
-    isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = '👻 Ghost'; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = '● Online'; statusEl.style.color = 'var(--gr)'; }
+   myBalance = d.balance || 0;
+const shopBal = document.getElementById('shopBalDisplay'); if(shopBal) shopBal.textContent = myBalance.toLocaleString();
+isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = `👻 Ghost | 💵 $${myBalance.toLocaleString()}`; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = `● Online | 💵 $${myBalance.toLocaleString()}`; statusEl.style.color = 'var(--gr)'; }
     myBlockedUsers = d.blocked || {};
     adminRole = d.role || null;
     myCustomTitle = d.customTitle || null;
@@ -746,24 +779,49 @@ async function saveProfile(){
 }
 
 async function changeMyPassword() { 
-  const oldP = document.getElementById('ep-old-p').value; 
-  const newP = document.getElementById('ep-new-p').value; 
-  
-  if(!oldP || !newP) return toast("Fill in both password fields.", "err"); 
-  if(newP.length < 6) return toast("New password must be at least 6 characters.", "err"); 
-  
-  const snap = await db.ref('users/'+me).once('value'); 
-  const d = snap.val(); 
-  
-  if(d.password !== simpleHash(oldP)) return toast("Current password is incorrect.", "err"); 
-  
-  await db.ref('users/'+me).update({ password: simpleHash(newP) }); 
-  
-  document.getElementById('ep-old-p').value = ''; 
+ document.getElementById('ep-old-p').value = ''; 
   document.getElementById('ep-new-p').value = ''; 
   hideProfile();
   toast("Password updated successfully!", "ok"); 
 }
+
+// --- ITEM SHOP LOGIC ---
+function showShop() {
+    document.getElementById('shopBalDisplay').textContent = myBalance.toLocaleString();
+    document.getElementById('shopOv').classList.add('open');
+}
+
+async function buyItem(item) {
+    const snap = await db.ref('users/' + me).once('value');
+    const currentBal = snap.val().balance || 0;
+
+    if (item === 'tmod') {
+        if (currentBal < 1000000) return toast("Not enough funds!", "err");
+        if (adminRole === 'admin' || adminRole === 'h_mod' || adminRole === 'mod') return toast("You already have a higher rank!", "warn");
+        
+        await db.ref('users/' + me).update({
+            balance: currentBal - 1000000,
+            role: 'little_mod',
+            helperExpiration: Date.now() + (2 * 60 * 60 * 1000) // 2 hours
+        });
+        toast("Bought 2-Hour T-Mod Pass!", "ok");
+        sysMsg(`🎖️ **SHOP:** ${myDisplayName} just bought a 2-Hour T-Mod Pass!`);
+    }
+    else if (item === 'vip') {
+        if (currentBal < 100000) return toast("Not enough funds!", "err");
+        await db.ref('users/' + me).update({ balance: currentBal - 100000, hasVipBadge: true });
+        toast("Bought VIP Badge!", "ok");
+    }
+    else if (item === 'titlecolor') {
+        if (currentBal < 50000) return toast("Not enough funds!", "err");
+        await db.ref('users/' + me).update({ balance: currentBal - 50000, premiumTitle: true });
+        toast("Bought Premium Title Color!", "ok");
+    }
+    document.getElementById('shopOv').classList.remove('open');
+}
+
+// ── CUSTOM SERVERS ────────────────────────────
+async function createServer() {
 
 // ── CUSTOM SERVERS ────────────────────────────
 async function createServer() { 
@@ -984,6 +1042,21 @@ async function openAdminForUser(uid) {
 }
 
 // Supreme Admin Additions
+  async function adminGiveMoney() {
+  if (adminRole !== 'admin' && adminRole !== 'h_mod' && !isSuperAdmin()) return toast("Only Admins and H-Mods can mint money.", "err");
+  const u = document.getElementById('a-sel').value; if(!u) return;
+  
+  const amount = parseInt(prompt(`How much money do you want to give @${u}?`));
+  if (isNaN(amount) || amount <= 0) return toast("Invalid amount.", "err");
+
+  const snap = await db.ref('users/' + u).once('value');
+  if(!snap.exists()) return;
+  const currentBal = snap.val().balance || 0;
+  
+  await db.ref('users/' + u).update({ balance: currentBal + amount });
+  logAdminAction(`Granted $${amount} to user`, u);
+  toast(`Gave $${amount} to @${u}`, 'ok');
+}
   async function toggleGodMode() {
   if(!isSuperAdmin()) return;
   isGodMode = !isGodMode;
@@ -1799,14 +1872,20 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
 
   const dName=msg.displayName||msg.user, {text:ct, censored:wc} = censor(msg.text||""), isMention = ct.includes('@' + me) || ct.includes('@' + myDisplayName);
   
-  let badgeHTML = '';
+let badgeHTML = '';
   if (msg.showBadge && msg.role) {
       const b = msg.role === 'admin' ? '👑' : msg.role === 'h_mod' ? '⚔️' : msg.role === 'mod' ? '🛡️' : msg.role === 'little_mod' ? '🎖️' : '🤝';
-      badgeHTML = `<span style="font-size:11px; margin-left:3px; cursor:help;" title="Verified Staff">${b}</span>`;
+      badgeHTML += `<span style="font-size:11px; margin-left:3px; cursor:help;" title="Verified Staff">${b}</span>`;
+  }
+  if (msg.hasVipBadge) {
+      badgeHTML += `<span style="font-size:12px; margin-left:3px; cursor:help;" title="VIP Member">✨</span>`;
   }
   
   let shadowHTML = msg.shadowbanned && isStaffMember() ? `<span class="sb-tag">Shadowbanned</span>` : '';
-  let titleHTML = msg.customTitle ? `<span class="custom-title">${esc(msg.customTitle)}</span>` : '';
+  
+  // Apply premium styling if they bought the title color
+  let titleStyle = msg.premiumTitle ? "color:#00e5ff; border-color:#00e5ff; text-shadow:0 0 4px rgba(0,229,255,0.4);" : "color:var(--t1);";
+  let titleHTML = msg.customTitle ? `<span class="custom-title" style="${titleStyle}">${esc(msg.customTitle)}</span>` : '';
 
   let mediaUrl = msg.img || msg.gif;
 
@@ -2320,7 +2399,7 @@ async function doSend(){
     return toast("Unknown command. Type / to see list.", "err");
   }
 
-  const {text:ct, censored:wc}=censor(txt), obj = {user:me, displayName:myDisplayName, pfp:myPfp, text:ct, censored:wc, ts:Date.now(), deleted:false, role:d.role||null, showBadge:d.showBadge||false, shadowbanned: d.shadowbanned||false, customTitle: d.customTitle||null};
+ const {text:ct, censored:wc}=censor(txt), obj = {user:me, displayName:myDisplayName, pfp:myPfp, text:ct, censored:wc, ts:Date.now(), deleted:false, role:d.role||null, showBadge:d.showBadge||false, shadowbanned: d.shadowbanned||false, customTitle: d.customTitle||null, hasVipBadge: d.hasVipBadge||false, premiumTitle: d.premiumTitle||false};
   if(replyTo) obj.replyTo = {key: replyTo.key, displayName: replyTo.displayName, text: replyTo.text};
   await db.ref('chats/'+room).push(obj); 
   inp.value=''; cancelReply(); lastSendTime = Date.now(); db.ref('typing/'+room+'/'+me).remove();
