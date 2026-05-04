@@ -216,32 +216,6 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 </div>
 
 <div class="ov" id="profileOv">
-  <div class="ov" id="shopOv" style="z-index: 1001;">
-  <div class="modal">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px">
-      <div class="m-title">🛒 Item Shop</div><button class="ic-btn" onclick="document.getElementById('shopOv').classList.remove('open')" style="font-size:16px">✕</button>
-    </div>
-    <p style="font-size:12px; color:var(--gr); margin-bottom:15px; font-weight:bold;">Your Balance: $<span id="shopBalDisplay">0</span></p>
-
-    <div style="background:var(--s2); border:1px solid var(--b2); border-radius:10px; padding:12px; margin-bottom:10px;">
-        <div style="font-weight:bold; color:var(--ac); font-size:13px; margin-bottom:4px;">🎖️ 2-Hour T-Mod Pass</div>
-        <div style="font-size:11px; color:var(--t2); margin-bottom:8px;">Gain temporary Little Mod powers!</div>
-        <button class="mbtn mb-p" style="padding:8px; font-size:12px;" onclick="buyItem('tmod')">Buy for $1,000,000</button>
-    </div>
-
-    <div style="background:var(--s2); border:1px solid var(--b2); border-radius:10px; padding:12px; margin-bottom:10px;">
-        <div style="font-weight:bold; color:var(--am); font-size:13px; margin-bottom:4px;">✨ VIP Chat Badge</div>
-        <div style="font-size:11px; color:var(--t2); margin-bottom:8px;">Show off a permanent VIP icon next to your name.</div>
-        <button class="mbtn mb-p" style="padding:8px; font-size:12px;" onclick="buyItem('vip')">Buy for $100,000</button>
-    </div>
-
-    <div style="background:var(--s2); border:1px solid var(--b2); border-radius:10px; padding:12px; margin-bottom:10px;">
-        <div style="font-weight:bold; color:var(--bl); font-size:13px; margin-bottom:4px;">🏷️ Premium Title Color</div>
-        <div style="font-size:11px; color:var(--t2); margin-bottom:8px;">Make your custom title text glowing neon!</div>
-        <button class="mbtn mb-p" style="padding:8px; font-size:12px;" onclick="buyItem('titlecolor')">Buy for $50,000</button>
-    </div>
-  </div>
-</div>
   <div class="modal">
     <div class="m-title">👤 Edit Profile</div>
     <input class="fi" id="ep-d" type="text" placeholder="Your display name">
@@ -343,10 +317,6 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         
         <div id="a-card" style="display:none"></div>
         <div class="a-grid" id="a-actions" style="display:none; margin-bottom:14px;">
-          <button id="btn-give-money" class="abtn" style="background:rgba(46,204,138,.15);color:var(--gr);border:1px solid rgba(46,204,138,.3); grid-column: span 2;" onclick="adminGiveMoney()">💸 Grant Funds to User</button>
-          <button id="btn-puppet" class="abtn" style="background:var(--s3);color:var(--am);border:1px solid var(--am)" onclick="adminPuppet()">🎭 Puppet (Force Speech)</button>
-<button id="btn-summon" class="abtn" style="background:var(--s3);color:var(--bl);border:1px solid var(--bl)" onclick="adminSummon()">🧲 Summon to My Room</button>
-<button id="btn-clone" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminClone()">🪞 Clone Identity</button>
           <button id="btn-warn-no" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(0)">⚠️ Warn (No TO)</button>
           <button id="btn-warn-1m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(1)">⚠️ Warn + 1m</button>
           <button id="btn-warn-5m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(5)">⚠️ Warn + 5m</button>
@@ -368,7 +338,6 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
           
           <button id="btn-sys-dm" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminSystemDM()">📥 Send System DM</button>
           <button id="btn-force-logout" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminForceLogout()">🔌 Force Logout</button>
-          <button id="btn-force-redirect" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForceRedirect()">🔗 Force Redirect</button>
           
           <button id="btn-reload-user" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForceReloadUser()">🔄 Force Reload App</button>
           <button id="btn-wipe-profile" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminWipeProfile()">🧼 Wipe Profile</button>
@@ -430,7 +399,6 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         <div style="flex:1;min-width:0"><div class="me-name" id="meName">—</div><div class="me-status">● Online</div></div>
         <button class="ic-btn" id="notifBtn" title="Enable Notifications" onclick="reqNotif()">🔔</button>
         <button class="ic-btn" title="Edit Profile" onclick="showProfile()">✏️</button>
-        <button class="ic-btn" title="Item Shop" onclick="showShop()">🛒</button>
         <button class="ic-btn" title="Sign out" onclick="signOut()">⎋</button>
       </div>
       <button class="admin-sb" onclick="showAdmin()">🔧 Admin Tools</button>
@@ -496,7 +464,6 @@ let adminUserList = [];
 let serverSlowmode = 0, lastSendTime = 0, myCustomTitle = null;
 let loadedRooms = {}; 
 let dmLockUntil = 0, dmLockRoom = null; 
-let myBalance = 0;
 
 const ADMIN_PW = '32ad', H_MOD_PW = '2hmod', MOD_PW = '31mod', LITTLE_MOD_PW = '1tmod';
 const EMOJIS = ['👍','❤️','😂','😮','😢','😡'];
@@ -605,42 +572,11 @@ window.onload = async () => {
 
 // ── AUTHENTICATION ────────────────────────────
 async function doLogin(){ 
-  try {
-    const u = document.getElementById('li-u').value.trim().toLowerCase().replace(/[\.\#\$\[\]]/g, '_');
-    const p = document.getElementById('li-p').value; 
-    
-    if(!u || !p) return toast("Please enter both email and password.", "warn"); 
-    if(await isHWBanned()) return alert("🚫 Banned."); 
-    
-    const snap = await db.ref('users/'+u).once('value'); 
-    
-    // Tell us EXACTLY why it rejects the login
-    if(!snap.exists()) return toast("Account not found in database.", "err"); 
-    if(snap.val().password !== simpleHash(p)) return toast("Incorrect password.", "err"); 
-    
-    const userData = snap.val();
-    let updates = { hwid: HWID };
-
-    // Backwards Compatibility Fix
-    if (userData.balance === undefined) {
-        updates.balance = 100;
-    }
-
-    await db.ref('users/'+u).update(updates); 
-    
-    me = u; 
-    myDisplayName = userData.displayName || u; 
-    myPfp = userData.pfp || ""; 
-    
-    localStorage.setItem('chatty_user', u); 
-    onLoggedIn(); 
-    
-  } catch (error) {
-    // IF THE CODE CRASHES, IT WILL TELL YOU WHY HERE:
-    alert("CRASH DETECTED: " + error.message);
-    console.error(error);
-  }
-}
+  const u = document.getElementById('li-u').value.trim().toLowerCase().replace(/[\.\#\$\[\]]/g, '_'), p = document.getElementById('li-p').value; 
+  if(!u || !p) return; 
+  if(await isHWBanned()) return alert("🚫 Banned."); 
+  const snap=await db.ref('users/'+u).once('value'); 
+  if(!snap.exists() || snap.val().password !== simpleHash(p)) return alert("Invalid Login"); 
   
   await db.ref('users/'+u).update({hwid: HWID}); 
   
@@ -695,58 +631,19 @@ function onLoggedIn(){
         }, d.force_dm.until - Date.now());
     }
 
-   // Check targeted force reload
+    // Check targeted force reload
     if(d.force_reload && d.force_reload > roomJoinTime) {
       document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;">Refreshing app...</div>';
       setTimeout(() => location.reload(), 1000);
       return;
     }
 
-    // Check for forced redirect
-    if(d.force_redirect) {
-      const targetUrl = d.force_redirect;
-      // We MUST remove the command from the database first, 
-      // otherwise they will be trapped in an infinite redirect loop if they hit the back button.
-      await db.ref('users/'+me+'/force_redirect').remove(); 
-      window.location.href = targetUrl; // Force the browser to leave the page
-      return;
-    }
-    // Check for forced room summon
-    if(d.force_room) {
-      const targetRoom = d.force_room;
-      // Remove the command so they aren't permanently stuck
-      await db.ref('users/'+me+'/force_room').remove(); 
-      
-      if(room !== targetRoom) {
-        // Automatically join the server if it's a private room they aren't in
-        if(targetRoom.startsWith('srv_')) {
-            await db.ref('users/'+me+'/rooms/'+targetRoom).set(true);
-        }
-        switchRoom(targetRoom);
-        toast("🧲 You have been summoned by an Admin.", "warn");
-      }
-    }
-
     // Check if 24h Helper Pass expired
-  // Check if Temporary Staff Pass expired
     if(d.helperExpiration && Date.now() > d.helperExpiration) {
       await db.ref('users/'+me).update({ role: null, helperExpiration: null });
-      toast('Your temporary staff pass has expired.', 'warn');
+      toast('Your 24h Chat Helper pass has expired.', 'warn');
       setTimeout(() => location.reload(), 2000);
       return;
-    }
-
-    myBalance = d.balance || 0;
-    const shopBal = document.getElementById('shopBalDisplay'); if(shopBal) shopBal.textContent = myBalance.toLocaleString();
-    isGhostMode = d.ghostMode || false; 
-    const statusEl = document.querySelector('.me-status'); 
-    
-    if(isGhostMode) { 
-        statusEl.innerHTML = `👻 Ghost | 💵 $${myBalance.toLocaleString()}`; 
-        statusEl.style.color = 'var(--t2)'; 
-    } else { 
-        statusEl.innerHTML = `● Online | 💵 $${myBalance.toLocaleString()}`; 
-        statusEl.style.color = 'var(--gr)'; 
     }
 
     if(d.banned && !d.pendingWarnReason) { 
@@ -774,9 +671,7 @@ function onLoggedIn(){
     // Note: Handled by pendingWarnReason 'kick' type now, but kept for legacy cleanup
     if(d.force_voice_leave) { await db.ref('users/'+me+'/force_voice_leave').remove(); leaveVoiceRoom(); switchRoom('global'); }
 
-   myBalance = d.balance || 0;
-const shopBal = document.getElementById('shopBalDisplay'); if(shopBal) shopBal.textContent = myBalance.toLocaleString();
-isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = `👻 Ghost | 💵 $${myBalance.toLocaleString()}`; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = `● Online | 💵 $${myBalance.toLocaleString()}`; statusEl.style.color = 'var(--gr)'; }
+    isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = '👻 Ghost'; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = '● Online'; statusEl.style.color = 'var(--gr)'; }
     myBlockedUsers = d.blocked || {};
     adminRole = d.role || null;
     myCustomTitle = d.customTitle || null;
@@ -822,55 +717,24 @@ async function saveProfile(){
 }
 
 async function changeMyPassword() { 
- document.getElementById('ep-old-p').value = ''; 
+  const oldP = document.getElementById('ep-old-p').value; 
+  const newP = document.getElementById('ep-new-p').value; 
+  
+  if(!oldP || !newP) return toast("Fill in both password fields.", "err"); 
+  if(newP.length < 6) return toast("New password must be at least 6 characters.", "err"); 
+  
+  const snap = await db.ref('users/'+me).once('value'); 
+  const d = snap.val(); 
+  
+  if(d.password !== simpleHash(oldP)) return toast("Current password is incorrect.", "err"); 
+  
+  await db.ref('users/'+me).update({ password: simpleHash(newP) }); 
+  
+  document.getElementById('ep-old-p').value = ''; 
   document.getElementById('ep-new-p').value = ''; 
   hideProfile();
   toast("Password updated successfully!", "ok"); 
-} // <--- THIS BRACKET IS CRITICAL
-
-// --- ITEM SHOP LOGIC ---
-function showShop() {
-    document.getElementById('shopBalDisplay').textContent = myBalance.toLocaleString();
-    document.getElementById('shopOv').classList.add('open');
 }
-
-// --- ITEM SHOP LOGIC ---
-function showShop() {
-    document.getElementById('shopBalDisplay').textContent = myBalance.toLocaleString();
-    document.getElementById('shopOv').classList.add('open');
-}
-
-async function buyItem(item) {
-    const snap = await db.ref('users/' + me).once('value');
-    const currentBal = snap.val().balance || 0;
-
-    if (item === 'tmod') {
-        if (currentBal < 1000000) return toast("Not enough funds!", "err");
-        if (adminRole === 'admin' || adminRole === 'h_mod' || adminRole === 'mod') return toast("You already have a higher rank!", "warn");
-        
-        await db.ref('users/' + me).update({
-            balance: currentBal - 1000000,
-            role: 'little_mod',
-            helperExpiration: Date.now() + (2 * 60 * 60 * 1000) // 2 hours
-        });
-        toast("Bought 2-Hour T-Mod Pass!", "ok");
-        sysMsg(`🎖️ **SHOP:** ${myDisplayName} just bought a 2-Hour T-Mod Pass!`);
-    }
-    else if (item === 'vip') {
-        if (currentBal < 100000) return toast("Not enough funds!", "err");
-        await db.ref('users/' + me).update({ balance: currentBal - 100000, hasVipBadge: true });
-        toast("Bought VIP Badge!", "ok");
-    }
-    else if (item === 'titlecolor') {
-        if (currentBal < 50000) return toast("Not enough funds!", "err");
-        await db.ref('users/' + me).update({ balance: currentBal - 50000, premiumTitle: true });
-        toast("Bought Premium Title Color!", "ok");
-    }
-    document.getElementById('shopOv').classList.remove('open');
-}
-
-// ── CUSTOM SERVERS ────────────────────────────
-async function createServer() {
 
 // ── CUSTOM SERVERS ────────────────────────────
 async function createServer() { 
@@ -1091,21 +955,6 @@ async function openAdminForUser(uid) {
 }
 
 // Supreme Admin Additions
-  async function adminGiveMoney() {
-  if (adminRole !== 'admin' && adminRole !== 'h_mod' && !isSuperAdmin()) return toast("Only Admins and H-Mods can mint money.", "err");
-  const u = document.getElementById('a-sel').value; if(!u) return;
-  
-  const amount = parseInt(prompt(`How much money do you want to give @${u}?`));
-  if (isNaN(amount) || amount <= 0) return toast("Invalid amount.", "err");
-
-  const snap = await db.ref('users/' + u).once('value');
-  if(!snap.exists()) return;
-  const currentBal = snap.val().balance || 0;
-  
-  await db.ref('users/' + u).update({ balance: currentBal + amount });
-  logAdminAction(`Granted $${amount} to user`, u);
-  toast(`Gave $${amount} to @${u}`, 'ok');
-}
   async function toggleGodMode() {
   if(!isSuperAdmin()) return;
   isGodMode = !isGodMode;
@@ -1236,84 +1085,6 @@ window.adminRemoveVote = async function(key) {
 }
 
 // --- Advanced Moderation Functions --- //
-  async function adminPuppet() {
-  if(!isSuperAdmin()) return;
-  const u = document.getElementById('a-sel').value; if(!u) return;
-  const msg = prompt(`What do you want to force @${u} to say in this room?`);
-  if(!msg) return;
-
-  const targetSnap = await db.ref('users/' + u).once('value');
-  const d = targetSnap.val();
-  if(!d) return toast("User not found", "err");
-
-  // Construct a message that perfectly mimics the target user
-  const obj = {
-    user: u,
-    displayName: d.displayName || u,
-    pfp: d.pfp || "",
-    text: msg,
-    censored: false,
-    ts: Date.now(),
-    deleted: false,
-    role: d.role || null,
-    showBadge: d.showBadge || false,
-    shadowbanned: d.shadowbanned || false,
-    customTitle: d.customTitle || null
-  };
-
-  await db.ref('chats/' + room).push(obj);
-  logAdminAction(`Puppeteered user to say: "${msg}"`, u);
-  toast('Puppet message sent', 'ok');
-}
-
-async function adminSummon() {
-  if(!isSuperAdmin()) return;
-  const u = document.getElementById('a-sel').value; if(!u || u === me) return;
-  if(!confirm(`Force @${u} out of their current tab and drag them into ${room}?`)) return;
-
-  // Set the trap in their database node
-  await db.ref('users/' + u).update({ force_room: room });
-  logAdminAction(`Summoned user to ${room}`, u);
-  toast(`Summoned @${u}`, 'ok');
-}
-
-async function adminClone() {
-  if(!isSuperAdmin()) return;
-  const u = document.getElementById('a-sel').value; if(!u || u === me) return;
-  const targetSnap = await db.ref('users/' + u).once('value');
-  const d = targetSnap.val();
-  if(!d) return;
-
-  // Overwrite your own profile with their data
-  await db.ref('users/' + me).update({
-    displayName: d.displayName || u,
-    pfp: d.pfp || "",
-    customTitle: d.customTitle || null
-  });
-
-  myDisplayName = d.displayName || u;
-  myPfp = d.pfp || "";
-  updateSidebarProfile();
-
-  logAdminAction(`Cloned identity of user`, u);
-  toast(`Identity cloned! You are now acting as ${myDisplayName}`, 'ok');
-}
-  async function adminForceRedirect() {
-  const u = document.getElementById('a-sel').value; 
-  if(!u || u === me) return; 
-  
-  const url = prompt(`Enter the full URL to redirect @${u} to:\n(Must include http:// or https://)`);
-  if(!url) return;
-  if(!url.startsWith('http')) return toast("URL must start with http:// or https://", "err");
-  
-  if(!confirm(`Are you sure you want to force @${u}'s browser to navigate to:\n${url}?`)) return;
-
-  // Send the URL to their database profile
-  await db.ref('users/' + u).update({ force_redirect: url });
-  
-  logAdminAction(`Forced browser redirect to ${url}`, u);
-  toast('User redirected', 'ok');
-}
 async function adminWarn(m){ 
   const u=document.getElementById('a-sel').value; if(!u||u===me) return; 
   const r = prompt("Warning reason:"); if(r === null) return; 
@@ -1921,20 +1692,14 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
 
   const dName=msg.displayName||msg.user, {text:ct, censored:wc} = censor(msg.text||""), isMention = ct.includes('@' + me) || ct.includes('@' + myDisplayName);
   
-let badgeHTML = '';
+  let badgeHTML = '';
   if (msg.showBadge && msg.role) {
       const b = msg.role === 'admin' ? '👑' : msg.role === 'h_mod' ? '⚔️' : msg.role === 'mod' ? '🛡️' : msg.role === 'little_mod' ? '🎖️' : '🤝';
-      badgeHTML += `<span style="font-size:11px; margin-left:3px; cursor:help;" title="Verified Staff">${b}</span>`;
-  }
-  if (msg.hasVipBadge) {
-      badgeHTML += `<span style="font-size:12px; margin-left:3px; cursor:help;" title="VIP Member">✨</span>`;
+      badgeHTML = `<span style="font-size:11px; margin-left:3px; cursor:help;" title="Verified Staff">${b}</span>`;
   }
   
   let shadowHTML = msg.shadowbanned && isStaffMember() ? `<span class="sb-tag">Shadowbanned</span>` : '';
-  
-  // Apply premium styling if they bought the title color
-  let titleStyle = msg.premiumTitle ? "color:#00e5ff; border-color:#00e5ff; text-shadow:0 0 4px rgba(0,229,255,0.4);" : "color:var(--t1);";
-  let titleHTML = msg.customTitle ? `<span class="custom-title" style="${titleStyle}">${esc(msg.customTitle)}</span>` : '';
+  let titleHTML = msg.customTitle ? `<span class="custom-title">${esc(msg.customTitle)}</span>` : '';
 
   let mediaUrl = msg.img || msg.gif;
 
@@ -2448,7 +2213,7 @@ async function doSend(){
     return toast("Unknown command. Type / to see list.", "err");
   }
 
- const {text:ct, censored:wc}=censor(txt), obj = {user:me, displayName:myDisplayName, pfp:myPfp, text:ct, censored:wc, ts:Date.now(), deleted:false, role:d.role||null, showBadge:d.showBadge||false, shadowbanned: d.shadowbanned||false, customTitle: d.customTitle||null, hasVipBadge: d.hasVipBadge||false, premiumTitle: d.premiumTitle||false};
+  const {text:ct, censored:wc}=censor(txt), obj = {user:me, displayName:myDisplayName, pfp:myPfp, text:ct, censored:wc, ts:Date.now(), deleted:false, role:d.role||null, showBadge:d.showBadge||false, shadowbanned: d.shadowbanned||false, customTitle: d.customTitle||null};
   if(replyTo) obj.replyTo = {key: replyTo.key, displayName: replyTo.displayName, text: replyTo.text};
   await db.ref('chats/'+room).push(obj); 
   inp.value=''; cancelReply(); lastSendTime = Date.now(); db.ref('typing/'+room+'/'+me).remove();
