@@ -605,30 +605,41 @@ window.onload = async () => {
 
 // ── AUTHENTICATION ────────────────────────────
 async function doLogin(){ 
-  const u = document.getElementById('li-u').value.trim().toLowerCase().replace(/[\.\#\$\[\]]/g, '_'), p = document.getElementById('li-p').value; 
-  if(!u || !p) return; 
-  if(await isHWBanned()) return alert("🚫 Banned."); 
-  
-  const snap=await db.ref('users/'+u).once('value'); 
-  if(!snap.exists() || snap.val().password !== simpleHash(p)) return alert("Invalid Login"); 
-  
-  const userData = snap.val();
-  let updates = { hwid: HWID };
+  try {
+    const u = document.getElementById('li-u').value.trim().toLowerCase().replace(/[\.\#\$\[\]]/g, '_');
+    const p = document.getElementById('li-p').value; 
+    
+    if(!u || !p) return toast("Please enter both email and password.", "warn"); 
+    if(await isHWBanned()) return alert("🚫 Banned."); 
+    
+    const snap = await db.ref('users/'+u).once('value'); 
+    
+    // Tell us EXACTLY why it rejects the login
+    if(!snap.exists()) return toast("Account not found in database.", "err"); 
+    if(snap.val().password !== simpleHash(p)) return toast("Incorrect password.", "err"); 
+    
+    const userData = snap.val();
+    let updates = { hwid: HWID };
 
-  // 🛠️ BACKWARDS COMPATIBILITY FIX: 
-  // If this is an old account missing the new economy updates, give them the default $100
-  if (userData.balance === undefined) {
-      updates.balance = 100;
+    // Backwards Compatibility Fix
+    if (userData.balance === undefined) {
+        updates.balance = 100;
+    }
+
+    await db.ref('users/'+u).update(updates); 
+    
+    me = u; 
+    myDisplayName = userData.displayName || u; 
+    myPfp = userData.pfp || ""; 
+    
+    localStorage.setItem('chatty_user', u); 
+    onLoggedIn(); 
+    
+  } catch (error) {
+    // IF THE CODE CRASHES, IT WILL TELL YOU WHY HERE:
+    alert("CRASH DETECTED: " + error.message);
+    console.error(error);
   }
-
-  await db.ref('users/'+u).update(updates); 
-  
-  me = u; 
-  myDisplayName = userData.displayName || u; 
-  myPfp = userData.pfp || ""; 
-  
-  localStorage.setItem('chatty_user', u); 
-  onLoggedIn(); // <-- This is the crucial line that was missing!
 }
   
   await db.ref('users/'+u).update({hwid: HWID}); 
