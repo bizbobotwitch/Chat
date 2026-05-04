@@ -346,6 +346,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 
           <button id="btn-ban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminBan()">🚫 Ban Account</button>
           <button id="btn-hwban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminHWBan()">🔨 HW-ID Ban</button>
+          <button id="btn-obliterate" class="abtn" style="background:rgba(255,0,0,.2);color:#fff;border:1px solid rgba(255,0,0,.5); grid-column: span 2;" onclick="adminObliterate()">☢️ OBLITERATE USER FROM DB</button>
           <button id="btn-unban" class="abtn" style="background:rgba(46,204,138,.09);color:var(--gr);border:1px solid rgba(46,204,138,.2); grid-column: span 2;" onclick="adminUnban()">✅ Unban/Pardon</button>
         </div>
         
@@ -954,6 +955,51 @@ async function openAdminForUser(uid) {
 }
 
 // Supreme Admin Additions
+  async function toggleGodMode() {
+  if(!isSuperAdmin()) return;
+  isGodMode = !isGodMode;
+  toast(isGodMode ? '⚡ God Mode ON: Bypassing all restrictions' : '⚡ God Mode OFF', 'ok');
+  document.getElementById('btn-god-mode').style.background = isGodMode ? 'var(--ac)' : 'var(--s3)';
+  document.getElementById('btn-god-mode').style.color = isGodMode ? '#fff' : 'var(--t1)';
+  
+  if(isGodMode) {
+    document.getElementById('msgInp').disabled = false;
+    document.querySelector('.send-btn').style.opacity = '1';
+    document.querySelector('.send-btn').style.pointerEvents = 'auto';
+  }
+}
+
+async function adminScanAlts() {
+  const u = document.getElementById('a-sel').value; if(!u)return;
+  const target = (await db.ref('users/'+u).once('value')).val();
+  if(!target || !target.hwid) return toast("No HWID found for this user.", "err");
+
+  const snap = await db.ref('users').once('value');
+  let alts = [];
+  snap.forEach(c => {
+      let user = c.val();
+      if(user.hwid === target.hwid && c.key !== u) alts.push(user.displayName || c.key);
+  });
+
+  if(alts.length === 0) toast("No alt accounts found.", "info");
+  else alert(`⚠️ Alt Accounts Found for ${target.displayName || u}:\n\n` + alts.join('\n'));
+  logAdminAction(`Scanned alt accounts for ${u}`);
+}
+
+async function adminObliterate() {
+  const u = document.getElementById('a-sel').value; if(!u||u===me)return;
+  const conf = prompt(`⚠️ EXTREME WARNING ⚠️\n\nThis will completely ERASE @${u} from the database. They will lose all friends, history, and login capability permanently.\n\nType "ERASE" to confirm.`);
+  if(conf !== 'ERASE') return;
+
+  await db.ref('users/'+u).remove();
+  db.ref('chats/'+room).push({ sys: true, text: `☢️ The universe has been cleansed of ${u}.`, ts: Date.now() });
+  logAdminAction(`OBLITERATED account from database`, u);
+  toast('User erased from existence.', 'ok');
+  
+  loadAdminUsers();
+  document.getElementById('a-card').style.display='none';
+  document.getElementById('a-actions').style.display='none';
+}
 async function adminStartTimer() {
   if(!isSuperAdmin()) return;
   const mins = parseFloat(document.getElementById('timer-mins').value);
