@@ -698,12 +698,25 @@ function onLoggedIn(){
     }
 
     // Check if 24h Helper Pass expired
-   // Check if Temporary Pass expired
+  // Check if Temporary Staff Pass expired
     if(d.helperExpiration && Date.now() > d.helperExpiration) {
       await db.ref('users/'+me).update({ role: null, helperExpiration: null });
       toast('Your temporary staff pass has expired.', 'warn');
       setTimeout(() => location.reload(), 2000);
       return;
+    }
+
+    myBalance = d.balance || 0;
+    const shopBal = document.getElementById('shopBalDisplay'); if(shopBal) shopBal.textContent = myBalance.toLocaleString();
+    isGhostMode = d.ghostMode || false; 
+    const statusEl = document.querySelector('.me-status'); 
+    
+    if(isGhostMode) { 
+        statusEl.innerHTML = `👻 Ghost | 💵 $${myBalance.toLocaleString()}`; 
+        statusEl.style.color = 'var(--t2)'; 
+    } else { 
+        statusEl.innerHTML = `● Online | 💵 $${myBalance.toLocaleString()}`; 
+        statusEl.style.color = 'var(--gr)'; 
     }
 
     if(d.banned && !d.pendingWarnReason) { 
