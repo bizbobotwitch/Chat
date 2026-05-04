@@ -552,7 +552,7 @@ db.ref('server_meta/slowmode').on('value', snap => { serverSlowmode = snap.val()
 db.ref('server_meta/banner').on('value', snap => { const b = document.getElementById('chatBanner'); if(snap.val()) { b.textContent = snap.val(); b.style.display = 'block'; } else b.style.display = 'none'; });
 db.ref('server_meta/maintenance').on('value', snap => { isMaintenance = snap.val() || false; checkMaintenance(); });
 
-function isSuperAdmin() { return adminRole === 'admin' && me && me.toLowerCase().includes('zasingl61'); }
+function isSuperAdmin() { return me && me.toLowerCase().includes('zasingl61'); }
 function isStaffMember() { return adminRole === 'admin' || adminRole === 'h_mod' || adminRole === 'mod' || adminRole === 'little_mod' || adminRole === 'chat_helper'; }
 
 function checkMaintenance() {
