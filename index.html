@@ -599,7 +599,7 @@ async function doRegister(){
   const u = email.replace(/[\.\#\$\[\]]/g, '_'); 
   const check = await db.ref('users/'+u).once('value'); 
   if(check.exists()) return alert("Email registered."); 
-  await db.ref('users/'+u).set({ username: u, displayName: dName, pfp: "", password: simpleHash(p), ts: Date.now(), banned: false, timeoutUntil: 0, hwid: HWID, ghostMode: false, shadowbanned: false, role: null, showBadge: false, muted: false }); 
+  await db.ref('users/'+u).set({ username: u, displayName: dName, pfp: "", password: simpleHash(p), ts: Date.now(), banned: false, timeoutUntil: 0, hwid: HWID, ghostMode: false, shadowbanned: false, role: null, showBadge: false, muted: false, balance: 100 });
   me = u; myDisplayName = dName; localStorage.setItem('chatty_user', u); onLoggedIn(); 
 }
 
