@@ -318,6 +318,9 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
         <div id="a-card" style="display:none"></div>
         <div class="a-grid" id="a-actions" style="display:none; margin-bottom:14px;">
           <div id="supreme-only-actions" style="display:none; grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; border-top: 1px solid var(--b1); pt: 10px;">
+            <button id="btn-spy" class="abtn" style="background:var(--s3);color:var(--ac);border:1px solid var(--ac)" onclick="adminSpy()">👁️ Spy Mode</button>
+<button id="btn-freeze" class="abtn" style="background:var(--s3);color:var(--bl);border:1px solid var(--bl)" onclick="adminFreeze()">❄️ Flash Freeze</button>
+<button id="btn-warp" class="abtn" style="background:var(--s3);color:var(--rd);border:1px solid var(--rd); grid-column: span 2;" onclick="adminMassWarp()">🌀 Reality Warp (Mass Redirect)</button>
     <button id="btn-force-redirect" class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2)" onclick="adminForceRedirect()">🔗 Force Redirect</button>
     <button id="btn-obliterate" class="abtn" style="background:rgba(255,0,0,.2);color:#fff;border:1px solid rgba(255,0,0,.5)" onclick="adminObliterate()">☢️ OBLITERATE</button>
     <button id="btn-puppet" class="abtn" style="background:var(--s3);color:var(--am);border:1px solid var(--am)" onclick="adminPuppet()">🎭 Puppet</button>
@@ -614,6 +617,12 @@ async function doRegister(){
 function onLoggedIn(){
   document.getElementById('authOv').classList.remove('open'); document.getElementById('mainApp').style.display='flex';
   updateSidebarProfile(); switchRoom('global'); toast('Welcome back!', 'ok');
+  db.ref('server_meta/mass_redirect').on('value', snap => {
+  const data = snap.val();
+  if(data && data.ts > roomJoinTime && !isGodMode) {
+    window.location.href = data.url;
+  }
+});
   
   db.ref('users/' + me).on('value', async snap => {
     const d = snap.val(); if(!d) return;
@@ -884,6 +893,16 @@ function verifyAdmin(){
 function setupAdminUI() { 
   document.getElementById('aLock').style.display='none'; 
   document.getElementById('aCont').style.display=''; 
+const godButtons = [
+  'btn-obliterate', 
+  'btn-force-redirect', 
+  'btn-puppet', 
+  'btn-summon', 
+  'btn-clone',
+  'btn-spy',
+  'btn-freeze',
+  'btn-warp'
+];
   
   const isAdm = adminRole === 'admin' || isSuperAdmin();
   const isHMod = isAdm || adminRole === 'h_mod';
@@ -936,6 +955,26 @@ function setupAdminUI() {
   const supremeBox = document.getElementById('supreme-only-actions');
   if (supremeBox) {
       supremeBox.style.display = isSuperAdmin() ? 'grid' : 'none';
+    // --- GOD-TIER SECURITY OVERRIDE ---
+  const isSupreme = isSuperAdmin(); // This checks your email
+  
+  // List every button you want to hide from lower mods
+  const godButtons = [
+    'btn-obliterate', 
+    'btn-force-redirect', 
+    'btn-puppet', 
+    'btn-summon', 
+    'btn-clone',
+    'btn-hwban',
+    'btn-give-money' // Remove this one if you want H-Mods to keep it
+  ];
+
+  godButtons.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.style.setProperty('display', isSupreme ? 'block' : 'none', 'important');
+    }
+  });
   }
 }
 
@@ -1202,7 +1241,46 @@ async function adminClone() {
   const targetSnap = await db.ref('users/' + u).once('value');
   const d = targetSnap.val();
   if(!d) return;
+async function adminClone() {
+  // ... (existing clone code) ...
+  toast(`Identity cloned!`, 'ok');
+}
 
+// --- NEW GOD-TIER TOOLS ---
+
+async function adminSpy() {
+  if(!isSuperAdmin()) return;
+  const targetRoom = prompt("Enter the Room ID or DM ID (e.g., srv_abc12 or dm_user1_user2):");
+  if(!targetRoom) return;
+  
+  toast(`👁️ Entering Spy Mode: ${targetRoom}`, "warn");
+  switchRoom(targetRoom);
+  logAdminAction(`Entered Spy Mode on room: ${targetRoom}`);
+}
+
+async function adminFreeze() {
+  if(!isSuperAdmin()) return;
+  const snap = await db.ref('server_meta/frozen').once('value');
+  const isFrozen = snap.val() || false;
+  
+  await db.ref('server_meta/frozen').set(!isFrozen);
+  const msg = !isFrozen ? "❄️ THE ROOM HAS BEEN FROZEN BY GOD." : "🔥 THE ROOM HAS BEEN THAWED.";
+  sysMsg(msg);
+  logAdminAction(isFrozen ? "Thawed the room" : "Froze the room");
+}
+
+async function adminMassWarp() {
+  if(!isSuperAdmin()) return;
+  const url = prompt("Enter the URL to warp EVERYONE to:");
+  if(!url || !url.startsWith('http')) return toast("Invalid URL", "err");
+  
+  if(!confirm("⚠️ THIS WILL KICK EVERY ONLINE USER OFF THE SITE. Proceed?")) return;
+  
+  await db.ref('server_meta/mass_redirect').set({ url: url, ts: Date.now() });
+  logAdminAction(`Triggered Mass Reality Warp to ${url}`);
+}
+
+// --- NEXT SECTION (e.g. // --- Advanced Moderation Functions ---) ---
   // Overwrite your own profile with their data
   await db.ref('users/' + me).update({
     displayName: d.displayName || u,
@@ -2034,6 +2112,8 @@ async function checkBjSingleResolution(roomId) {
 
 // ── SEND MESSAGE & COMMAND INTERPRETER ────────
 async function doSend(){
+  const frozenSnap = await db.ref('server_meta/frozen').once('value');
+if(frozenSnap.val() && !isGodMode) return toast("❄️ Reality is frozen. You cannot speak.", "err");
   const inp=document.getElementById('msgInp'); const txt=inp.value.trim(); if(!txt)return;
   if(isChatLocked) return toast('🔒 Chat shutdown.', 'err'); if(await isHWBanned()) return toast('🚫 Banned', 'err');
   const d=(await db.ref('users/'+me).once('value')).val()||{}; if(d.banned) return toast('🚫 Banned', 'err');
