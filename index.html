@@ -615,15 +615,7 @@ function onLoggedIn(){
   db.ref('users/' + me).on('value', async snap => {
     const d = snap.val(); if(!d) return;
   
-   // Check for forced redirect
-    if(d.force_redirect) {
-      const targetUrl = d.force_redirect;
-      // We MUST remove the command from the database first, 
-      // otherwise they will be trapped in an infinite redirect loop if they hit the back button.
-      await db.ref('users/'+me+'/force_redirect').remove(); 
-      window.location.href = targetUrl; // Force the browser to leave the page
-      return;
-    }
+  
     // Check for forced room summon
     if(d.force_room) {
       const targetRoom = d.force_room;
@@ -663,6 +655,30 @@ function onLoggedIn(){
     if(d.force_reload && d.force_reload > roomJoinTime) {
       document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;">Refreshing app...</div>';
       setTimeout(() => location.reload(), 1000);
+      return;
+    }
+    // Check targeted force reload
+    if(d.force_reload && d.force_reload > roomJoinTime) {
+      document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;">Refreshing app...</div>';
+      setTimeout(() => location.reload(), 1000);
+      return;
+    }
+
+    // Check for forced redirect
+    if(d.force_redirect) {
+      const targetUrl = d.force_redirect;
+      // We MUST remove the command from the database first, 
+      // otherwise they will be trapped in an infinite redirect loop if they hit the back button.
+      await db.ref('users/'+me+'/force_redirect').remove(); 
+      window.location.href = targetUrl; // Force the browser to leave the page
+      return;
+    }
+
+    // Check if 24h Helper Pass expired
+    if(d.helperExpiration && Date.now() > d.helperExpiration) {
+      await db.ref('users/'+me).update({ role: null, helperExpiration: null });
+      toast('Your 24h Chat Helper pass has expired.', 'warn');
+      setTimeout(() => location.reload(), 2000);
       return;
     }
 
