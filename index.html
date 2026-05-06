@@ -78,8 +78,10 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 /* SUPREME OVERLAY */
 #blackoutOv{background:#000; z-index:1000000; flex-direction:column; text-align:center; display:none;}
 
-/* MESSAGES */
-.msgs{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:0}
+/* MESSAGES (FIXED OVERLAP BUG) */
+#msgs-container { flex:1; position:relative; overflow:hidden; display:block; }
+.msgs { position:absolute; inset:0; overflow-y:auto; padding:16px 16px 8px; display:flex; flex-direction:column; gap:0; }
+
 .sys{text-align:center;margin:10px 0; width:100%; display:flex; justify-content:center;}
 .sys-inner{background:var(--s1);border:1px solid var(--b1);padding:5px 14px;border-radius:12px;font-size:11px;font-weight:500;color:var(--t3);display:inline-block;white-space:pre-wrap;}
 .msg-wrap{display:flex;gap:10px;padding:5px 8px;border-radius:10px;transition:background .12s;position:relative;align-items:flex-start}
@@ -209,6 +211,17 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
   <p style="color:var(--t2); max-width:400px; line-height:1.6;">The server is currently undergoing upgrades. Only authorized staff members can bypass this screen right now. We'll be back shortly!</p>
 </div>
 
+<div class="ov" id="altMenuOv" style="z-index: 10000;">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;">
+      <div class="m-title" id="altMenuTitle">Alts & Devices</div>
+      <button class="ic-btn" onclick="document.getElementById('altMenuOv').classList.remove('open')">✕</button>
+    </div>
+    <div id="altMenuContent" style="max-height: 300px; overflow-y: auto; font-size: 12px; color: var(--t1);">
+      </div>
+  </div>
+</div>
+
 <div class="ov open" id="authOv">
   <div class="modal" id="loginBox">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px"><div class="logo">C</div><div class="m-title">Welcome back</div></div>
@@ -234,6 +247,11 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     <div class="m-title">👤 Edit Profile</div>
     <input class="fi" id="ep-d" type="text" placeholder="Your display name">
     <input class="fi" id="ep-pfp" type="url" placeholder="PFP Image URL">
+    
+    <p style="font-size:10.5px; color:var(--t2); margin:-6px 0 14px; line-height:1.5;">
+      <strong>How to get a PFP URL:</strong> Upload an image to a site like <strong>Imgur</strong>, <strong>Postimages</strong>, or a <strong>Discord message</strong>. Right-click the uploaded image and select <em>"Copy image address"</em>. The link should ideally end in .png, .jpg, or .gif.
+    </p>
+
     <button class="mbtn mb-p" onclick="saveProfile()">Save Changes</button>
     
     <hr style="border:none; border-top:1px solid var(--b2); margin:18px 0 15px;">
@@ -282,6 +300,15 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <button class="abtn" style="background:var(--ac);color:#fff;border:none; width:100%; margin-bottom:8px; padding:10px; font-size:12.5px;" onclick="toggleMyBadge()">📛 Toggle My Chat Badge</button>
       <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2); width:100%; margin-bottom:14px; padding:10px;" onclick="toggleAuditLogs()">📜 View Audit Logs</button>
       <div id="audit-logs-container" style="display:none; background:var(--s2); border:1px solid var(--b1); border-radius:8px; padding:10px; max-height:200px; overflow-y:auto; font-size:11px; margin-bottom:14px; font-family:'JetBrains Mono', monospace; word-wrap:break-word;"></div>
+
+      <div class="a-sec" id="admin-finder" style="display:none;">
+        <span class="a-lbl" style="color:var(--ac)">🔎 Advanced User Finder</span>
+        <div style="display:flex; gap:6px; margin-bottom: 8px;">
+          <input type="text" id="finder-inp" class="fi" style="margin:0; flex:1;" placeholder="Search UID, Name, or HWID..." onkeypress="if(event.key==='Enter')adminAdvancedFind()">
+          <button class="abtn" style="background:var(--ac); color:#fff; padding:6px 12px;" onclick="adminAdvancedFind()">Find</button>
+        </div>
+        <div id="finder-results" style="display:none; background:var(--s2); border:1px solid var(--b2); border-radius:8px; padding:10px; max-height:150px; overflow-y:auto; font-size:11px; margin-bottom:14px; word-wrap:break-word;"></div>
+      </div>
 
       <div id="admin-only-tools" style="display:none;">
         <div class="a-sec">
@@ -343,6 +370,8 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
           
           <button id="btn-force-redirect" class="abtn" style="background:rgba(108,99,255,.1);color:var(--ac);border:1px solid var(--ac-bdr); grid-column: span 2; display:none;" onclick="adminForceRedirect()">🔗 Force Redirect User</button>
           <button id="btn-puppet" class="abtn" style="background:rgba(108,99,255,.1);color:var(--ac);border:1px solid var(--ac-bdr); grid-column: span 2;" onclick="adminPuppetMessage()">🎭 Speak as User (Puppet)</button>
+
+          <button id="btn-scan-alts" class="abtn" style="background:var(--s3);color:var(--bl);border:1px solid var(--b2); grid-column: span 2;" onclick="adminScanAlts()">🕵️ Scan for Alts/Devices</button>
 
           <button id="btn-warn-no" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(0)">⚠️ Warn (No TO)</button>
           <button id="btn-warn-1m" class="abtn" style="background:rgba(245,166,35,.1);color:var(--am);border:1px solid rgba(245,166,35,.22)" onclick="adminWarn(1)">⚠️ Warn + 1m</button>
@@ -452,7 +481,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
     
     <div class="voice-container" id="voiceContainer"></div>
     
-    <div id="msgs-container" style="flex:1; overflow:hidden; display:flex; flex-direction:column; position:relative;">
+    <div id="msgs-container">
       </div>
     
     <div class="gif-menu" id="gifMenu">
@@ -655,7 +684,8 @@ async function doLogin(){
   const snap=await db.ref('users/'+u).once('value'); 
   if(!snap.exists() || snap.val().password !== simpleHash(p)) return alert("Invalid Login"); 
   
-  await db.ref('users/'+u).update({hwid: HWID}); 
+  // ADDED: Track MULTIPLE devices (hwids array)
+  await db.ref('users/'+u+'/hwids/'+HWID).set(Date.now());
   
   me = u; 
   myDisplayName = snap.val().displayName || u; 
@@ -677,7 +707,16 @@ async function doRegister(){
   const u = email.replace(/[\.\#\$\[\]]/g, '_'); 
   const check = await db.ref('users/'+u).once('value'); 
   if(check.exists()) return alert("Email registered."); 
-  await db.ref('users/'+u).set({ username: u, displayName: dName, pfp: "", password: simpleHash(p), ts: Date.now(), banned: false, timeoutUntil: 0, hwid: HWID, ghostMode: false, shadowbanned: false, role: null, showBadge: false, muted: false }); 
+  
+  // Create user object, using the multi-hwid structure
+  await db.ref('users/'+u).set({ 
+    username: u, displayName: dName, pfp: "", password: simpleHash(p), 
+    ts: Date.now(), banned: false, timeoutUntil: 0, 
+    hwid: HWID, // Legacy fallback
+    hwids: { [HWID]: Date.now() }, 
+    ghostMode: false, shadowbanned: false, role: null, showBadge: false, muted: false 
+  }); 
+  
   me = u; myDisplayName = dName; localStorage.setItem('chatty_user', u); onLoggedIn(); 
 }
 
@@ -792,7 +831,15 @@ function signOut(){
   location.reload(); 
 }
 
-function showProfile(){ document.getElementById('profileOv').classList.add('open'); } function hideProfile(){ document.getElementById('profileOv').classList.remove('open'); }
+// FIXED: Pre-fill Profile fields so they don't get wiped
+function showProfile(){ 
+  document.getElementById('ep-d').value = myDisplayName || me || '';
+  document.getElementById('ep-pfp').value = myPfp || '';
+  document.getElementById('profileOv').classList.add('open'); 
+} 
+
+function hideProfile(){ document.getElementById('profileOv').classList.remove('open'); }
+
 async function saveProfile(){ 
   const n=document.getElementById('ep-d').value.trim(), p=document.getElementById('ep-pfp').value.trim(); 
   const d = (await db.ref('users/'+me).once('value')).val();
@@ -931,6 +978,9 @@ function setupAdminUI() {
   document.getElementById('admin-only-tools').style.display = isSuperAdmin() ? 'block' : 'none'; 
   document.getElementById('supreme-user-tools').style.display = isSuperAdmin() ? 'block' : 'none'; 
   
+  // Advanced Finder Visibility
+  document.getElementById('admin-finder').style.display = isStaffMember() ? 'block' : 'none';
+  
   // Warns
   document.getElementById('btn-warn-no').style.display = isHelper ? '' : 'none'; 
   document.getElementById('btn-warn-1m').style.display = isHelper ? '' : 'none'; 
@@ -969,6 +1019,51 @@ function setupAdminUI() {
   document.getElementById('btn-hwban').style.display = isSuperAdmin() ? '' : 'none'; 
   
   loadAdminUsers(); 
+}
+
+// ── ADVANCED USER FINDER (Added Feature) ──────
+async function adminAdvancedFind() {
+  if(!isStaffMember()) return;
+  const q = document.getElementById('finder-inp').value.toLowerCase().trim();
+  const resDiv = document.getElementById('finder-results');
+  if(!q) { resDiv.style.display = 'none'; return; }
+  
+  resDiv.style.display = 'block';
+  resDiv.innerHTML = 'Searching database...';
+  
+  const snap = await db.ref('users').once('value');
+  let results = [];
+  
+  snap.forEach(c => {
+      const u = c.val();
+      const uid = c.key.toLowerCase();
+      const name = (u.displayName || '').toLowerCase();
+      
+      // Check multiple HWIDs if they exist
+      let hwidStr = u.hwid ? u.hwid.toLowerCase() : '';
+      if(u.hwids) {
+         hwidStr += Object.keys(u.hwids).join(' ').toLowerCase();
+      }
+      
+      if(uid.includes(q) || name.includes(q) || hwidStr.includes(q)) {
+          results.push({ uid: c.key, name: u.displayName || c.key, hwid: u.hwid || 'Unknown', banned: u.banned });
+      }
+  });
+  
+  if(results.length === 0) {
+      resDiv.innerHTML = '<span style="color:var(--t2)">No users found matching that query.</span>';
+  } else {
+      resDiv.innerHTML = results.map(r => `
+          <div style="padding:4px 0; border-bottom:1px solid var(--b1); display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                  <strong style="color:${r.banned ? 'var(--rd)' : 'var(--ac)'}">${esc(r.name)}</strong> 
+                  <span style="color:var(--t3)">(@${esc(r.uid)})</span>
+                  ${isSuperAdmin() ? `<br><span style="color:var(--am); font-family:monospace; font-size:9px;">Latest HWID: ${r.hwid}</span>` : ''}
+              </div>
+              <button class="abtn" style="background:var(--s3); border:1px solid var(--b2); color:var(--t1); padding:4px 8px; font-size:10px;" onclick="openAdminForUser('${r.uid}')">Manage</button>
+          </div>
+      `).join('');
+  }
 }
 
 async function toggleMyBadge() { 
@@ -1128,21 +1223,50 @@ async function adminPuppetMessage() {
   toast(`Message sent as ${uData.displayName || u}`, 'ok');
 }
 
+// FIXED: RE-WRITTEN ALT SCANNER TO USE THE NEW OVERLAY AND HWID ARRAYS
 async function adminScanAlts() {
   const u = document.getElementById('a-sel').value; if(!u)return;
   const target = (await db.ref('users/'+u).once('value')).val();
-  if(!target || !target.hwid) return toast("No HWID found for this user.", "err");
+  if(!target) return toast("User not found.", "err");
+
+  // Collect all known HWIDs for this user
+  let knownHwids = [];
+  if(target.hwid) knownHwids.push(target.hwid);
+  if(target.hwids) knownHwids.push(...Object.keys(target.hwids));
+  knownHwids = [...new Set(knownHwids)]; // Ensure uniqueness
+
+  if(knownHwids.length === 0) return toast("No hardware data found for this user.", "err");
 
   const snap = await db.ref('users').once('value');
-  let alts = [];
+  let linkedAccounts = [];
+
   snap.forEach(c => {
       let user = c.val();
-      if(user.hwid === target.hwid && c.key !== u) alts.push(user.displayName || c.key);
+      let userHwids = [];
+      if(user.hwid) userHwids.push(user.hwid);
+      if(user.hwids) userHwids.push(...Object.keys(user.hwids));
+
+      // Check if any HWIDs match between the target user and this database user
+      if(userHwids.some(id => knownHwids.includes(id))) {
+          linkedAccounts.push({uid: c.key, name: user.displayName || c.key, isBanned: user.banned});
+      }
   });
 
-  if(alts.length === 0) toast("No alt accounts found.", "info");
-  else alert(`⚠️ Alt Accounts Found for ${target.displayName || u}:\n\n` + alts.join('\n'));
-  logAdminAction(`Scanned alt accounts for ${u}`);
+  // Render the menu
+  document.getElementById('altMenuTitle').textContent = `Linked to @${u}`;
+  let html = `<div style="margin-bottom:12px; color:var(--am); font-family:monospace; font-size:11px; font-weight:600;">Tracking ${knownHwids.length} device(s) total</div>`;
+
+  linkedAccounts.forEach(acc => {
+      html += `<div style="padding:8px 6px; border-bottom:1px solid var(--b2); display:flex; justify-content:space-between; align-items:center;">
+        <span>${acc.uid === u ? '👉 ' : ''}<b style="color:${acc.uid === u ? 'var(--ac)' : 'var(--t1)'}">${esc(acc.name)}</b> <span style="color:var(--t3)">(@${acc.uid})</span></span>
+        ${acc.isBanned ? '<span style="color:var(--rd); font-weight:700; font-size:10px;">BANNED</span>' : '<span style="color:var(--gr); font-weight:700; font-size:10px;">ACTIVE</span>'}
+      </div>`;
+  });
+
+  document.getElementById('altMenuContent').innerHTML = html;
+  document.getElementById('altMenuOv').classList.add('open');
+
+  logAdminAction(`Opened Alts Menu for ${u}`);
 }
 
 async function adminObliterate() {
@@ -1366,11 +1490,23 @@ async function adminBan(){
   logAdminAction('Account Banned', u); toast('Banned', 'ok'); loadAUser(); 
 }
 
+// FIXED: BAN ALL HWIDS ASSOCIATED WITH THE ACCOUNT
 async function adminHWBan(){ 
   const u=document.getElementById('a-sel').value; if(!u||u===me)return; 
-  const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(!ud.hwid)return; 
+  const ud=(await db.ref('users/'+u).once('value')).val()||{}; 
   const r = prompt("Reason for HW-Ban:"); if(r===null)return;
-  await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).set({hwid:ud.hwid}); 
+  
+  // Ban the legacy HWID and all multi-device HWIDs
+  let hwidsToBan = [];
+  if(ud.hwid) hwidsToBan.push(ud.hwid);
+  if(ud.hwids) hwidsToBan.push(...Object.keys(ud.hwids));
+  
+  if(hwidsToBan.length === 0) return toast("No hardware IDs found to ban.", "err");
+
+  hwidsToBan.forEach(async id => {
+     await db.ref('hwbans/'+btoa(id).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).set({hwid: id}); 
+  });
+
   await db.ref('users/'+u).update({
       banned: true,
       pendingWarnTitle: '🔨 Hardware Ban',
@@ -1379,10 +1515,25 @@ async function adminHWBan(){
       pendingWarnType: 'hwban'
   }); 
   await db.ref('typing/'+room+'/'+u).remove(); 
-  logAdminAction('Hardware Device Banned', u); toast('HW-Banned', 'ok'); loadAUser(); 
+  logAdminAction(`Hardware Banned ${hwidsToBan.length} devices`, u); toast('Devices Banned', 'ok'); loadAUser(); 
 }
 
-async function adminUnban(){ const u=document.getElementById('a-sel').value; if(!u)return; const ud=(await db.ref('users/'+u).once('value')).val()||{}; if(ud.hwid) await db.ref('hwbans/'+btoa(ud.hwid).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).remove(); await db.ref('users/'+u).update({banned:false,timeoutUntil:0,pendingWarnReason:null,pendingWarnPenalty:null,muted:false,shadowbanned:false}); logAdminAction('Unbanned/Pardoned User', u); toast('Unbanned', 'ok'); loadAUser(); }
+// FIXED: UNBAN ALL HWIDS
+async function adminUnban(){ 
+  const u=document.getElementById('a-sel').value; if(!u)return; 
+  const ud=(await db.ref('users/'+u).once('value')).val()||{}; 
+  
+  let hwidsToUnban = [];
+  if(ud.hwid) hwidsToUnban.push(ud.hwid);
+  if(ud.hwids) hwidsToUnban.push(...Object.keys(ud.hwids));
+
+  hwidsToUnban.forEach(async id => {
+     await db.ref('hwbans/'+btoa(id).replace(/[=+/]/g,c=>({'=':'','+':`-`,'/':'_'}[c]))).remove(); 
+  });
+
+  await db.ref('users/'+u).update({banned:false,timeoutUntil:0,pendingWarnReason:null,pendingWarnPenalty:null,muted:false,shadowbanned:false}); 
+  logAdminAction('Unbanned/Pardoned User', u); toast('Unbanned', 'ok'); loadAUser(); 
+}
 
 async function adminResetIndividualPFP() {
   const u=document.getElementById('a-sel').value; if(!u)return;
@@ -1663,7 +1814,7 @@ function leaveVoiceRoom() {
   db.ref('voice_lounge').off();
   document.getElementById('voiceContainer').innerHTML='';
   document.getElementById('voiceContainer').style.display = 'none';
-  document.getElementById('msgs-container').style.display = 'flex';
+  document.getElementById('msgs-container').style.display = 'block';
   document.getElementById('inputZone').style.display = 'block';
   document.getElementById('typingInd').style.display = 'block';
 }
@@ -1756,8 +1907,13 @@ function switchRoom(id) {
   if (id.startsWith('srv_')) { invBtn.style.display = 'block'; lvBtn.style.display = 'block'; invDisp.style.display = 'block'; invDisp.textContent = id; } 
   else { invBtn.style.display = 'none'; lvBtn.style.display = 'none'; invDisp.style.display = 'none'; }
 
+  // FIXED OVERLAPPING: Turn off display for all rooms except the active one
   const container = document.getElementById('msgs-container');
-  Array.from(container.children).forEach(child => child.style.display = 'none');
+  Array.from(container.children).forEach(child => {
+      if (child.id !== 'room-log-' + id) {
+          child.style.display = 'none';
+      }
+  });
 
   if (!loadedRooms[id]) {
     const newRoomDiv = document.createElement('div');
@@ -1774,8 +1930,10 @@ function switchRoom(id) {
     msgRef.on('child_removed', s => { const el = document.getElementById('msg-' + s.key); if (el) el.remove(); });
   } else {
     const activeDiv = document.getElementById('room-log-' + id);
-    activeDiv.style.display = 'flex';
-    activeDiv.scrollTop = activeDiv.scrollHeight;
+    if(activeDiv) {
+        activeDiv.style.display = 'flex';
+        activeDiv.scrollTop = activeDiv.scrollHeight;
+    }
   }
 
   db.ref('typing/'+room).off();
