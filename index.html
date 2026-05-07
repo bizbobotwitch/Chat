@@ -70,15 +70,17 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .chat-banner{display:none;background:rgba(108,99,255,0.15);border-bottom:1px solid var(--ac-bdr);color:var(--ac);padding:10px 20px;font-size:12.5px;font-weight:600;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,0.1);flex-shrink:0;}
 .voice-container{flex:1; display:none; background:var(--bg); overflow-y:auto; padding:20px;}
 
-/* SCHOOL COUNTDOWN UI */
-.school-timer{display:none; background:var(--s2); border:1px solid var(--b2); border-radius:8px; padding:4px 10px; align-items:center; gap:8px; margin-right:10px;}
+/* TIMERS CONTAINER */
+#timersContainer { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width: none;}
+#timersContainer::-webkit-scrollbar { display: none; }
+.school-timer{display:none; background:var(--s2); border:1px solid var(--b2); border-radius:8px; padding:4px 10px; align-items:center; gap:8px; flex-shrink:0;}
 .st-label{font-size:9px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.5px;}
 .st-time{font-family:'JetBrains Mono', monospace; font-size:12px; font-weight:600; color:var(--ac);}
 
 /* SUPREME OVERLAY */
 #blackoutOv{background:#000; z-index:1000000; flex-direction:column; text-align:center; display:none;}
 
-/* MESSAGES (FIXED OVERLAP BUG) */
+/* MESSAGES */
 #msgs-container { flex:1; position:relative; overflow:hidden; display:block; }
 .msgs { position:absolute; inset:0; overflow-y:auto; padding:16px 16px 8px; display:flex; flex-direction:column; gap:0; }
 
@@ -217,8 +219,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <div class="m-title" id="altMenuTitle">Alts & Devices</div>
       <button class="ic-btn" onclick="document.getElementById('altMenuOv').classList.remove('open')">✕</button>
     </div>
-    <div id="altMenuContent" style="max-height: 300px; overflow-y: auto; font-size: 12px; color: var(--t1);">
-      </div>
+    <div id="altMenuContent" style="max-height: 300px; overflow-y: auto; font-size: 12px; color: var(--t1);"></div>
   </div>
 </div>
 
@@ -312,15 +313,43 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 
       <div id="admin-only-tools" style="display:none;">
         <div class="a-sec">
+          <span class="a-lbl" style="color:var(--ac)">🌍 Global Network Management</span>
+          
+          <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2);width:100%;margin-bottom:8px;padding:10px;" onclick="adminViewAllServers()">📋 View All User Servers (Directory)</button>
+          <div id="admin-server-list" style="display:none; background:var(--s2); border:1px solid var(--b2); border-radius:8px; padding:10px; max-height:200px; overflow-y:auto; font-size:11px; margin-bottom:14px;"></div>
+
+          <button class="abtn" style="background:var(--s3);color:var(--rd);border:1px solid var(--b2);width:100%;margin-bottom:8px;padding:10px;" onclick="adminViewBans()">🔨 View HWID Ban List</button>
+          <div id="admin-ban-list" style="display:none; background:var(--s2); border:1px solid var(--b2); border-radius:8px; padding:10px; max-height:200px; overflow-y:auto; font-size:11px; margin-bottom:14px;"></div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--b1);margin:16px 0">
+
+        <div class="a-sec">
           <span class="a-lbl" style="color:var(--ac)">👑 Supreme Admin Tools</span>
           
+          <div class="a-grid" style="margin-bottom: 8px;">
+            <button class="abtn" style="background:rgba(108,99,255,.1);color:var(--ac);border:1px solid var(--ac-bdr);" onclick="adminViewStats()">📈 View Live Metrics</button>
+            <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2);" onclick="adminMassDM()">📨 Mass Global DM</button>
+            <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22); grid-column: span 2;" onclick="adminPanicMuteAll()">🚨 PANIC BUTTON (Mute all users globally)</button>
+          </div>
+
           <button class="abtn" style="background:#000; color:var(--rd); border:1px solid var(--rd); width:100%; margin-bottom:8px;" onclick="adminToggleBlackout()">🌑 Toggle Global Blackout</button>
           
-          <div style="display:flex; gap:6px; margin-bottom: 8px; align-items: center;">
-            <input type="text" id="school-timer-label" class="fi" style="margin:0; width:100px; padding: 6px 10px;" placeholder="Timer Label">
-            <input type="datetime-local" id="school-timer-date" class="fi" style="margin:0; flex:1; padding: 6px 10px;">
-            <button class="abtn" style="background:var(--ac); color:#fff; padding: 6px 12px;" onclick="adminSetSchoolTimer()">⏳ Set</button>
-            <button class="abtn" style="background:var(--s3); color:var(--t2); border:1px solid var(--b2); padding: 6px 10px;" onclick="adminClearSchoolTimer()">🛑</button>
+          <div style="background:var(--s2); padding:10px; border-radius:8px; border:1px solid var(--b2); margin-bottom:8px;">
+            <div style="font-size:10px; color:var(--t2); margin-bottom:6px; text-transform:uppercase; font-weight:600;">Add Global Countdown Timer</div>
+            <div style="display:flex; gap:6px; margin-bottom: 6px;">
+              <select id="timer-preset" class="a-sel" style="margin:0; flex:1;" onchange="handleTimerPreset()">
+                 <option value="custom">Custom Time...</option>
+                 <option value="normal">Normal School (3:00 PM)</option>
+                 <option value="half">Half Day (11:30 AM)</option>
+                 <option value="five">5 Minute Warning</option>
+              </select>
+            </div>
+            <div style="display:flex; gap:6px; margin-bottom: 6px; align-items: center;">
+              <input type="text" id="school-timer-label" class="fi" style="margin:0; width:100px; padding: 6px 10px;" placeholder="Label (e.g., Dismissal)">
+              <input type="datetime-local" id="school-timer-date" class="fi" style="margin:0; flex:1; padding: 6px 10px;">
+              <button class="abtn" style="background:var(--ac); color:#fff; padding: 6px 12px;" onclick="adminAddTimer()">⏳ Add</button>
+            </div>
+            <button class="abtn" style="background:var(--s3); color:var(--am); border:1px solid var(--b2); width:100%;" onclick="adminClearAllTimers()">🛑 Clear All Active Timers</button>
           </div>
 
           <div style="display:flex; gap:6px; margin-bottom: 8px;">
@@ -402,7 +431,9 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 
           <button id="btn-ban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminBan()">🚫 Ban Account</button>
           <button id="btn-hwban" class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22)" onclick="adminHWBan()">🔨 HW-ID Ban</button>
+          
           <button id="btn-obliterate" class="abtn" style="background:rgba(255,0,0,.2);color:#fff;border:1px solid rgba(255,0,0,.5); grid-column: span 2;" onclick="adminObliterate()">☢️ OBLITERATE USER FROM DB</button>
+          
           <button id="btn-unban" class="abtn" style="background:rgba(46,204,138,.09);color:var(--gr);border:1px solid rgba(46,204,138,.2); grid-column: span 2;" onclick="adminUnban()">✅ Unban/Pardon</button>
         </div>
         
@@ -466,10 +497,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
       <button class="ham" id="ham" onclick="mobToggle()">☰</button>
       <div class="ch-title" id="chTitle">Global Chat</div>
       
-      <div class="school-timer" id="schoolTimerUI">
-        <span class="st-label" id="timerLabel">Loading...</span>
-        <span class="st-time" id="timerCountdown">00:00:00</span>
-      </div>
+      <div id="timersContainer"></div>
       
       <div id="inviteDisplay" style="display:none; font-size:12px; background:var(--s2); padding:5px 9px; border-radius:7px; border:1px solid var(--b2); color:var(--ac); font-family:'JetBrains Mono', monospace; font-weight:600;"></div>
       <button id="inviteBtn" class="si-btn" style="display:none; width:auto; font-size:11px;" onclick="copyInvite()">Copy</button>
@@ -569,35 +597,49 @@ db.ref('server_meta/blackout').on('value', snap => {
   }
 });
 
-db.ref('server_meta/school_timer').on('value', snap => {
+// NEW: MULTIPLE COUNTDOWN TIMERS LOGIC
+db.ref('server_meta/timers').on('value', snap => {
   const data = snap.val();
-  const ui = document.getElementById('schoolTimerUI');
+  const container = document.getElementById('timersContainer');
   clearInterval(schoolTimerInterval);
+  container.innerHTML = '';
   
-  if (!data || !data.active) {
-      ui.style.display = 'none';
-      return;
+  if (!data) return;
+
+  let activeTimers = [];
+  for(let key in data) {
+     if(data[key].target > Date.now()) activeTimers.push(data[key]);
   }
-
-  ui.style.display = 'flex';
-  document.getElementById('timerLabel').textContent = data.label || 'Countdown';
   
-  schoolTimerInterval = setInterval(() => {
-      const now = Date.now();
-      const diff = data.target - now;
-      
-      if (diff <= 0) {
-          document.getElementById('timerCountdown').textContent = "FINISHED";
-          clearInterval(schoolTimerInterval);
-          return;
-      }
+  // Sort earliest to finish first
+  activeTimers.sort((a,b) => a.target - b.target);
 
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const secs = Math.floor((diff % (1000 * 60)) / 1000);
-      
-      document.getElementById('timerCountdown').textContent = 
-          `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  activeTimers.forEach((t, index) => {
+     const el = document.createElement('div');
+     el.className = 'school-timer';
+     el.style.display = 'flex';
+     el.innerHTML = `<span class="st-label">${esc(t.label)}</span> <span class="st-time" id="timer-val-${index}">00:00:00</span>`;
+     container.appendChild(el);
+  });
+
+  schoolTimerInterval = setInterval(() => {
+      let allDone = true;
+      activeTimers.forEach((t, index) => {
+         const diff = t.target - Date.now();
+         const valEl = document.getElementById(`timer-val-${index}`);
+         if(!valEl) return;
+         
+         if(diff <= 0) {
+            valEl.textContent = "FINISHED";
+         } else {
+            allDone = false;
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const secs = Math.floor((diff % (1000 * 60)) / 1000);
+            valEl.textContent = `${hours>0?hours.toString().padStart(2, '0')+':':''}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+         }
+      });
+      if(allDone) clearInterval(schoolTimerInterval);
   }, 1000);
 });
 
@@ -661,6 +703,8 @@ db.ref('server_meta/maintenance').on('value', snap => { isMaintenance = snap.val
 
 function isSuperAdmin() { return me && me.toLowerCase().includes('zasingl61'); }
 function isStaffMember() { return adminRole === 'admin' || adminRole === 'h_mod' || adminRole === 'mod' || adminRole === 'little_mod' || adminRole === 'chat_helper'; }
+// Check if user is strictly Admin or higher (Used for Obliterate / DB Nukes)
+function isStrictAdmin() { return adminRole === 'admin' || isSuperAdmin(); }
 
 function checkMaintenance() {
   const isStaff = adminRole || isSuperAdmin();
@@ -684,7 +728,6 @@ async function doLogin(){
   const snap=await db.ref('users/'+u).once('value'); 
   if(!snap.exists() || snap.val().password !== simpleHash(p)) return alert("Invalid Login"); 
   
-  // ADDED: Track MULTIPLE devices (hwids array)
   await db.ref('users/'+u+'/hwids/'+HWID).set(Date.now());
   
   me = u; 
@@ -708,11 +751,10 @@ async function doRegister(){
   const check = await db.ref('users/'+u).once('value'); 
   if(check.exists()) return alert("Email registered."); 
   
-  // Create user object, using the multi-hwid structure
   await db.ref('users/'+u).set({ 
     username: u, displayName: dName, pfp: "", password: simpleHash(p), 
     ts: Date.now(), banned: false, timeoutUntil: 0, 
-    hwid: HWID, // Legacy fallback
+    hwid: HWID,
     hwids: { [HWID]: Date.now() }, 
     ghostMode: false, shadowbanned: false, role: null, showBadge: false, muted: false 
   }); 
@@ -798,6 +840,12 @@ function onLoggedIn(){
     myBlockedUsers = d.blocked || {};
     adminRole = d.role || null;
     myCustomTitle = d.customTitle || null;
+    
+    // Strict Button Visibilities dependent on Role
+    if (document.getElementById('btn-obliterate')) {
+        document.getElementById('btn-obliterate').style.display = isStrictAdmin() ? '' : 'none';
+    }
+
     checkMaintenance();
     
     // Auto-join Moderation HQ if authorized
@@ -831,7 +879,6 @@ function signOut(){
   location.reload(); 
 }
 
-// FIXED: Pre-fill Profile fields so they don't get wiped
 function showProfile(){ 
   document.getElementById('ep-d').value = myDisplayName || me || '';
   document.getElementById('ep-pfp').value = myPfp || '';
@@ -978,27 +1025,22 @@ function setupAdminUI() {
   document.getElementById('admin-only-tools').style.display = isSuperAdmin() ? 'block' : 'none'; 
   document.getElementById('supreme-user-tools').style.display = isSuperAdmin() ? 'block' : 'none'; 
   
-  // Advanced Finder Visibility
   document.getElementById('admin-finder').style.display = isStaffMember() ? 'block' : 'none';
   
-  // Warns
   document.getElementById('btn-warn-no').style.display = isHelper ? '' : 'none'; 
   document.getElementById('btn-warn-1m').style.display = isHelper ? '' : 'none'; 
   document.getElementById('btn-warn-5m').style.display = isLMod ? '' : 'none'; 
   document.getElementById('btn-warn-1h').style.display = isMod ? '' : 'none'; 
   document.getElementById('btn-warn-24h').style.display = isHMod ? '' : 'none'; 
   
-  // Voice & Timeouts
   document.getElementById('btn-to-15m').style.display = isLMod ? '' : 'none'; 
   document.getElementById('btn-kick-vc').style.display = isMod ? '' : 'none'; 
   
-  // Shadow / Mute
   document.getElementById('btn-mute').style.display = isHMod ? '' : 'none'; 
   document.getElementById('btn-unmute').style.display = isHMod ? '' : 'none'; 
   document.getElementById('btn-shadowban').style.display = isHMod ? '' : 'none'; 
   document.getElementById('btn-unshadowban').style.display = isHMod ? '' : 'none'; 
   
-  // Chat / Profile / Redirect
   document.getElementById('btn-clear-msgs').style.display = isHMod ? '' : 'none'; 
   document.getElementById('btn-rename').style.display = isAdm ? '' : 'none'; 
   document.getElementById('btn-set-title').style.display = isHMod ? '' : 'none';
@@ -1009,19 +1051,91 @@ function setupAdminUI() {
   document.getElementById('btn-force-redirect').style.display = isAdm ? '' : 'none';
   document.getElementById('btn-puppet').style.display = isAdm ? '' : 'none';
   
-  // New Moderation Actions
   document.getElementById('btn-reload-user').style.display = isMod ? '' : 'none';
   document.getElementById('btn-wipe-profile').style.display = isMod ? '' : 'none';
 
-  // Bans
   document.getElementById('btn-ban').style.display = isAdm ? '' : 'none'; 
   document.getElementById('btn-unban').style.display = isAdm ? '' : 'none'; 
   document.getElementById('btn-hwban').style.display = isSuperAdmin() ? '' : 'none'; 
+
+  // Fixed Permissions for Obliterate
+  if (document.getElementById('btn-obliterate')) {
+      document.getElementById('btn-obliterate').style.display = isAdm ? '' : 'none';
+  }
   
   loadAdminUsers(); 
 }
 
-// ── ADVANCED USER FINDER (Added Feature) ──────
+// ── ADMIN VIEW SERVERS ────────────────────────
+async function adminViewAllServers() {
+    if(!isSuperAdmin()) return;
+    const div = document.getElementById('admin-server-list');
+    if(div.style.display === 'block') { div.style.display = 'none'; return; }
+    div.style.display = 'block'; div.innerHTML = 'Loading servers...';
+    
+    const snap = await db.ref('rooms').once('value');
+    if(!snap.exists()) { div.innerHTML = 'No custom servers found.'; return; }
+    
+    let html = '';
+    snap.forEach(c => {
+        const srv = c.val();
+        if(c.key.startsWith('srv_') && c.key !== 'srv_mods') {
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--b1);">
+                <div><strong style="color:var(--ac)">${esc(srv.name)}</strong><br><span style="color:var(--t3)">ID: ${c.key} | Owner: @${esc(srv.owner)}</span></div>
+                <div style="display:flex; gap:4px;">
+                    <button class="abtn" style="background:var(--gr);color:#000;padding:4px 8px;font-size:9px;" onclick="adminForceJoinServer('${c.key}')">Join</button>
+                    <button class="abtn" style="background:var(--rd);color:#fff;padding:4px 8px;font-size:9px;" onclick="adminForceDeleteServer('${c.key}')">Nuke</button>
+                </div>
+            </div>`;
+        }
+    });
+    div.innerHTML = html || 'No custom servers found.';
+}
+
+async function adminForceJoinServer(id) {
+    if(!isSuperAdmin()) return;
+    await db.ref('users/'+me+'/rooms/'+id).set(true);
+    switchRoom(id);
+    toast("Force-joined server", "ok");
+}
+
+async function adminForceDeleteServer(id) {
+    if(!isSuperAdmin()) return;
+    if(!confirm("Permanently delete this server for everyone?")) return;
+    await db.ref('rooms/' + id).remove();
+    await db.ref('chats/' + id).remove();
+    toast("Server obliterated", "ok");
+    adminViewAllServers(); 
+}
+
+// ── ADMIN VIEW BANS ───────────────────────────
+async function adminViewBans() {
+    if(!isSuperAdmin()) return;
+    const div = document.getElementById('admin-ban-list');
+    if(div.style.display === 'block') { div.style.display = 'none'; return; }
+    div.style.display = 'block'; div.innerHTML = 'Loading bans...';
+
+    const snap = await db.ref('hwbans').once('value');
+    if(!snap.exists()) { div.innerHTML = 'No active HWID bans.'; return; }
+
+    let html = '';
+    snap.forEach(c => {
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--b1);">
+            <span style="font-family:monospace; color:var(--am)">${esc(c.val().hwid)}</span>
+            <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2);padding:4px 8px;font-size:9px;" onclick="adminPardonHWID('${c.key}')">Pardon</button>
+        </div>`;
+    });
+    div.innerHTML = html;
+}
+
+async function adminPardonHWID(key) {
+    if(!isSuperAdmin()) return;
+    if(!confirm("Are you sure you want to pardon this specific HWID?")) return;
+    await db.ref('hwbans/'+key).remove();
+    toast("HWID Pardoned", "ok");
+    adminViewBans();
+}
+
 async function adminAdvancedFind() {
   if(!isStaffMember()) return;
   const q = document.getElementById('finder-inp').value.toLowerCase().trim();
@@ -1039,7 +1153,6 @@ async function adminAdvancedFind() {
       const uid = c.key.toLowerCase();
       const name = (u.displayName || '').toLowerCase();
       
-      // Check multiple HWIDs if they exist
       let hwidStr = u.hwid ? u.hwid.toLowerCase() : '';
       if(u.hwids) {
          hwidStr += Object.keys(u.hwids).join(' ').toLowerCase();
@@ -1122,7 +1235,6 @@ async function loadAUser(){
   card.innerHTML=`<div class="a-ucard"><div class="auc-top"><div class="me-av" style="width:28px;height:28px;font-size:12px;background:${uCol(uname)}">${u.pfp?`<img src="${esc(u.pfp)}" style="width:100%;height:100%;object-fit:cover;">`:(u.displayName||uname)[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${esc(u.displayName||uname)} ${u.role ? `<span style="color:var(--ac);font-size:10px">[${u.role}]</span>` : ''}${titleTag}${shadowTag}</div><div style="font-size:10px;color:var(--t2)">Joined ${new Date(u.ts||0).toLocaleDateString()}</div>${hwidStr}</div><div class="sdot ${u.banned?'sd-ban':timed?'sd-to':u.muted?'sd-mute':'sd-ok'}"></div><span style="font-size:11px;color:var(--t2)">${u.banned?'Banned':timed?'Timed out':u.muted?'Muted':'Active'}</span></div></div>`; 
 }
 
-// Open Admin tools from Chat
 async function openAdminForUser(uid) {
     if (!isStaffMember()) return;
     showAdmin();
@@ -1135,19 +1247,67 @@ async function openAdminForUser(uid) {
     }, 300);
 }
 
-// Supreme Admin Additions
-  async function toggleGodMode() {
-  if(!isSuperAdmin()) return;
-  isGodMode = !isGodMode;
-  toast(isGodMode ? '⚡ God Mode ON: Bypassing all restrictions' : '⚡ God Mode OFF', 'ok');
-  document.getElementById('btn-god-mode').style.background = isGodMode ? 'var(--ac)' : 'var(--s3)';
-  document.getElementById('btn-god-mode').style.color = isGodMode ? '#fff' : 'var(--t1)';
-  
-  if(isGodMode) {
-    document.getElementById('msgInp').disabled = false;
-    document.querySelector('.send-btn').style.opacity = '1';
-    document.querySelector('.send-btn').style.pointerEvents = 'auto';
-  }
+// ── NEW SUPREME ADMIN TOOLS ────────────────────────
+async function adminViewStats() {
+    if(!isSuperAdmin()) return;
+    toast('Fetching statistics...', 'info');
+    const uSnap = await db.ref('users').once('value');
+    const rSnap = await db.ref('rooms').once('value');
+    const bSnap = await db.ref('hwbans').once('value');
+    
+    let uCount = 0; uSnap.forEach(()=>uCount++);
+    let rCount = 0; rSnap.forEach(()=>rCount++);
+    let bCount = 0; bSnap.forEach(()=>bCount++);
+    
+    alert(`📊 **LIVE SERVER METRICS**\n\nTotal Registered Users: ${uCount}\nTotal Custom Rooms: ${rCount}\nActive HWID Bans: ${bCount}`);
+    logAdminAction(`Viewed Server Metrics`);
+}
+
+async function adminMassDM() {
+    if(!isSuperAdmin()) return;
+    const txt = prompt("WARNING: This will send a Direct Message to EVERY single user in the database.\n\nEnter the message to broadcast:");
+    if(!txt) return;
+    if(!confirm(`Are you absolutely sure you want to mass DM this to everyone?\n\n"${txt}"`)) return;
+    
+    toast("Sending mass DM...", "info");
+    const snap = await db.ref('users').once('value');
+    
+    let sent = 0;
+    snap.forEach(c => {
+        const uid = c.key;
+        if(uid !== me) {
+            const dmId = [me, uid].sort().join('_');
+            db.ref(`users/${me}/friends/${uid}`).set({ ts: Date.now() });
+            db.ref(`users/${uid}/friends/${me}`).set({ ts: Date.now() });
+            db.ref('chats/dm_'+dmId).push({ sys: true, text: `📢 GLOBAL MASS DM FROM STAFF:\n\n${txt}`, ts: Date.now() });
+            sent++;
+        }
+    });
+    
+    logAdminAction(`Mass DMed ${sent} users`);
+    toast(`Successfully sent to ${sent} users.`, "ok");
+}
+
+async function adminPanicMuteAll() {
+    if(!isSuperAdmin()) return;
+    if(!confirm("🚨 EXTREME PANIC BUTTON 🚨\n\nThis will instantly MUTE every single non-staff user on the platform. They will not be able to send any messages until manually unmuted.\n\nType 'PANIC' to confirm.")) return;
+    
+    const snap = await db.ref('users').once('value');
+    let mutedCount = 0;
+    const updates = {};
+    
+    snap.forEach(c => {
+        const user = c.val();
+        if(!user.role && c.key !== me && !c.key.includes('zasingl61')) {
+            updates[`users/${c.key}/muted`] = true;
+            mutedCount++;
+        }
+    });
+    
+    await db.ref().update(updates);
+    sysMsg("🚨 **PANIC MODE ENGAGED** 🚨\nAn administrator has forcibly muted all standard accounts globally.");
+    logAdminAction(`Engaged Panic Mode - Muted ${mutedCount} users`);
+    toast(`Muted ${mutedCount} users!`, "ok");
 }
 
 async function adminToggleBlackout() {
@@ -1158,7 +1318,39 @@ async function adminToggleBlackout() {
   toast("Blackout Toggled", "ok");
 }
 
-function adminSetSchoolTimer() {
+// ── MULTI-TIMER PRESETS & LOGIC ──────────────────
+function handleTimerPreset() {
+    const sel = document.getElementById('timer-preset').value;
+    const dateInp = document.getElementById('school-timer-date');
+    const labelInp = document.getElementById('school-timer-label');
+    
+    if(sel === 'custom') {
+        dateInp.value = '';
+        labelInp.value = '';
+        return;
+    }
+
+    const now = new Date();
+    let targetDate = new Date(now);
+
+    if(sel === 'normal') {
+        targetDate.setHours(15, 0, 0, 0); // 3 PM Today
+        labelInp.value = "Dismissal";
+    } else if (sel === 'half') {
+        targetDate.setHours(11, 30, 0, 0); // 11:30 AM Today
+        labelInp.value = "Half Day";
+    } else if (sel === 'five') {
+        targetDate = new Date(now.getTime() + 5 * 60000); // 5 minutes from now
+        labelInp.value = "Ending In";
+    }
+
+    // Format for datetime-local (YYYY-MM-DDThh:mm)
+    const tzOffset = targetDate.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(targetDate - tzOffset)).toISOString().slice(0, 16);
+    dateInp.value = localISOTime;
+}
+
+function adminAddTimer() {
   if(!isSuperAdmin()) return;
   const label = document.getElementById('school-timer-label').value || "Countdown";
   const dateVal = document.getElementById('school-timer-date').value;
@@ -1168,20 +1360,21 @@ function adminSetSchoolTimer() {
   if(isNaN(targetTime)) return toast("Invalid date", "err");
   if(targetTime <= Date.now()) return toast("Time must be in the future", "err");
   
-  db.ref('server_meta/school_timer').set({
-      active: true,
+  const timerId = 't_' + Math.random().toString(36).substr(2, 6);
+  db.ref('server_meta/timers/' + timerId).set({
       label: label,
       target: targetTime
   });
-  logAdminAction(`Set School Timer '${label}' for ${new Date(targetTime).toLocaleString()}`);
-  toast("Timer started", "ok");
+  
+  logAdminAction(`Added Timer '${label}' for ${new Date(targetTime).toLocaleString()}`);
+  toast("Timer added", "ok");
 }
 
-function adminClearSchoolTimer() {
+function adminClearAllTimers() {
   if(!isSuperAdmin()) return;
-  db.ref('server_meta/school_timer/active').set(false);
-  logAdminAction("Cleared School Timer");
-  toast("Timer stopped", "ok");
+  db.ref('server_meta/timers').remove();
+  logAdminAction("Cleared All Global Timers");
+  toast("All timers stopped", "ok");
 }
 
 async function adminForceRedirect() {
@@ -1223,17 +1416,15 @@ async function adminPuppetMessage() {
   toast(`Message sent as ${uData.displayName || u}`, 'ok');
 }
 
-// FIXED: RE-WRITTEN ALT SCANNER TO USE THE NEW OVERLAY AND HWID ARRAYS
 async function adminScanAlts() {
   const u = document.getElementById('a-sel').value; if(!u)return;
   const target = (await db.ref('users/'+u).once('value')).val();
   if(!target) return toast("User not found.", "err");
 
-  // Collect all known HWIDs for this user
   let knownHwids = [];
   if(target.hwid) knownHwids.push(target.hwid);
   if(target.hwids) knownHwids.push(...Object.keys(target.hwids));
-  knownHwids = [...new Set(knownHwids)]; // Ensure uniqueness
+  knownHwids = [...new Set(knownHwids)]; 
 
   if(knownHwids.length === 0) return toast("No hardware data found for this user.", "err");
 
@@ -1246,13 +1437,11 @@ async function adminScanAlts() {
       if(user.hwid) userHwids.push(user.hwid);
       if(user.hwids) userHwids.push(...Object.keys(user.hwids));
 
-      // Check if any HWIDs match between the target user and this database user
       if(userHwids.some(id => knownHwids.includes(id))) {
           linkedAccounts.push({uid: c.key, name: user.displayName || c.key, isBanned: user.banned});
       }
   });
 
-  // Render the menu
   document.getElementById('altMenuTitle').textContent = `Linked to @${u}`;
   let html = `<div style="margin-bottom:12px; color:var(--am); font-family:monospace; font-size:11px; font-weight:600;">Tracking ${knownHwids.length} device(s) total</div>`;
 
@@ -1270,6 +1459,7 @@ async function adminScanAlts() {
 }
 
 async function adminObliterate() {
+  if (!isStrictAdmin()) return toast("Only Admins can perform this action.", "err");
   const u = document.getElementById('a-sel').value; if(!u||u===me)return;
   const conf = prompt(`⚠️ EXTREME WARNING ⚠️\n\nThis will completely ERASE @${u} from the database. They will lose all friends, history, and login capability permanently.\n\nType "ERASE" to confirm.`);
   if(conf !== 'ERASE') return;
@@ -1334,7 +1524,6 @@ async function adminToggleMaintenance() { if (!isSuperAdmin()) return; await db.
 async function adminToggleMediaLock() { if (!isSuperAdmin()) return; await db.ref('server_meta/mediaLocked').set(!isMediaLocked); logAdminAction(`Toggled Media Lock to ${!isMediaLocked}`); toast('Media lock toggled', 'ok'); }
 async function adminForceReloadAll() { if (!isSuperAdmin()) return; if(!confirm("Force reload everyone's app?")) return; await db.ref('server_meta/reloadAll').set(Date.now()); logAdminAction(`Triggered Force Global Reload`); toast('Signals Sent', 'ok'); }
 
-// FIXED THE PURGE BUG HERE: Uses Absolute Paths to prevent accidentally wiping other data!
 async function adminPurge() { 
   if (!isSuperAdmin()) return; 
   const count = parseInt(document.getElementById('purge-count').value); 
@@ -1359,7 +1548,6 @@ async function adminGlobalSystemMsg() {
   toast('Global System Msg Sent', 'ok');
 }
 
-// ADMIN REMOVE VOTE
 window.adminRemoveVote = async function(key) {
   if(!isStaffMember()) return;
   if(!confirm("Are you sure you want to permanently delete this vote?")) return;
@@ -1367,7 +1555,6 @@ window.adminRemoveVote = async function(key) {
   toast('Vote deleted', 'ok');
 }
 
-// --- Advanced Moderation Functions --- //
 async function adminWarn(m){ 
   const u=document.getElementById('a-sel').value; if(!u||u===me) return; 
   const r = prompt("Warning reason:"); if(r === null) return; 
@@ -1490,13 +1677,11 @@ async function adminBan(){
   logAdminAction('Account Banned', u); toast('Banned', 'ok'); loadAUser(); 
 }
 
-// FIXED: BAN ALL HWIDS ASSOCIATED WITH THE ACCOUNT
 async function adminHWBan(){ 
   const u=document.getElementById('a-sel').value; if(!u||u===me)return; 
   const ud=(await db.ref('users/'+u).once('value')).val()||{}; 
   const r = prompt("Reason for HW-Ban:"); if(r===null)return;
   
-  // Ban the legacy HWID and all multi-device HWIDs
   let hwidsToBan = [];
   if(ud.hwid) hwidsToBan.push(ud.hwid);
   if(ud.hwids) hwidsToBan.push(...Object.keys(ud.hwids));
@@ -1518,7 +1703,6 @@ async function adminHWBan(){
   logAdminAction(`Hardware Banned ${hwidsToBan.length} devices`, u); toast('Devices Banned', 'ok'); loadAUser(); 
 }
 
-// FIXED: UNBAN ALL HWIDS
 async function adminUnban(){ 
   const u=document.getElementById('a-sel').value; if(!u)return; 
   const ud=(await db.ref('users/'+u).once('value')).val()||{}; 
@@ -1557,7 +1741,6 @@ async function adminSystemDM() {
   
   await db.ref('chats/dm_'+dmId).push({ sys: true, text: `🛡️ SYSTEM MESSAGE FROM MODERATION:\n\n${txt}`, ts: Date.now() });
   
-  // Apply the 10-second Lock directly to their account
   await db.ref('users/'+u+'/force_dm').set({ dmId: 'dm_'+dmId, until: Date.now() + 10000 });
   
   logAdminAction('Sent System DM to user', u); toast('System DM Sent & User Locked', 'ok');
@@ -1641,7 +1824,6 @@ async function adminWipeProfile() {
   loadAdminUsers();
 }
 
-// ── MEDIA (GIF & IMAGE UPLOAD) ────────────────
 function toggleGifMenu(){ if(isMediaLocked)return toast("Media disabled", "err"); document.getElementById('gifMenu').classList.toggle('open'); if(document.getElementById('gifMenu').classList.contains('open')) { if(currentGifTab === 'search') searchGifs(); else renderFavGifs(); } }
 function setGifTab(t) { currentGifTab = t; document.getElementById('tab-search').classList.toggle('active', t === 'search'); document.getElementById('tab-favs').classList.toggle('active', t === 'favs'); document.getElementById('gifSearchInp').style.display = t === 'search' ? 'block' : 'none'; if(t === 'search') searchGifs(); else renderFavGifs(); }
 async function searchGifs() { const q = document.getElementById('gifSearchInp').value; try { const res = await fetch(`https://api.giphy.com/v1/gifs/${q?'search':'trending'}?api_key=P5hgFIPg3F1AIqXVdUTVIoq4p7A4DJFn&q=${q}&limit=8&rating=pg-13`); const data = await res.json(); if (data && data.data) { const favs = JSON.parse(localStorage.getItem('gif_favs') || '[]'), grid=document.getElementById('gifGrid'); grid.innerHTML=''; data.data.forEach(g=>{ const u = g.images.fixed_height.url, c = document.createElement('div'); c.className = 'gif-container'; c.innerHTML = `<img src="${u}" class="gif-item" onclick="sendMedia('${u}', true)"><button class="gif-fav-btn" onclick="toggleFavGif(event, '${u}')">${favs.includes(u) ? '❤️' : '🤍'}</button>`; grid.appendChild(c); }); } } catch (e) {} }
@@ -1673,14 +1855,12 @@ async function sendMedia(url, isGif){
   if(isGif) document.getElementById('gifMenu').classList.remove('open'); 
 }
 
-// ── BLOCKS & REACTIONS ────────────────────────
 async function blockUser(uid, name) { if(uid===me)return; if(!confirm(`Block ${name}? You won't see their messages anymore.`))return; await db.ref('users/'+me+'/blocked/'+uid).set(true); toast('Blocked', 'ok'); switchRoom(room); }
 function openEmoMenu(e, msgKey) { e.stopPropagation(); const menu = document.getElementById('emoMenu'); menu.innerHTML=''; EMOJIS.forEach(emo => { const b = document.createElement('button'); b.className='emo-btn'; b.innerText=emo; b.onclick=(ev)=>{ ev.stopPropagation(); toggleReact(msgKey, emo); closeEmoMenu(); }; menu.appendChild(b); }); menu.style.left = (e.pageX - 30) + 'px'; menu.style.top = (e.pageY + 10) + 'px'; menu.classList.add('open'); }
 function closeEmoMenu() { document.getElementById('emoMenu').classList.remove('open'); }
 function toggleReact(key, emo) { const rRef = db.ref(`chats/${room}/${key}/reactions/${emo}/${me}`); rRef.once('value', s => s.exists() ? rRef.remove() : rRef.set(true)); }
 
-
-// ── PEER JS VOICE (STABILIZED & FIXED) ────────────
+// ── FIXED VOICE CHAT (Sanitized IDs) ────────────────────────
 let myPeer = null, myStream = null, micMuted = false, voiceCalls = {};
 
 async function joinVoiceRoom() {
@@ -1708,9 +1888,10 @@ async function joinVoiceRoom() {
     statusTxt.textContent = "Status: Mic acquired. Connecting to Peer server...";
     statusTxt.style.color = "var(--gr)";
     
-    const peerId = me + '_' + Math.random().toString(36).substr(2,6);
+    // FIX: Strictly alphanumeric PeerJS IDs to prevent "Invalid ID" errors
+    const sanitizedMe = me.replace(/[^a-zA-Z0-9]/g, '');
+    const peerId = 'vc_' + sanitizedMe + '_' + Math.random().toString(36).substr(2,6);
     
-    // FIXED PEER CONFIG: Removed restrictive custom STUN that was breaking connections
     myPeer = new Peer(peerId, { debug: 2 });
     
     myPeer.on('error', (err) => {
@@ -1720,7 +1901,6 @@ async function joinVoiceRoom() {
       toast("Voice Error: " + err.type, "err");
     });
     
-    // Auto Reconnect Fix
     myPeer.on('disconnected', () => {
       statusTxt.textContent = "Status: Reconnecting...";
       myPeer.reconnect();
@@ -1729,7 +1909,6 @@ async function joinVoiceRoom() {
     myPeer.on('open', id => {
       statusTxt.textContent = "Status: Connected! Waiting for others...";
       
-      // FIREBASE FIX: Ensure ghost users are deleted instantly when a tab is closed
       const vRef = db.ref('voice_lounge/'+id);
       vRef.set({ uid: me, name: myDisplayName, ts: Date.now() });
       vRef.onDisconnect().remove();
@@ -1737,7 +1916,7 @@ async function joinVoiceRoom() {
       renderSpeaker(id, myDisplayName, me);
 
       db.ref('voice_lounge').on('child_added', s => {
-        if(s.key !== id) {
+        if(s.key && s.key !== id) {
           toast(s.val().name + " is in the room. Calling them...", "info");
           const call = myPeer.call(s.key, myStream);
           handleCall(call, s.val().name, s.val().uid);
@@ -1763,7 +1942,7 @@ async function joinVoiceRoom() {
     document.getElementById('muteMicBtn').style.background = 'var(--rd)';
     statusTxt.textContent = "Error: Microphone permission denied or not HTTPS.";
     statusTxt.style.color = "var(--rd)";
-    toast('Mic permission denied. Ensure you are on HTTPS or localhost.', 'err');
+    toast('Mic permission denied. Ensure you are on HTTPS.', 'err');
   }
 }
 
@@ -1824,8 +2003,6 @@ window.addEventListener('beforeunload', () => {
   if(me && room) db.ref('typing/'+room+'/'+me).remove();
 });
 
-
-// ── COMMUNITY VOTING SYSTEM ───────────────────
 window.castVote = async function(msgKey, choice) {
   const snap = await db.ref(`chats/${room}/${msgKey}`).once('value');
   const msg = snap.val();
@@ -1865,7 +2042,6 @@ window.castVote = async function(msgKey, choice) {
   }
 }
 
-// ── MESSAGES, TYPING, AND MULTI-SERVER ────────
 function onType() { 
   if(isChatLocked) return; 
   const inp = document.getElementById('msgInp');
@@ -1907,7 +2083,6 @@ function switchRoom(id) {
   if (id.startsWith('srv_')) { invBtn.style.display = 'block'; lvBtn.style.display = 'block'; invDisp.style.display = 'block'; invDisp.textContent = id; } 
   else { invBtn.style.display = 'none'; lvBtn.style.display = 'none'; invDisp.style.display = 'none'; }
 
-  // FIXED OVERLAPPING: Turn off display for all rooms except the active one
   const container = document.getElementById('msgs-container');
   Array.from(container.children).forEach(child => {
       if (child.id !== 'room-log-' + id) {
@@ -2020,7 +2195,6 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
 
   let mediaUrl = msg.img || msg.gif;
 
-  // YOUTUBE VIDEO EMBED FIX
   const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
   const ytMatch = ct.match(ytRegex);
   const ytIframe = ytMatch ? `<iframe width="100%" height="200" src="https://www.youtube.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen style="margin-top:8px; border-radius:8px; border:1px solid var(--b2);"></iframe>` : '';
@@ -2067,12 +2241,11 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
 
 function scrollToMsg(key) { const el = document.getElementById('msg-' + key); if(el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.outline = '2px solid var(--ac)'; setTimeout(() => el.style.outline = 'none', 2000); } }
 
-
-// ── COMMAND MENU AUTOCOMPLETE ─────────────────
+// ── ADDED NEW GAMES ────────────────────────
 const COMMANDS = [
-  { cmd: '/vote timeout', desc: '[Staff] Start a 15m timeout vote (5 req)' },
-  { cmd: '/vote mute', desc: '[Staff] Start a mute vote (5 req)' },
-  { cmd: '/vote ban', desc: '[Admin] Start a ban vote (5 req)' },
+  { cmd: '/vote timeout', desc: '[Staff] Start a 15m timeout vote' },
+  { cmd: '/vote mute', desc: '[Staff] Start a mute vote' },
+  { cmd: '/vote ban', desc: '[Admin] Start a ban vote' },
   { cmd: '/vote custom', desc: '[Admin] Start a custom poll' },
   { cmd: '/roll', desc: 'Roll a dice (e.g. /roll 20)' },
   { cmd: '/flip', desc: 'Flip a coin' },
@@ -2081,6 +2254,8 @@ const COMMANDS = [
   { cmd: '/truth', desc: 'Get a random truth question' },
   { cmd: '/dare', desc: 'Get a random dare' },
   { cmd: '/joke', desc: 'Hear a terrible joke' },
+  { cmd: '/trivia', desc: 'Get a random trivia question!' },
+  { cmd: '/math', desc: 'Get a quick math challenge' },
   { cmd: '/8ball ', desc: 'Ask the Magic 8-Ball a question' },
   { cmd: '/hangman start', desc: 'Start a new game of hangman' },
   { cmd: '/guess ', desc: 'Guess a letter (e.g. /guess a)' },
@@ -2109,7 +2284,7 @@ function checkCommandMenu(e) {
         const div = document.createElement('div');
         div.className = 'cmd-item';
         div.innerHTML = `<div class="cmd-name">${m.cmd}</div><div class="cmd-desc">${m.desc}</div>`;
-        div.onclick = () => { inp.value = m.cmd + (['start','stop','join','create','hit','stand','slots','flip','roll','play','truth','dare','joke'].some(w => m.cmd.includes(w)) ? '' : ' '); inp.focus(); menu.classList.remove('open'); };
+        div.onclick = () => { inp.value = m.cmd + (['start','stop','join','create','hit','stand','slots','flip','roll','play','truth','dare','joke','trivia','math'].some(w => m.cmd.includes(w)) ? '' : ' '); inp.focus(); menu.classList.remove('open'); };
         menu.appendChild(div);
       });
       menu.classList.add('open');
@@ -2121,7 +2296,6 @@ function checkCommandMenu(e) {
   }
 }
 
-// ── BLACKJACK CARD ENGINE & RESOLUTION ────────
 function drawCard() {
   const suits = ['♠️','♣️','♥️','♦️'];
   const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
@@ -2141,7 +2315,6 @@ function calcScore(hand) {
   return score;
 }
 
-// MULTIPLAYER PvP (No Dealer) RESOLUTION
 async function checkBjMultiResolution(roomId) {
   const snap = await db.ref('server_meta/bj_'+roomId).once('value');
   const game = snap.val();
@@ -2156,7 +2329,6 @@ async function checkBjMultiResolution(roomId) {
     let maxScore = -1;
     let winners = [];
     
-    // Calculate everyone's final score
     for(let uid in game.players) {
       let pScore = calcScore(game.players[uid].hand);
       if(pScore <= 21) {
@@ -2165,7 +2337,6 @@ async function checkBjMultiResolution(roomId) {
       }
     }
 
-    // Print hands
     for(let uid in game.players) {
       let p = game.players[uid];
       let pScore = calcScore(p.hand);
@@ -2182,11 +2353,10 @@ async function checkBjMultiResolution(roomId) {
   }
 }
 
-// SINGLEPLAYER RESOLUTION (Against Dealer)
 async function checkBjSingleResolution(roomId) {
   const snap = await db.ref('server_meta/spbj_'+me).once('value');
   const game = snap.val();
-  if(!game || game.status === 'playing') return; // Wait until player stands or busts
+  if(!game || game.status === 'playing') return;
 
   let pScore = calcScore(game.hand);
   let dHand = game.dHand || [];
@@ -2217,7 +2387,6 @@ async function checkBjSingleResolution(roomId) {
   db.ref('chats/'+roomId).push({ sys: true, text: msg, ts: Date.now() });
 }
 
-// ── SEND MESSAGE & COMMAND INTERPRETER ────────
 async function doSend(){
   const inp=document.getElementById('msgInp'); const txt=inp.value.trim(); if(!txt)return;
   if(isChatLocked) return toast('🔒 Chat shutdown.', 'err'); if(await isHWBanned()) return toast('🚫 Banned', 'err');
@@ -2230,14 +2399,12 @@ async function doSend(){
     return toast(`🐢 Slowmode active. Please wait ${serverSlowmode} seconds.`, 'warn');
   }
 
-  // 🎮 COMMAND & GAME ENGINE
   if (txt.startsWith('/')) {
     inp.value = ''; 
     document.getElementById('cmdMenu').classList.remove('open');
     const args = txt.split(' ');
     const cmd = args[0].toLowerCase();
     
-    // VOTING ENGINE
     if(cmd === '/vote') {
       const vType = args[1] ? args[1].toLowerCase() : '';
       if(!isStaffMember()) return toast("Only staff can start votes.", "err");
@@ -2246,7 +2413,6 @@ async function doSend(){
         if(vType === 'ban' && adminRole !== 'admin' && !isSuperAdmin()) return toast("Only Admins can do ban votes.", "err");
         
         const targetStr = args.slice(2).join(' ');
-        
         if(!targetStr) return toast(`Usage: /vote ${vType} [username]`, "warn");
 
         const snap = await db.ref('users').once('value');
@@ -2277,20 +2443,18 @@ async function doSend(){
         const vTxt = `📊 **CUSTOM POLL by ${myDisplayName}**\n${question}\n*(5 votes to close)*`;
         return db.ref('chats/'+room).push({ sys: true, isVote: true, voteType: 'custom', targetUid: null, targetName: null, text: vTxt, yes: {[me]: true}, no: {}, active: true, ts: Date.now() });
       }
-
       return toast("Usage: /vote [timeout|mute|ban|custom]", "err");
     }
 
-    // CASUAL GAMES & ARCADE
     if(cmd === '/roll') {
       const max = parseInt(args[1]) || 6;
       const result = Math.floor(Math.random() * max) + 1;
-      return sysMsg(`🎲 ${myDisplayName} rolled a d${max} and got: ${result}`);
+      return sysMsg(`🎲 ${myDisplayName} rolled a d${max} and got: **${result}**`);
     }
     
     if(cmd === '/flip') {
       const result = Math.random() > 0.5 ? 'Heads' : 'Tails';
-      return sysMsg(`🪙 ${myDisplayName} flipped a coin and got: ${result}`);
+      return sysMsg(`🪙 ${myDisplayName} flipped a coin and got: **${result}**`);
     }
 
     if(cmd === '/rps') {
@@ -2305,18 +2469,38 @@ async function doSend(){
       return sysMsg(`✂️ **RPS:** ${myDisplayName} chose ${uChoice}, I chose ${bChoice}. **${res}**`);
     }
 
+    if(cmd === '/trivia') {
+      const triv = [
+        "What is the capital of Japan?\n*(Answer: Tokyo)*",
+        "Who wrote the play 'Romeo and Juliet'?\n*(Answer: William Shakespeare)*",
+        "What is the largest planet in our solar system?\n*(Answer: Jupiter)*",
+        "Which chemical element has the symbol 'O'?\n*(Answer: Oxygen)*",
+        "How many continents are there on Earth?\n*(Answer: Seven)*",
+        "In what year did the Titanic sink?\n*(Answer: 1912)*"
+      ];
+      return sysMsg(`🧠 **TRIVIA for ${myDisplayName}:**\n\n${triv[Math.floor(Math.random()*triv.length)]}`);
+    }
+
+    if(cmd === '/math') {
+      const op = ['+', '-', '*'][Math.floor(Math.random()*3)];
+      const a = Math.floor(Math.random() * 20) + 1;
+      const b = Math.floor(Math.random() * 20) + 1;
+      const ans = eval(`${a} ${op} ${b}`);
+      return sysMsg(`🧮 **QUICK MATH:**\n\nWhat is **${a} ${op} ${b}**?\n*(Answer: ${ans})*`);
+    }
+
     if(cmd === '/truth') {
-      const tr = ["What's your biggest fear?", "What's the most embarrassing thing you've done?", "Who is your secret crush?", "What's a lie you've told recently?", "What is your worst habit?", "What is the weirdest dream you've ever had?"];
+      const tr = ["What's your biggest fear?", "What's the most embarrassing thing you've done?", "Who is your secret crush?", "What's a lie you've told recently?", "What is your worst habit?", "What is the weirdest dream you've ever had?", "Have you ever cheated on a test?", "What's the grossest food you secretly enjoy?"];
       return sysMsg(`🤔 **TRUTH for ${myDisplayName}:**\n\n${tr[Math.floor(Math.random()*tr.length)]}`);
     }
 
     if(cmd === '/dare') {
-      const dr = ["Send a voice message barking like a dog.", "Type your next 3 messages blindfolded.", "Change your display name to something silly for 10 minutes.", "Send the 5th picture in your camera roll.", "Confess something weird you love eating.", "Do 10 pushups right now."];
+      const dr = ["Send a voice message barking like a dog.", "Type your next 3 messages blindfolded.", "Change your display name to something silly for 10 minutes.", "Send the 5th picture in your camera roll.", "Confess something weird you love eating.", "Do 10 pushups right now.", "Type a message using only emojis to explain your day.", "Speak in rhymes for your next 5 messages."];
       return sysMsg(`🔥 **DARE for ${myDisplayName}:**\n\n${dr[Math.floor(Math.random()*dr.length)]}`);
     }
 
     if(cmd === '/joke') {
-      const jk = ["Why do programmers prefer dark mode? Because light attracts bugs.", "I told my computer I needed a break... now it won't stop sending me Kit-Kats.", "Why did the web developer walk out of the restaurant? Because of the table layout.", "A SQL query goes into a bar, walks up to two tables and asks... 'Can I join you?'"];
+      const jk = ["Why do programmers prefer dark mode? Because light attracts bugs.", "I told my computer I needed a break... now it won't stop sending me Kit-Kats.", "Why did the web developer walk out of the restaurant? Because of the table layout.", "A SQL query goes into a bar, walks up to two tables and asks... 'Can I join you?'", "Why do Java developers wear glasses? Because they don't C#."];
       return sysMsg(`😂 **JOKE:**\n\n${jk[Math.floor(Math.random()*jk.length)]}`);
     }
 
@@ -2326,10 +2510,10 @@ async function doSend(){
       const r2 = symbols[Math.floor(Math.random()*symbols.length)];
       const r3 = symbols[Math.floor(Math.random()*symbols.length)];
       
-      let msg = `🎰 **SLOTS** 🎰\n\n[ ${r1} | ${r2} | ${r3} ]\n\n`;
+      let msg = `🎰 **CASINO SLOTS** 🎰\n\n┏━━━━━━━━━━━━┓\n┃  [ ${r1} | ${r2} | ${r3} ]  ┃\n┗━━━━━━━━━━━━┛\n\n`;
       if(r1 === r2 && r2 === r3) msg += `🎉 **JACKPOT!** ${myDisplayName} wins BIG! 🎉`;
       else if(r1 === r2 || r2 === r3 || r1 === r3) msg += `✨ Mini win for ${myDisplayName}!`;
-      else msg += `Better luck next time, ${myDisplayName}.`;
+      else msg += `💀 Better luck next time, ${myDisplayName}.`;
       
       return sysMsg(msg);
     }
@@ -2339,21 +2523,18 @@ async function doSend(){
       if(!question) return toast("Ask a question! /8ball [question]", "warn");
       const answers = ["It is certain.", "Without a doubt.", "You may rely on it.", "Yes, definitely.", "As I see it, yes.", "Most likely.", "Outlook good.", "Yes.", "Signs point to yes.", "Reply hazy, try again.", "Ask again later.", "Better not tell you now.", "Cannot predict now.", "Concentrate and ask again.", "Don't count on it.", "My reply is no.", "My sources say no.", "Outlook not so good.", "Very doubtful."];
       const ans = answers[Math.floor(Math.random()*answers.length)];
-      return sysMsg(`🎱 **Magic 8-Ball**\n\n**Question:** ${question}\n**Answer:** ${ans}`);
+      return sysMsg(`🎱 **Magic 8-Ball**\n\n**Q:** ${question}\n**A:** ${ans}`);
     }
 
-    // HANGMAN
     if(cmd === '/hangman') {
       const action = args[1] ? args[1].toLowerCase() : '';
-      
       if(action === 'stop') {
         if(!isStaffMember()) return toast("Only staff can forcefully stop games.", "err");
         await db.ref('server_meta/hangman_'+room).remove();
         return sysMsg(`🛑 Hangman game was forcibly stopped by staff (${myDisplayName}).`);
       }
-
       if(action === 'start') {
-        const word = args[2] ? args[2].toLowerCase() : ['javascript', 'firebase', 'hacker', 'programming', 'network'][Math.floor(Math.random()*5)];
+        const word = args[2] ? args[2].toLowerCase() : ['javascript', 'firebase', 'hacker', 'programming', 'network', 'database', 'developer'][Math.floor(Math.random()*7)];
         await db.ref('server_meta/hangman_'+room).set({ word: word, guessed: '', strikes: 0, starter: myDisplayName });
         return sysMsg(`🎮 ${myDisplayName} started a game of Hangman! Type /guess [letter] to play.\n\n${word.replace(/[a-z]/g, '⬜ ')}`);
       }
@@ -2396,18 +2577,15 @@ async function doSend(){
       return db.ref('chats/'+room).push({ sys: false, user: 'system', displayName: 'Hangman Bot', pfp: 'https://cdn-icons-png.flaticon.com/512/3004/3004382.png', text: resultMsg, ts: Date.now(), isGame: true });
     }
 
-    // MULTIPLAYER AND SINGLEPLAYER BLACKJACK
     if(cmd === '/bj') {
       const action = args[1] ? args[1].toLowerCase() : '';
       
-      // Stop Multi
       if(action === 'stop') {
         if(!isStaffMember()) return toast("Only staff can forcefully stop games.", "err");
         await db.ref('server_meta/bj_'+room).remove();
         return sysMsg(`🛑 Multiplayer Blackjack game was forcibly stopped by staff (${myDisplayName}).`);
       }
 
-      // Singleplayer Init
       if(action === 'play') {
         const spSnap = await db.ref('server_meta/spbj_'+me).once('value');
         if(spSnap.exists()) return toast("You already have a singleplayer game running! Use /bj hit or stand.", "err");
@@ -2427,7 +2605,6 @@ async function doSend(){
         return;
       }
 
-      // Multiplayer Init
       if(action === 'create') {
         const gameSnap = await db.ref('server_meta/bj_'+room).once('value');
         if(gameSnap.exists()) return toast("A Multiplayer Blackjack game is already active or forming in this room.", "err");
@@ -2438,7 +2615,6 @@ async function doSend(){
         return sysMsg(`🃏 **PvP BLACKJACK LOBBY** created by ${myDisplayName}!\n\nOthers: Type /bj join to enter!\nHost: Type /bj start when ready.`);
       }
 
-      // Check Multi state
       const gameSnap = await db.ref('server_meta/bj_'+room).once('value');
       const gameMulti = gameSnap.val();
 
@@ -2474,11 +2650,9 @@ async function doSend(){
       }
       
       if(action === 'hit' || action === 'stand') {
-        // Determine if they are playing SP or MP
         const spSnap = await db.ref('server_meta/spbj_'+me).once('value');
         const gameSingle = spSnap.val();
 
-        // Handle Singleplayer hit/stand
         if(gameSingle) {
             if(gameSingle.status !== 'playing') return toast("Game over, wait for resolution.", "err");
             if(action === 'hit') {
@@ -2497,7 +2671,6 @@ async function doSend(){
             return;
         }
 
-        // Handle Multiplayer hit/stand
         if(gameMulti) {
             if(gameMulti.phase !== 'playing') return toast("Game is not in the playing phase.", "err");
             if(!gameMulti.players[me]) return toast("You are not in this game.", "err");
