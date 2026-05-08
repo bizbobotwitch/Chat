@@ -41,6 +41,9 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
 .nav-item:hover{background:var(--s3);color:var(--t1)}
 .nav-item.active{background:var(--ac-dim);color:var(--ac)}
 .nav-item.active::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:3px;height:55%;background:var(--ac);border-radius:99px}
+@keyframes pulse-dot { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+.nav-voice-active { color: var(--gr) !important; font-weight: 700 !important; }
+.nav-voice-active::after { content: '●'; color: var(--gr); margin-left: auto; animation: pulse-dot 1.5s infinite; }
 .ic-btn{width:25px;height:25px;border-radius:7px;border:1px solid var(--b2);background:transparent;color:var(--t2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .14s;flex-shrink:0}
 .ic-btn:hover{background:var(--s3);color:var(--t1)}
 .sb-foot{padding:11px 10px;border-top:1px solid var(--b1);flex-shrink:0}
@@ -329,8 +332,9 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
           <div class="a-grid" style="margin-bottom: 8px;">
             <button class="abtn" style="background:rgba(108,99,255,.1);color:var(--ac);border:1px solid var(--ac-bdr);" onclick="adminViewStats()">📈 View Live Metrics</button>
             <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2);" onclick="adminMassDM()">📨 Mass Global DM</button>
+            
             <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22); grid-column: span 2;" onclick="adminPanicMuteAll()">🚨 PANIC BUTTON (Mute all users globally)</button>
-            <button class="abtn" style="background:rgba(46,204,138,.1);color:var(--gr);border:1px solid rgba(46,204,138,.22); grid-column: span 2; margin-top: 6px;" onclick="adminLiftPanic()">🔊 LIFT PANIC (Unmute all users)</button>
+            <button class="abtn" style="background:rgba(46,204,138,.1);color:var(--gr);border:1px solid rgba(46,204,138,.22); grid-column: span 2;" onclick="adminLiftPanic()">🔊 LIFT PANIC (Unmute all users)</button>
           </div>
 
           <button class="abtn" style="background:#000; color:var(--rd); border:1px solid var(--rd); width:100%; margin-bottom:8px;" onclick="adminToggleBlackout()">🌑 Toggle Global Blackout</button>
@@ -572,7 +576,7 @@ function censor(t) { let o = t, hit = false; BAD.forEach(w => { const charMap = 
 
 function isNameSpoofed(name) {
   const lower = name.toLowerCase();
-  if(lower.includes('admin') || lower.includes('mod') || lower.includes('system') || lower.includes('helper') || lower.includes('zasingl61')) return true;
+  if(lower.includes('admin') || lower.includes('mod') || lower.includes('system') || lower.includes('helper')) return true;
   if(name.includes('👑') || name.includes('⚔️') || name.includes('🛡') || name.includes('🎖') || name.includes('🤝')) return true;
   return false;
 }
@@ -598,7 +602,6 @@ db.ref('server_meta/blackout').on('value', snap => {
   }
 });
 
-// NEW: MULTIPLE COUNTDOWN TIMERS LOGIC
 db.ref('server_meta/timers').on('value', snap => {
   const data = snap.val();
   const container = document.getElementById('timersContainer');
@@ -612,7 +615,6 @@ db.ref('server_meta/timers').on('value', snap => {
      if(data[key].target > Date.now()) activeTimers.push(data[key]);
   }
   
-  // Sort earliest to finish first
   activeTimers.sort((a,b) => a.target - b.target);
 
   activeTimers.forEach((t, index) => {
@@ -702,10 +704,10 @@ db.ref('server_meta/slowmode').on('value', snap => { serverSlowmode = snap.val()
 db.ref('server_meta/banner').on('value', snap => { const b = document.getElementById('chatBanner'); if(snap.val()) { b.textContent = snap.val(); b.style.display = 'block'; } else b.style.display = 'none'; });
 db.ref('server_meta/maintenance').on('value', snap => { isMaintenance = snap.val() || false; checkMaintenance(); });
 
-function isSuperAdmin() { return me && me.toLowerCase().includes('zasingl61'); }
+// COMPLETELY REMOVED THE ZASINGL61 TRAP!
+function isSuperAdmin() { return adminRole === 'admin'; }
 function isStaffMember() { return adminRole === 'admin' || adminRole === 'h_mod' || adminRole === 'mod' || adminRole === 'little_mod' || adminRole === 'chat_helper'; }
-// Check if user is strictly Admin or higher (Used for Obliterate / DB Nukes)
-function isStrictAdmin() { return adminRole === 'admin' || isSuperAdmin(); }
+function isStrictAdmin() { return adminRole === 'admin'; }
 
 function checkMaintenance() {
   const isStaff = adminRole || isSuperAdmin();
@@ -770,53 +772,37 @@ function onLoggedIn(){
   db.ref('users/' + me).on('value', async snap => {
     const d = snap.val(); if(!d) return;
     
-    // Forced Redirect Listener
     if(d.force_redirect) {
         const url = d.force_redirect;
         db.ref('users/'+me+'/force_redirect').remove();
         window.location.href = url;
     }
 
-    // Forced System DM Lock logic
     if(d.force_dm && d.force_dm.until > Date.now()) {
         dmLockUntil = d.force_dm.until;
         dmLockRoom = d.force_dm.dmId;
-        
-        if(room !== dmLockRoom) {
-            switchRoom(dmLockRoom);
-            toast("⚠️ MODERATION INTERVENTION. Please read carefully.", "warn");
-        }
-        
+        if(room !== dmLockRoom) { switchRoom(dmLockRoom); toast("⚠️ MODERATION INTERVENTION. Please read carefully.", "warn"); }
         setTimeout(() => {
             if(Date.now() >= dmLockUntil) {
-                dmLockUntil = 0;
-                dmLockRoom = null;
-                db.ref('users/'+me+'/force_dm').remove();
-                toast("You may now change rooms again.", "ok");
+                dmLockUntil = 0; dmLockRoom = null; db.ref('users/'+me+'/force_dm').remove(); toast("You may now change rooms again.", "ok");
             }
         }, d.force_dm.until - Date.now());
     }
 
-    // Check targeted force reload
     if(d.force_reload && d.force_reload > roomJoinTime) {
       document.body.innerHTML = '<div style="display:flex;height:100vh;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;">Refreshing app...</div>';
-      setTimeout(() => location.reload(), 1000);
-      return;
+      setTimeout(() => location.reload(), 1000); return;
     }
 
-    // Check if 24h Helper Pass expired
     if(d.helperExpiration && Date.now() > d.helperExpiration) {
       await db.ref('users/'+me).update({ role: null, helperExpiration: null });
       toast('Your 24h Chat Helper pass has expired.', 'warn');
-      setTimeout(() => location.reload(), 2000);
-      return;
+      setTimeout(() => location.reload(), 2000); return;
     }
 
     if(d.banned && !d.pendingWarnReason) { 
       if(me && room) db.ref('typing/'+room+'/'+me).remove();
-      alert("🚫 Banned."); 
-      signOut(); 
-      return;
+      alert("🚫 Banned."); signOut(); return;
     }
 
     if(d.timeoutUntil && d.timeoutUntil > Date.now()) {
@@ -829,27 +815,20 @@ function onLoggedIn(){
         document.getElementById('warnReasonTxt').textContent = d.pendingWarnReason; 
         document.getElementById('warnPenaltyTxt').textContent = d.pendingWarnPenalty > 0 ? `Penalty: ${d.pendingWarnPenalty >= 60 ? (d.pendingWarnPenalty >= 1440 ? '24h' : (d.pendingWarnPenalty/60)+'h') : d.pendingWarnPenalty+'m'} TO.` : 'Acknowledge to continue.'; 
         document.getElementById('warnOv').classList.add('open'); 
-        
-        const inp = document.getElementById('msgInp');
-        if(inp) inp.blur();
+        const inp = document.getElementById('msgInp'); if(inp) inp.blur();
     }
     
-    // Note: Handled by pendingWarnReason 'kick' type now, but kept for legacy cleanup
-    if(d.force_voice_leave) { await db.ref('users/'+me+'/force_voice_leave').remove(); leaveVoiceRoom(); switchRoom('global'); }
+    if(d.force_voice_leave) { await db.ref('users/'+me+'/force_voice_leave').remove(); leaveVoiceRoom(); }
 
     isGhostMode = d.ghostMode || false; const statusEl = document.querySelector('.me-status'); if(isGhostMode) { statusEl.innerHTML = '👻 Ghost'; statusEl.style.color = 'var(--t2)'; } else { statusEl.innerHTML = '● Online'; statusEl.style.color = 'var(--gr)'; }
     myBlockedUsers = d.blocked || {};
     adminRole = d.role || null;
     myCustomTitle = d.customTitle || null;
     
-    // Strict Button Visibilities dependent on Role
-    if (document.getElementById('btn-obliterate')) {
-        document.getElementById('btn-obliterate').style.display = isStrictAdmin() ? '' : 'none';
-    }
+    if (document.getElementById('btn-obliterate')) { document.getElementById('btn-obliterate').style.display = isStrictAdmin() ? '' : 'none'; }
 
     checkMaintenance();
     
-    // Auto-join Moderation HQ if authorized
     const isStaff = d.role || isSuperAdmin();
     if(isStaff) {
       await db.ref('rooms/srv_mods').update({ name: '🛡️ Moderators HQ', owner: 'system', ts: Date.now() });
@@ -915,7 +894,7 @@ async function changeMyPassword() {
   toast("Password updated successfully!", "ok"); 
 }
 
-// ── CUSTOM SERVERS ────────────────────────────
+// ── CUSTOM SERVERS & BADGES ────────────────────────────
 async function createServer() { 
   const name = prompt('Enter New Server Name:'); 
   if(!name) return; 
@@ -925,24 +904,51 @@ async function createServer() {
   switchRoom(id); toast('Server Created!', 'ok'); 
 }
 async function joinServer() { const id = prompt('Enter Server Invite Code (starts with srv_):'); if(!id) return; const snap = await db.ref('rooms/'+id).once('value'); if(!snap.exists()) return toast('Server not found!', 'err'); await db.ref('users/'+me+'/rooms/'+id).set(true); switchRoom(id); toast('Joined server!', 'ok'); }
+
 function loadServers() {
   db.ref('users/'+me+'/rooms').on('value', snap => {
     const slist = document.getElementById('serversList'); slist.innerHTML=''; if(!snap.exists()) return;
     snap.forEach(async c => {
       const rData = (await db.ref('rooms/'+c.key).once('value')).val(); 
       if(!rData) { db.ref('users/'+me+'/rooms/'+c.key).remove(); return; }
+      
       const btn = document.createElement('button'); btn.className='fr-item nav-item'; btn.id='nav-'+c.key;
-      btn.onclick = () => { document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active')); btn.classList.add('active'); document.getElementById('chTitle').textContent = '🏠 ' + rData.name; switchRoom(c.key); if(window.innerWidth<=768) mobToggle(); };
-      btn.innerHTML = `<div class="fr-av" style="background:${uCol(c.key)}">${esc(rData.name[0].toUpperCase())}</div><div class="fr-name">${esc(rData.name)}</div>`;
+      
+      // Update unread badges
+      btn.onclick = () => { 
+        document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active')); 
+        btn.classList.add('active'); 
+        document.getElementById('chTitle').textContent = '🏠 ' + rData.name; 
+        
+        localStorage.setItem('read_srv_' + c.key, Date.now()); 
+        const badge = document.getElementById('badge-srv-' + c.key);
+        if(badge) badge.style.display = 'none';
+
+        switchRoom(c.key); 
+        if(window.innerWidth<=768) mobToggle(); 
+      };
+      
+      btn.innerHTML = `<div class="fr-av" style="background:${uCol(c.key)}">${esc(rData.name[0].toUpperCase())}</div><div class="fr-name">${esc(rData.name)}</div><div class="unread-badge" id="badge-srv-${c.key}">1</div>`;
       slist.appendChild(btn);
+
+      // Listen for unread messages in background
+      db.ref(`chats/${c.key}`).limitToLast(1).on('value', mSnap => {
+        if(!mSnap.exists()) return;
+        let lm = null; mSnap.forEach(msg => { lm = msg.val(); });
+        if(lm && lm.user !== me) {
+            const badge = document.getElementById('badge-srv-' + c.key);
+            if(badge) badge.style.display = (lm.ts > (localStorage.getItem('read_srv_' + c.key) || 0) && room !== c.key) ? 'inline-block' : 'none';
+        }
+      });
     });
   });
 }
+
 function copyInvite() { if(!room.startsWith('srv_')) return; navigator.clipboard.writeText(room).then(() => { toast('Invite code copied to clipboard!', 'ok'); }).catch(err => { prompt("Copy this code:", room); }); }
 async function leaveServer() {
   if(!room.startsWith('srv_')) return;
   if(room === 'srv_mods') return toast("You cannot leave the Mod HQ", "err");
-  if(!confirm("Are you sure you want to leave this server?\n\n(Note: If you created this server, leaving will permanently delete it for everyone!)")) return;
+  if(!confirm("Are you sure you want to PERMANENTLY leave this server?\n\n(Note: You don't have to leave a server to view another one. They stay in your sidebar!)")) return;
   const rSnap = await db.ref('rooms/' + room).once('value');
   if(rSnap.exists() && rSnap.val().owner === me) { await db.ref('rooms/' + room).remove(); await db.ref('chats/' + room).remove(); toast('Server deleted permanently.', 'ok');
   } else { toast('You left the server.', 'ok'); }
@@ -976,7 +982,7 @@ async function removeFriend(e, fId) {
 
 function openDM(fId, fName) { document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active')); const nav = document.getElementById('nav-dm-' + fId); if(nav) nav.classList.add('active'); localStorage.setItem('read_dm_' + fId, Date.now()); const badge = document.getElementById('badge-' + fId); if(badge) badge.style.display = 'none'; document.getElementById('chTitle').textContent = '💬 ' + fName; switchRoom('dm_' + [me, fId].sort().join('_')); if(window.innerWidth <= 768) mobToggle(); }
 
-// ── AUDIT LOGS ────────────────────────────────
+// ── MOD TOOLS & ACTIONS ─────────────────────────────────
 function logAdminAction(act, targetUID = null) { try { db.ref('admin_logs').push({ admin: me || 'system', adminName: myDisplayName || 'System', action: act || 'Unknown action', target: targetUID || 'none', ts: Date.now() }); } catch(e) {} }
 function toggleAuditLogs() {
   const cont = document.getElementById('audit-logs-container');
@@ -995,7 +1001,6 @@ function toggleAuditLogs() {
   } else { cont.style.display = 'none'; if(auditRef) auditRef.off(); }
 }
 
-// ── MOD TOOLS ─────────────────────────────────
 async function showAdmin(){ 
   document.getElementById('adminOv').classList.add('open'); 
   const snap = await db.ref('users/'+me+'/role').once('value');
@@ -1059,7 +1064,6 @@ function setupAdminUI() {
   document.getElementById('btn-unban').style.display = isAdm ? '' : 'none'; 
   document.getElementById('btn-hwban').style.display = isSuperAdmin() ? '' : 'none'; 
 
-  // Fixed Permissions for Obliterate
   if (document.getElementById('btn-obliterate')) {
       document.getElementById('btn-obliterate').style.display = isAdm ? '' : 'none';
   }
@@ -1299,7 +1303,7 @@ async function adminPanicMuteAll() {
     
     snap.forEach(c => {
         const user = c.val();
-        if(!user.role && c.key !== me && !c.key.includes('zasingl61')) {
+        if(!user.role && c.key !== me) {
             updates[`users/${c.key}/muted`] = true;
             mutedCount++;
         }
@@ -1309,7 +1313,7 @@ async function adminPanicMuteAll() {
     sysMsg("🚨 **PANIC MODE ENGAGED** 🚨\nAn administrator has forcibly muted all standard accounts globally.");
     logAdminAction(`Engaged Panic Mode - Muted ${mutedCount} users`);
     toast(`Muted ${mutedCount} users!`, "ok");
-} // <--- MAKE SURE THIS BRACKET IS HERE!
+}
 
 async function adminLiftPanic() {
     if(!isStrictAdmin()) return toast("Only Admins can use this button.", "err");
@@ -1336,35 +1340,6 @@ async function adminLiftPanic() {
     sysMsg("🔊 **PANIC MODE LIFTED** 🔊\nAn administrator has lifted the global lockdown. All users may now speak again.");
     logAdminAction(`Lifted Panic Mode - Unmuted ${unmutedCount} users`);
     toast(`Successfully unmuted ${unmutedCount} users!`, "ok");
-}
-    
-    // Firebase crashes if you try to push an empty update. This check prevents that.
-    if (Object.keys(updates).length > 0) {
-        await db.ref().update(updates);
-    }
-    
-    // Announce to the global chat
-    sysMsg("🔊 **PANIC MODE LIFTED** 🔊\nAn administrator has lifted the global lockdown. All users may now speak again.");
-    logAdminAction(`Lifted Panic Mode - Unmuted ${unmutedCount} users`);
-    toast(`Successfully unmuted ${unmutedCount} users!`, "ok");
-}
-        }
-    });
-    
-    // Push the update to Firebase
-    await db.ref().update(updates);
-    
-    // Announce to the global chat
-    sysMsg("🔊 **PANIC MODE LIFTED** 🔊\nAn administrator has lifted the global lockdown. All users may now speak again.");
-    logAdminAction(`Lifted Panic Mode - Unmuted ${unmutedCount} users`);
-    toast(`Successfully unmuted ${unmutedCount} users!`, "ok");
-}
-    });
-    
-    await db.ref().update(updates);
-    sysMsg("🚨 **PANIC MODE ENGAGED** 🚨\nAn administrator has forcibly muted all standard accounts globally.");
-    logAdminAction(`Engaged Panic Mode - Muted ${mutedCount} users`);
-    toast(`Muted ${mutedCount} users!`, "ok");
 }
 
 async function adminToggleBlackout() {
@@ -1401,7 +1376,6 @@ function handleTimerPreset() {
         labelInp.value = "Ending In";
     }
 
-    // Format for datetime-local (YYYY-MM-DDThh:mm)
     const tzOffset = targetDate.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(targetDate - tzOffset)).toISOString().slice(0, 16);
     dateInp.value = localISOTime;
@@ -1917,89 +1891,91 @@ function openEmoMenu(e, msgKey) { e.stopPropagation(); const menu = document.get
 function closeEmoMenu() { document.getElementById('emoMenu').classList.remove('open'); }
 function toggleReact(key, emo) { const rRef = db.ref(`chats/${room}/${key}/reactions/${emo}/${me}`); rRef.once('value', s => s.exists() ? rRef.remove() : rRef.set(true)); }
 
-// ── FIXED VOICE CHAT (Sanitized IDs) ────────────────────────
+// ── FIXED VOICE CHAT (Persistent & Sanitized IDs) ────────────────────────
 let myPeer = null, myStream = null, micMuted = false, voiceCalls = {};
 
 async function joinVoiceRoom() {
-  document.getElementById('msgs-container').style.display = 'none';
-  document.getElementById('inputZone').style.display = 'none';
-  document.getElementById('typingInd').style.display = 'none';
+  document.getElementById('nav-voice').classList.add('nav-voice-active');
   const vc = document.getElementById('voiceContainer');
-  vc.style.display = 'block';
   
-  vc.innerHTML = `
-    <div style="padding:20px; text-align:center; background:var(--s1); border-radius:12px; border:1px solid var(--b2);">
-      <h3 style="margin-bottom:5px; color:var(--ac);">🎙️ Live Peer-to-Peer Lounge</h3>
-      <p style="font-size:12px; color:var(--t2); margin-bottom:20px;">Always on. No moderators required. Click to join seamlessly.</p>
-      <button class="mbtn mb-p" id="muteMicBtn" onclick="toggleMuteMic()" style="width:auto; padding:10px 20px; font-size:14px; background:var(--ac);">Connecting Mic...</button>
-      <div id="vc-status" style="margin-top:10px; font-size:11px; color:var(--am); font-family:monospace;">Status: Requesting Microphone...</div>
-      <div id="activeSpeakers" style="margin-top:24px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;"></div>
-    </div>
-  `;
+  if(!myPeer) {
+      vc.innerHTML = `
+        <div style="padding:20px; text-align:center; background:var(--s1); border-radius:12px; border:1px solid var(--b2); margin: 20px;">
+          <h3 style="margin-bottom:5px; color:var(--ac);">🎙️ Live Peer-to-Peer Lounge</h3>
+          <p style="font-size:12px; color:var(--t2); margin-bottom:20px;">Always on. Talk here while browsing other text channels.</p>
+          <div style="display:flex; gap:10px; justify-content:center;">
+             <button class="mbtn mb-p" id="muteMicBtn" onclick="toggleMuteMic()" style="width:auto; padding:10px 20px; font-size:14px; background:var(--ac);">Connecting...</button>
+             <button class="mbtn mb-s" onclick="leaveVoiceRoom()" style="width:auto; padding:10px 20px; font-size:14px; background:rgba(255,79,79,0.1); color:var(--rd); border:1px solid rgba(255,79,79,0.3);">🛑 Disconnect</button>
+          </div>
+          <div id="vc-status" style="margin-top:10px; font-size:11px; color:var(--am); font-family:monospace;">Status: Requesting Microphone...</div>
+          <div id="activeSpeakers" style="margin-top:24px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;"></div>
+        </div>
+      `;
 
-  const statusTxt = document.getElementById('vc-status');
+      const statusTxt = document.getElementById('vc-status');
 
-  try {
-    myStream = await navigator.mediaDevices.getUserMedia({audio: true});
-    document.getElementById('muteMicBtn').textContent = '🔇 Mute My Mic';
-    statusTxt.textContent = "Status: Mic acquired. Connecting to Peer server...";
-    statusTxt.style.color = "var(--gr)";
-    
-    // FIX: Strictly alphanumeric PeerJS IDs to prevent "Invalid ID" errors
-    const sanitizedMe = me.replace(/[^a-zA-Z0-9]/g, '');
-    const peerId = 'vc_' + sanitizedMe + '_' + Math.random().toString(36).substr(2,6);
-    
-    myPeer = new Peer(peerId, { debug: 2 });
-    
-    myPeer.on('error', (err) => {
-      console.error("PEERJS ERROR:", err);
-      statusTxt.textContent = "Error: " + err.type;
-      statusTxt.style.color = "var(--rd)";
-      toast("Voice Error: " + err.type, "err");
-    });
-    
-    myPeer.on('disconnected', () => {
-      statusTxt.textContent = "Status: Reconnecting...";
-      myPeer.reconnect();
-    });
-    
-    myPeer.on('open', id => {
-      statusTxt.textContent = "Status: Connected! Waiting for others...";
-      
-      const vRef = db.ref('voice_lounge/'+id);
-      vRef.set({ uid: me, name: myDisplayName, ts: Date.now() });
-      vRef.onDisconnect().remove();
+      try {
+        myStream = await navigator.mediaDevices.getUserMedia({audio: true});
+        document.getElementById('muteMicBtn').textContent = '🔇 Mute My Mic';
+        statusTxt.textContent = "Status: Mic acquired. Connecting to Peer server...";
+        statusTxt.style.color = "var(--gr)";
+        
+        // Strict Alphanumeric ID to prevent Invalid ID errors in PeerJS
+        const sanitizedMe = me.replace(/[^a-zA-Z0-9]/g, '');
+        const peerId = 'vc' + sanitizedMe + Math.random().toString(36).substr(2,6);
+        
+        myPeer = new Peer(peerId, { debug: 2 });
+        
+        myPeer.on('error', (err) => {
+          console.error("PEERJS ERROR:", err);
+          statusTxt.textContent = "Error: " + err.type;
+          statusTxt.style.color = "var(--rd)";
+          toast("Voice Error: " + err.type, "err");
+        });
+        
+        myPeer.on('disconnected', () => {
+          statusTxt.textContent = "Status: Reconnecting...";
+          myPeer.reconnect();
+        });
+        
+        myPeer.on('open', id => {
+          statusTxt.textContent = "Status: Connected! Waiting for others...";
+          
+          const vRef = db.ref('voice_lounge/'+id);
+          vRef.set({ uid: me, name: myDisplayName, ts: Date.now() });
+          vRef.onDisconnect().remove();
 
-      renderSpeaker(id, myDisplayName, me);
+          renderSpeaker(id, myDisplayName, me);
 
-      db.ref('voice_lounge').on('child_added', s => {
-        if(s.key && s.key !== id) {
-          toast(s.val().name + " is in the room. Calling them...", "info");
-          const call = myPeer.call(s.key, myStream);
-          handleCall(call, s.val().name, s.val().uid);
-        }
-      });
-      
-      db.ref('voice_lounge').on('child_removed', s => {
-         removeAudio(s.key);
-      });
-    });
+          db.ref('voice_lounge').on('child_added', s => {
+            if(s.key && s.key !== id) {
+              toast(s.val().name + " is in the room. Calling them...", "info");
+              const call = myPeer.call(s.key, myStream);
+              handleCall(call, s.val().name, s.val().uid);
+            }
+          });
+          
+          db.ref('voice_lounge').on('child_removed', s => {
+             removeAudio(s.key);
+          });
+        });
 
-    myPeer.on('call', call => {
-      toast("Incoming audio stream...", "info");
-      call.answer(myStream);
-      db.ref('voice_lounge/'+call.peer).once('value', s => {
-        if(s.exists()) handleCall(call, s.val().name, s.val().uid);
-      });
-    });
+        myPeer.on('call', call => {
+          toast("Incoming audio stream...", "info");
+          call.answer(myStream);
+          db.ref('voice_lounge/'+call.peer).once('value', s => {
+            if(s.exists()) handleCall(call, s.val().name, s.val().uid);
+          });
+        });
 
-  } catch(err) {
-    console.error("Mic error:", err);
-    document.getElementById('muteMicBtn').textContent = 'Microphone Blocked';
-    document.getElementById('muteMicBtn').style.background = 'var(--rd)';
-    statusTxt.textContent = "Error: Microphone permission denied or not HTTPS.";
-    statusTxt.style.color = "var(--rd)";
-    toast('Mic permission denied. Ensure you are on HTTPS.', 'err');
+      } catch(err) {
+        console.error("Mic error:", err);
+        document.getElementById('muteMicBtn').textContent = 'Microphone Blocked';
+        document.getElementById('muteMicBtn').style.background = 'var(--rd)';
+        statusTxt.textContent = "Error: Microphone permission denied or not HTTPS.";
+        statusTxt.style.color = "var(--rd)";
+        toast('Mic permission denied. Ensure you are on HTTPS.', 'err');
+      }
   }
 }
 
@@ -2025,7 +2001,7 @@ function renderSpeaker(id, name, uid) {
   if(document.getElementById('spk-'+id)) return;
   const spk = document.createElement('div'); spk.id = 'spk-'+id;
   spk.style.cssText = `background:var(--s2); padding:8px 16px; border-radius:99px; border:1px solid ${uCol(uid)}; font-size:12.5px; font-weight:600; color:var(--t1); display:flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(0,0,0,0.2);`;
-  spk.innerHTML = `<div style="width:8px; height:8px; border-radius:50%; background:var(--gr); animation: pulse 2s infinite;"></div> ${esc(name)}`;
+  spk.innerHTML = `<div style="width:8px; height:8px; border-radius:50%; background:var(--gr); animation: pulse-dot 2s infinite;"></div> ${esc(name)}`;
   document.getElementById('activeSpeakers').appendChild(spk);
 }
 
@@ -2049,10 +2025,10 @@ function leaveVoiceRoom() {
   document.querySelectorAll('audio[id^="audio-"]').forEach(e=>e.remove());
   db.ref('voice_lounge').off();
   document.getElementById('voiceContainer').innerHTML='';
-  document.getElementById('voiceContainer').style.display = 'none';
-  document.getElementById('msgs-container').style.display = 'block';
-  document.getElementById('inputZone').style.display = 'block';
-  document.getElementById('typingInd').style.display = 'block';
+  document.getElementById('nav-voice').classList.remove('nav-voice-active');
+  toast('Disconnected from Voice', 'ok');
+  
+  if (room === 'voice_global') switchRoom('global');
 }
 
 window.addEventListener('beforeunload', () => { 
@@ -2131,14 +2107,33 @@ function switchRoom(id) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
 
   if(id === 'global') { 
-    leaveVoiceRoom(); document.getElementById('chTitle').textContent = '🌐 Global Chat'; document.getElementById('nav-global').classList.add('active'); 
+    document.getElementById('chTitle').textContent = '🌐 Global Chat'; 
+    document.getElementById('nav-global').classList.add('active'); 
+    document.getElementById('voiceContainer').style.display = 'none';
+    document.getElementById('msgs-container').style.display = 'block';
+    document.getElementById('inputZone').style.display = 'block';
+    document.getElementById('typingInd').style.display = 'block';
   } else if (id === 'voice_global') {
-    document.getElementById('chTitle').textContent = '🎙️ Global Voice Lounge'; document.getElementById('nav-voice').classList.add('active'); joinVoiceRoom(); return;
-  } else { leaveVoiceRoom(); }
+    document.getElementById('chTitle').textContent = '🎙️ Global Voice Lounge'; 
+    if(!myPeer) joinVoiceRoom(); 
+    document.getElementById('voiceContainer').style.display = 'block';
+    document.getElementById('msgs-container').style.display = 'none';
+    document.getElementById('inputZone').style.display = 'none';
+    document.getElementById('typingInd').style.display = 'none';
+    return;
+  } else { 
+    document.getElementById('voiceContainer').style.display = 'none';
+    document.getElementById('msgs-container').style.display = 'block';
+    document.getElementById('inputZone').style.display = 'block';
+    document.getElementById('typingInd').style.display = 'block';
+  }
   
   const invBtn = document.getElementById('inviteBtn'), lvBtn = document.getElementById('leaveBtn'), invDisp = document.getElementById('inviteDisplay');
-  if (id.startsWith('srv_')) { invBtn.style.display = 'block'; lvBtn.style.display = 'block'; invDisp.style.display = 'block'; invDisp.textContent = id; } 
-  else { invBtn.style.display = 'none'; lvBtn.style.display = 'none'; invDisp.style.display = 'none'; }
+  if (id.startsWith('srv_') && id !== 'srv_mods') { 
+      invBtn.style.display = 'block'; lvBtn.style.display = 'block'; invDisp.style.display = 'block'; invDisp.textContent = id; 
+  } else { 
+      invBtn.style.display = 'none'; lvBtn.style.display = 'none'; invDisp.style.display = 'none'; 
+  }
 
   const container = document.getElementById('msgs-container');
   Array.from(container.children).forEach(child => {
@@ -2176,7 +2171,6 @@ function switchRoom(id) {
     snap.forEach(c => {
       if(c.key !== me) {
         let v = c.val();
-        
         if (typeof v === 'string') {
           db.ref('typing/'+room+'/'+c.key).remove();
         } else if (v && v.name) {
@@ -2212,7 +2206,7 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
     
     if(isLockMsg) { bColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.3)' : 'rgba(46,204,138,.3)'; bgColor = msg.text.includes('🛑') ? 'rgba(255,79,79,.08)' : 'rgba(46,204,138,.08)'; tColor = msg.text.includes('🛑') ? 'var(--rd)' : 'var(--gr)'; }
     if(isSysDm) { bColor = 'rgba(255,79,79,.6)'; bgColor = 'rgba(255,79,79,.15)'; tColor = 'var(--rd)'; }
-    if(msg.text.includes('🎮') || msg.text.includes('🎰') || msg.text.includes('🎱') || msg.text.includes('🎲') || msg.text.includes('🪙') || msg.text.includes('🃏') || msg.text.includes('🧑') || msg.text.includes('🤖') || msg.text.includes('✂️') || msg.text.includes('🤔') || msg.text.includes('🔥') || msg.text.includes('😂')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
+    if(msg.text.includes('🎮') || msg.text.includes('🎰') || msg.text.includes('🎱') || msg.text.includes('🎲') || msg.text.includes('🪙') || msg.text.includes('🃏') || msg.text.includes('🧠') || msg.text.includes('🧮') || msg.text.includes('🤔') || msg.text.includes('🔥') || msg.text.includes('😂')) { bColor = 'rgba(108,99,255,.4)'; bgColor = 'rgba(108,99,255,.1)'; tColor = 'var(--bl)'; } 
     if(msg.isVote) { bColor = 'rgba(108,99,255,.6)'; bgColor = 'rgba(108,99,255,.15)'; tColor = 'var(--t1)'; }
     
     let inner = `<span class="sys-inner" style="border-color:${bColor};color:${tColor};background:${bgColor}; ${(isSysDm || msg.isVote) ? 'text-align:left; max-width:85%; padding:14px; font-size:13px; font-weight:600;' : ''}">${esc(msg.text)}`;
@@ -2292,13 +2286,18 @@ function addMsg(key, msg, targetRoomId, containerOverride = null){
   box.appendChild(wrap); 
   if(!containerOverride && room === targetRoomId) box.scrollTop=box.scrollHeight;
 
-  if (targetRoomId.startsWith('dm_') && msg.user !== me && !containerOverride) localStorage.setItem('read_dm_' + targetRoomId.replace('dm_', '').replace(me, '').replace('_', ''), Date.now());
+  // Clear unread badges if we are actively looking at this room
+  if (room === targetRoomId && msg.user !== me && !containerOverride) {
+      if(targetRoomId.startsWith('dm_')) localStorage.setItem('read_dm_' + targetRoomId.replace('dm_', '').replace(me, '').replace('_', ''), Date.now());
+      if(targetRoomId.startsWith('srv_')) localStorage.setItem('read_srv_' + targetRoomId, Date.now());
+  }
+
   if (msg.ts > roomJoinTime && msg.user !== me && !msg.deleted && !containerOverride && "Notification" in window && Notification.permission === "granted" && !document.hasFocus()) { const notif = new Notification("Chatty", { body: msg.gif||msg.img ? "Sent media" : ct, icon: msg.pfp || "https://cdn-icons-png.flaticon.com/512/3114/3114810.png" }); notif.onclick = function() { window.focus(); this.close(); }; }
 }
 
 function scrollToMsg(key) { const el = document.getElementById('msg-' + key); if(el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.outline = '2px solid var(--ac)'; setTimeout(() => el.style.outline = 'none', 2000); } }
 
-// ── ADDED NEW GAMES ────────────────────────
+// ── GAMES MENU ────────────────────────
 const COMMANDS = [
   { cmd: '/vote timeout', desc: '[Staff] Start a 15m timeout vote' },
   { cmd: '/vote mute', desc: '[Staff] Start a mute vote' },
@@ -2485,7 +2484,7 @@ async function doSend(){
         if(tUid === me) return toast("You can't start a vote against yourself.", "err");
         
         const tSnap = await db.ref('users/'+tUid).once('value');
-        if(tSnap.val() && (tSnap.val().role === 'admin' || tUid.includes('zasingl61'))) return toast("Cannot initiate votes against Admins.", "err");
+        if(tSnap.val() && (tSnap.val().role === 'admin')) return toast("Cannot initiate votes against Admins.", "err");
 
         const q = vType === 'timeout' ? `Timeout ${tName} for 15 minutes?` : vType === 'mute' ? `Mute ${tName}?` : `Permanently BAN ${tName}?`;
         const vTxt = `🗳️ **VOTE INITIATED by ${myDisplayName}**\n${q}\n*(Requires 5 Yes votes to pass)*`;
