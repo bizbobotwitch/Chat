@@ -1302,9 +1302,10 @@ async function adminPanicMuteAll() {
         if(!user.role && c.key !== me && !c.key.includes('zasingl61')) {
             updates[`users/${c.key}/muted`] = true;
             mutedCount++;
-        }
-      async function adminLiftPanic() {
-    if(!isSuperAdmin()) return;
+          async function adminLiftPanic() {
+    // Changed to isStrictAdmin so YOU can actually use it, and added an error message so it doesn't fail silently!
+    if(!isStrictAdmin()) return toast("Only Admins can use this button.", "err");
+    
     if(!confirm("🔊 LIFT PANIC: Are you sure you want to UNMUTE everyone? This will restore chat privileges globally.")) return;
     
     toast("Lifting panic lockdown...", "info");
@@ -1314,10 +1315,23 @@ async function adminPanicMuteAll() {
     
     snap.forEach(c => {
         const user = c.val();
-        // If they are currently muted, queue them to be unmuted
+        // If they are currently muted, completely remove the mute status
         if(user.muted) {
-            updates[`users/${c.key}/muted`] = false;
+            updates[`users/${c.key}/muted`] = null; 
             unmutedCount++;
+        }
+    });
+    
+    // Firebase crashes if you try to push an empty update. This check prevents that.
+    if (Object.keys(updates).length > 0) {
+        await db.ref().update(updates);
+    }
+    
+    // Announce to the global chat
+    sysMsg("🔊 **PANIC MODE LIFTED** 🔊\nAn administrator has lifted the global lockdown. All users may now speak again.");
+    logAdminAction(`Lifted Panic Mode - Unmuted ${unmutedCount} users`);
+    toast(`Successfully unmuted ${unmutedCount} users!`, "ok");
+}
         }
     });
     
