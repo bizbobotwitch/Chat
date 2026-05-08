@@ -330,6 +330,7 @@ html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:v
             <button class="abtn" style="background:rgba(108,99,255,.1);color:var(--ac);border:1px solid var(--ac-bdr);" onclick="adminViewStats()">📈 View Live Metrics</button>
             <button class="abtn" style="background:var(--s3);color:var(--t1);border:1px solid var(--b2);" onclick="adminMassDM()">📨 Mass Global DM</button>
             <button class="abtn" style="background:rgba(255,79,79,.1);color:var(--rd);border:1px solid rgba(255,79,79,.22); grid-column: span 2;" onclick="adminPanicMuteAll()">🚨 PANIC BUTTON (Mute all users globally)</button>
+            <button class="abtn" style="background:rgba(46,204,138,.1);color:var(--gr);border:1px solid rgba(46,204,138,.22); grid-column: span 2; margin-top: 6px;" onclick="adminLiftPanic()">🔊 LIFT PANIC (Unmute all users)</button>
           </div>
 
           <button class="abtn" style="background:#000; color:var(--rd); border:1px solid var(--rd); width:100%; margin-bottom:8px;" onclick="adminToggleBlackout()">🌑 Toggle Global Blackout</button>
@@ -1302,6 +1303,32 @@ async function adminPanicMuteAll() {
             updates[`users/${c.key}/muted`] = true;
             mutedCount++;
         }
+      async function adminLiftPanic() {
+    if(!isSuperAdmin()) return;
+    if(!confirm("🔊 LIFT PANIC: Are you sure you want to UNMUTE everyone? This will restore chat privileges globally.")) return;
+    
+    toast("Lifting panic lockdown...", "info");
+    const snap = await db.ref('users').once('value');
+    let unmutedCount = 0;
+    const updates = {};
+    
+    snap.forEach(c => {
+        const user = c.val();
+        // If they are currently muted, queue them to be unmuted
+        if(user.muted) {
+            updates[`users/${c.key}/muted`] = false;
+            unmutedCount++;
+        }
+    });
+    
+    // Push the update to Firebase
+    await db.ref().update(updates);
+    
+    // Announce to the global chat
+    sysMsg("🔊 **PANIC MODE LIFTED** 🔊\nAn administrator has lifted the global lockdown. All users may now speak again.");
+    logAdminAction(`Lifted Panic Mode - Unmuted ${unmutedCount} users`);
+    toast(`Successfully unmuted ${unmutedCount} users!`, "ok");
+}
     });
     
     await db.ref().update(updates);
